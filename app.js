@@ -5,8 +5,15 @@
 
   var mem = {};
   function storeGet(k, fb){ try{ var v = localStorage.getItem(k); return v===null ? fb : JSON.parse(v); } catch(e){ return (k in mem) ? mem[k] : fb; } }
-  function storeSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){ mem[k]=v; } }
-  function storeRemove(k){ try{ localStorage.removeItem(k); } catch(e){ delete mem[k]; } }
+  function storeSet(k, v){
+    var s = JSON.stringify(v);
+    try{ localStorage.setItem(k, s); } catch(e){ mem[k]=v; }
+    if(window.TG && TG.cloudSet) TG.cloudSet(k, s);
+  }
+  function storeRemove(k){
+    try{ localStorage.removeItem(k); } catch(e){ delete mem[k]; }
+    if(window.TG && TG.cloudRemove) TG.cloudRemove(k);
+  }
   function storeAllKeys(){ var keys=[]; try{ for(var i=0;i<localStorage.length;i++){ keys.push(localStorage.key(i)); } } catch(e){ keys = Object.keys(mem); } return keys; }
 
   var toastEl = document.getElementById('toast');
@@ -394,6 +401,9 @@
     renderAll(); toast('Прогресс сброшен');
   });
 
-  renderAll();
-  showScreen(storeGet('activeScreen', 'start'));
+  function boot(){
+    renderAll();
+    showScreen(storeGet('activeScreen', 'start'));
+  }
+  if(window.TG && TG.cloudSync){ TG.cloudSync(boot); } else { boot(); }
 })();

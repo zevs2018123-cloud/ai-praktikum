@@ -33,8 +33,50 @@ var TG = (function(){
     }catch(e){}
   }
 
+  /* CloudStorage: кросс-устройственная синхронизация прогресса.
+     localStorage остаётся источником истины для мгновенного рендера;
+     CloudStorage — фоновое зеркало поверх него, доступное только внутри Telegram. */
+  var cloudOn = !!(tg && tg.CloudStorage);
+
+  function cloudSync(done){
+    var called = false;
+    function finish(){ if(called) return; called = true; done(); }
+    if(!cloudOn){ finish(); return; }
+    var timer = setTimeout(finish, 2500);
+    try{
+      tg.CloudStorage.getKeys(function(err, keys){
+        if(err || !keys || !keys.length){ clearTimeout(timer); finish(); return; }
+        tg.CloudStorage.getItems(keys, function(err2, items){
+          clearTimeout(timer);
+          if(!err2 && items){
+            try{
+              Object.keys(items).forEach(function(k){
+                var v = items[k];
+                if(v){ localStorage.setItem(k, v); }
+              });
+            }catch(e){}
+          }
+          finish();
+        });
+      });
+    }catch(e){ clearTimeout(timer); finish(); }
+  }
+
+  function cloudSet(key, jsonValue){
+    if(!cloudOn) return;
+    try{ tg.CloudStorage.setItem(key, jsonValue, function(){}); }catch(e){}
+  }
+  function cloudRemove(key){
+    if(!cloudOn) return;
+    try{ tg.CloudStorage.removeItem(key, function(){}); }catch(e){}
+  }
+
   return {
     active: !!tg,
+    cloudAvailable: cloudOn,
+    cloudSync: cloudSync,
+    cloudSet: cloudSet,
+    cloudRemove: cloudRemove,
 
     haptic: function(kind){
       if(!tg || !tg.HapticFeedback) return;

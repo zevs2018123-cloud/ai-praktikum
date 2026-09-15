@@ -167,8 +167,8 @@ var BLOCKS = [
   { id:'avatars', num:3, name:'Аватары и персонажи', level:'средний' },
   { id:'video', num:4, name:'Видео', level:'средний' },
   { id:'automation', num:5, name:'Автоматизация и агенты', level:'продвинутый', soon:['Контент-завод','Агенты для рутины'] },
-  { id:'codecode', num:6, name:'Claude Code и программирование', level:'профи', soon:['Введение в Claude Code','Одностраничник с нуля','Опросник с логикой','Деплой — от файла до ссылки'] },
+  { id:'codecode', num:6, name:'Claude Code и программирование', level:'профи' },
   { id:'smm', num:7, name:'SMM и монетизация', level:'капстоун', soon:['Как встроить ИИ в воронку продаж'] }
 ];
 
-var COURSES = [].concat(BLOCK1, BLOCK2, BLOCK3, BLOCK4, BLOCK5, BLOCK7);
+var COURSES = [].concat(BLOCK1, BLOCK2, BLOCK3, BLOCK4, BLOCK5, BLOCK6, BLOCK7);
