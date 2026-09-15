@@ -390,6 +390,54 @@
     catch(e){ toast('Промпт готов — выдели и скопируй'); }
   });
 
+  /* ---------- ИИ-помощник ---------- */
+  var CHAT_ENDPOINT = 'https://ai-praktikum-bot.zevs2018123.workers.dev/chat';
+  var chatHistory = [];
+  var chatLog = document.getElementById('chatLog');
+  var chatInput = document.getElementById('chatInput');
+  var chatSend = document.getElementById('chatSend');
+  var chatBusy = false;
+
+  function renderChatLog(){
+    if(!chatLog) return;
+    chatLog.innerHTML = chatHistory.map(function(m){
+      return '<div class="chat-msg ' + (m.role==='user'?'user':'bot') + '">' + escapeHtml(m.content) + '</div>';
+    }).join('');
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+
+  function sendChatMessage(){
+    if(chatBusy || !chatInput) return;
+    var text = chatInput.value.trim();
+    if(!text) return;
+    chatInput.value = '';
+    chatHistory.push({ role:'user', content:text });
+    renderChatLog();
+    chatBusy = true;
+    var typingEl = document.createElement('div');
+    typingEl.className = 'chat-msg bot typing';
+    typingEl.textContent = 'печатает…';
+    if(chatLog){ chatLog.appendChild(typingEl); chatLog.scrollTop = chatLog.scrollHeight; }
+
+    fetch(CHAT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: chatHistory.slice(-8, -1) })
+    }).then(function(r){ return r.json(); }).then(function(data){
+      chatBusy = false;
+      var reply = (data && data.reply) ? data.reply : 'Не получилось ответить, попробуй ещё раз.';
+      chatHistory.push({ role:'assistant', content:reply });
+      renderChatLog();
+    }).catch(function(){
+      chatBusy = false;
+      chatHistory.push({ role:'assistant', content:'Помощник сейчас недоступен — попробуй чуть позже.' });
+      renderChatLog();
+    });
+  }
+  if(chatSend) chatSend.addEventListener('click', sendChatMessage);
+  if(chatInput) chatInput.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); sendChatMessage(); } });
+
   /* ---------- reset ---------- */
   var resetBtn = document.getElementById('resetBtn');
   var resetArmed = false, resetTimer;
