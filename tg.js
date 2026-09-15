@@ -33,6 +33,26 @@ var TG = (function(){
     }catch(e){}
   }
 
+  /* Имя пользователя Telegram — приходит в initDataUnsafe.user при открытии
+     мини-приложения из чата/меню бота. Вне Telegram (обычный браузер) — null. */
+  var tgUser = null;
+  try{
+    var rawUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if(rawUser){
+      var first = (rawUser.first_name || '').trim();
+      var last = (rawUser.last_name || '').trim();
+      var uname = (rawUser.username || '').trim();
+      tgUser = {
+        id: rawUser.id || null,
+        firstName: first || null,
+        lastName: last || null,
+        username: uname || null,
+        fullName: (first + ' ' + last).trim() || null,
+        displayName: first || uname || null
+      };
+    }
+  }catch(e){}
+
   /* CloudStorage: кросс-устройственная синхронизация прогресса.
      localStorage остаётся источником истины для мгновенного рендера;
      CloudStorage — фоновое зеркало поверх него, доступное только внутри Telegram. */
@@ -73,6 +93,7 @@ var TG = (function(){
 
   return {
     active: !!tg,
+    user: tgUser,
     cloudAvailable: cloudOn,
     cloudSync: cloudSync,
     cloudSet: cloudSet,

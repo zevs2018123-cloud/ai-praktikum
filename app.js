@@ -401,7 +401,17 @@
     renderAll(); toast('Прогресс сброшен');
   });
 
+  /* ---------- имя пользователя из Telegram ---------- */
+  function applyUserName(){
+    var name = (window.TG && TG.user && TG.user.displayName) ? TG.user.displayName : null;
+    var greetEl = document.getElementById('heroGreeting');
+    if(greetEl) greetEl.textContent = name ? ('Привет, ' + name + ' 👋') : 'Привет 👋';
+    var profEl = document.getElementById('profileName');
+    if(profEl) profEl.textContent = name || 'Профиль';
+  }
+
   function boot(){
+    applyUserName();
     renderAll();
     showScreen(storeGet('activeScreen', 'start'));
   }
