@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Практикум</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f2; --frame:#ffffff; --surface:#ffffff; --surface-2:#f4f6f7; --border:#e1e6e8;
+    --ink:#14181b; --ink-muted:#5b6268; --ink-faint:#8b9298;
+    --accent:#0e9b96; --accent-ink:#063f3d; --accent-soft:#e2f4f3; --accent-strong:#0b7d79; --on-accent:#04211f;
+    --ok:#2f9e52; --ok-soft:#e5f5ea; --warn:#b8860f; --warn-soft:#faf1dc;
+    --bad:#c4483a; --bad-soft:#fbe8e5; --archive:#8a9096; --archive-soft:#eef0f1;
+    --gold:#a9720c; --gold-soft:#faf0dc;
+    --shadow: 0 1px 2px rgba(20,24,27,.04), 0 8px 24px -12px rgba(20,24,27,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0c0e11; --frame:#14171b; --surface:#181c21; --surface-2:#1f242a; --border:#2a3036;
+      --ink:#edf0f2; --ink-muted:#9aa3ab; --ink-faint:#6c7580;
+      --accent:#2cd1c9; --accent-ink:#bdf4ef; --accent-soft:#122a29; --accent-strong:#3fe0d8; --on-accent:#04211f;
+      --ok:#4fc373; --ok-soft:#122a1c; --warn:#e0b545; --warn-soft:#2c2410;
+      --bad:#e2685a; --bad-soft:#301613; --archive:#8a9198; --archive-soft:#1c2024;
+      --gold:#e6b64a; --gold-soft:#2a2109;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c0e11; --frame:#14171b; --surface:#181c21; --surface-2:#1f242a; --border:#2a3036;
+    --ink:#edf0f2; --ink-muted:#9aa3ab; --ink-faint:#6c7580;
+    --accent:#2cd1c9; --accent-ink:#bdf4ef; --accent-soft:#122a29; --accent-strong:#3fe0d8; --on-accent:#04211f;
+    --ok:#4fc373; --ok-soft:#122a1c; --warn:#e0b545; --warn-soft:#2c2410;
+    --bad:#e2685a; --bad-soft:#301613; --archive:#8a9198; --archive-soft:#1c2024;
+    --gold:#e6b64a; --gold-soft:#2a2109;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Golos Text','Segoe UI',sans-serif; display:flex; justify-content:center; min-height:100%; }
+  h1,h2,h3,.disp{ font-family:'Unbounded','Golos Text',sans-serif; text-wrap:balance; }
+  .mono{ font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .shell{ width:100%; max-width:432px; min-height:100vh; background:var(--frame); position:relative; display:flex; flex-direction:column; border-inline:1px solid var(--border); isolation:isolate; }
+  @media (min-width:433px){ body{ padding-block:28px; } .shell{ min-height:calc(100vh - 56px); border-radius:28px; box-shadow:var(--shadow); overflow:hidden; } }
+  .topbar{ position:sticky; top:0; z-index:5; padding:calc(env(safe-area-inset-top,0px) + 16px) 20px 14px; background:var(--frame); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .topbar .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 2px; }
+  .topbar h1{ font-size:19px; margin:0; font-weight:700; letter-spacing:-.01em; }
+  .brand{ display:flex; align-items:center; gap:9px; }
+  .brand .mark{ width:30px;height:30px;border-radius:9px; background:linear-gradient(155deg,var(--accent),var(--accent-strong)); display:flex;align-items:center;justify-content:center;flex:none; }
+  .brand .mark svg{ width:16px;height:16px; }
+  .content{ flex:1; overflow-y:auto; padding:18px 20px calc(96px + env(safe-area-inset-bottom,0px)); -webkit-overflow-scrolling:touch; }
+  .screen{ display:flex; flex-direction:column; gap:20px; animation:rise .35s ease both; }
+  .screen[hidden]{ display:none; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+  @media (prefers-reduced-motion: reduce){ .screen{ animation:none; } }
+  .tabbar{ position:sticky; bottom:0; z-index:6; display:grid; grid-template-columns:repeat(5,1fr); background:var(--frame); border-top:1px solid var(--border); padding:8px 6px calc(10px + env(safe-area-inset-bottom,0px)); }
+  .tab{ appearance:none; border:0; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; border-radius:12px; color:var(--ink-faint); font-family:'Golos Text',sans-serif; font-size:10.5px; font-weight:600; }
+  .tab svg{ width:21px; height:21px; stroke:var(--ink-faint); fill:none; stroke-width:1.8; transition:stroke .15s; }
+  .tab[aria-current="true"]{ color:var(--accent-strong); }
+  .tab[aria-current="true"] svg{ stroke:var(--accent-strong); }
+  .tab:active{ background:var(--surface-2); }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); }
+  .stack{ display:flex; flex-direction:column; gap:12px; }
+  .row{ display:flex; align-items:center; gap:10px; }
+  .between{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  p{ margin:0; line-height:1.55; }
+  .muted{ color:var(--ink-muted); font-size:13.5px; }
+  .faint{ color:var(--ink-faint); }
+  .section-title{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:2px; }
+  .section-title h2{ font-size:15.5px; margin:0; }
+  .section-title .count{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-faint); }
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; padding:3px 8px 3px 6px; border-radius:99px; white-space:nowrap; }
+  .pill .dot{ width:6px;height:6px;border-radius:99px; flex:none; }
+  .pill.ok{ background:var(--ok-soft); color:var(--ok); } .pill.ok .dot{ background:var(--ok); }
+  .pill.info{ background:var(--surface-2); color:var(--ink-muted); border:1px solid var(--border); } .pill.info .dot{ background:var(--ink-faint); }
+  .btn{ appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font-family:'Golos Text',sans-serif; font-weight:600; font-size:13px; padding:9px 14px; border-radius:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
+  .btn:active{ transform:translateY(1px); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .btn.gold{ background:var(--gold); border-color:var(--gold); color:#241a02; }
+  .btn.ghost{ background:transparent; }
+  .btn.sm{ padding:6px 11px; font-size:11.5px; border-radius:9px; }
+  .btn.block{ width:100%; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn:focus-visible, .tab:focus-visible, .chip:focus-visible, input:focus-visible, .switch:focus-visible, .q-opt:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .progress{ height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .progress > i{ display:block; height:100%; background:var(--accent); border-radius:99px; }
+  .progress.sm{ height:5px; }
+  .divider{ height:1px; background:var(--border); border:0; margin:2px 0; }
+  .hero{ border-radius:18px; padding:18px; position:relative; overflow:hidden; background:linear-gradient(160deg,var(--accent-soft),var(--surface) 70%); border:1px solid var(--border); }
+  .hero .net{ position:absolute; right:-18px; top:-10px; width:150px; height:150px; opacity:.5; }
+  .hero .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 8px; }
+  .hero h2{ font-size:19px; margin:0 0 8px; max-width:76%; }
+  .hero p{ max-width:80%; color:var(--ink-muted); font-size:13.5px; margin-bottom:14px; }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; }
+  .stat .num{ font-family:'Unbounded',sans-serif; font-size:22px; font-weight:700; line-height:1; }
+  .stat .lbl{ font-size:11.5px; color:var(--ink-muted); margin-top:5px; }
+  .active-banner{ background:linear-gradient(160deg,var(--accent-soft),var(--surface) 78%); border:1px solid var(--accent); border-radius:16px; padding:15px; display:flex; flex-direction:column; gap:10px; }
+  .active-banner .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--accent-strong); }
+  .active-banner .name{ font-size:15px; font-weight:700; }
+  .active-banner .next{ font-size:12.3px; color:var(--ink-muted); }
+  .empty-banner{ border:1.5px dashed var(--border); border-radius:16px; padding:16px; text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .empty-banner svg{ width:26px;height:26px; stroke:var(--ink-faint); fill:none; stroke-width:1.6; }
+  .syntx{ display:flex; gap:10px; align-items:flex-start; background:var(--accent-soft); border:1px solid var(--accent); border-radius:12px; padding:11px 12px; }
+  .syntx .ico{ width:26px;height:26px;border-radius:8px; background:var(--accent); flex:none; display:flex;align-items:center;justify-content:center; margin-top:1px; }
+  .syntx .ico svg{ width:14px;height:14px; stroke:var(--on-accent); fill:none; stroke-width:2; }
+  .syntx .txt{ flex:1; font-size:12.3px; color:var(--accent-ink); line-height:1.45; }
+  .syntx .txt b{ display:block; font-size:12.8px; margin-bottom:2px; }
+  .syntx a.btn{ margin-top:8px; }
+  .club{ background:linear-gradient(160deg,var(--gold-soft),var(--surface) 75%); border:1px solid var(--gold); border-radius:16px; padding:16px; }
+  .club .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin:0 0 6px; }
+  .club h3{ font-size:15.5px; margin:0 0 6px; }
+  .club p{ font-size:12.8px; color:var(--ink-muted); margin-bottom:10px; }
+  .club .price{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; color:var(--ink); margin-bottom:12px; }
+  .club .price span{ color:var(--ink-faint); font-weight:500; font-size:12px; }
+  .block-head{ display:flex; align-items:center; gap:10px; margin:6px 0 2px; }
+  .block-head .num{ width:26px;height:26px;border-radius:8px; background:var(--accent-soft); color:var(--accent-ink); font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .block-head h2{ font-size:14.5px; margin:0; flex:1; }
+  .block-head .lvl{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  details.course{ background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  details.course > summary{ list-style:none; cursor:pointer; padding:14px 16px; display:flex; flex-wrap:wrap; gap:10px 12px; align-items:center; }
+  details.course > summary::-webkit-details-marker{ display:none; }
+  .course-icon{ width:42px;height:42px;border-radius:12px; flex:none; background:var(--accent-soft); display:flex;align-items:center;justify-content:center; }
+  .course-icon svg{ width:20px;height:20px; stroke:var(--accent-strong); fill:none; stroke-width:1.7; }
+  .course-meta{ flex:1 1 140px; min-width:0; }
+  .course-meta .name{ font-weight:700; font-size:14px; margin-bottom:3px; }
+  .course-actions{ display:flex; align-items:center; gap:6px; flex:none; margin-left:auto; }
+  .chev{ width:16px;height:16px; stroke:var(--ink-faint); fill:none; stroke-width:2; transition:transform .2s; flex:none; }
+  details[open] .chev{ transform:rotate(180deg); }
+  .lesson-list{ padding:0 16px 15px; display:flex; flex-direction:column; gap:2px; }
+  .lesson-row{ display:flex; align-items:center; gap:10px; padding:9px 6px; border-radius:9px; cursor:pointer; }
+  .lesson-row:hover{ background:var(--surface-2); }
+  .lesson-check{ width:19px;height:19px;border-radius:6px;border:1.6px solid var(--border); flex:none; display:flex; align-items:center; justify-content:center; background:var(--surface); padding:0; }
+  .lesson-check svg{ width:12px;height:12px; stroke:var(--on-accent); fill:none; stroke-width:3; opacity:0; }
+  .lesson-check[data-read="true"]{ background:var(--accent); border-color:var(--accent); }
+  .lesson-check[data-read="true"] svg{ opacity:1; }
+  .lesson-txt{ flex:1; font-size:12.8px; }
+  .lesson-txt .n{ color:var(--ink-faint); font-family:'JetBrains Mono',monospace; margin-right:6px; }
+  .lesson-video-dot{ width:6px;height:6px;border-radius:99px; background:var(--accent); display:inline-block; margin-right:6px; vertical-align:middle; }
+  .lesson-arrow{ width:15px;height:15px; stroke:var(--ink-faint); fill:none; stroke-width:2; flex:none; }
+  .quiz-row{ display:flex; align-items:center; gap:9px; margin:6px 6px 2px; padding:10px 11px; border-radius:10px; background:var(--surface-2); border:1px dashed var(--border); cursor:pointer; }
+  .quiz-row svg{ width:16px;height:16px; stroke:var(--accent-strong); fill:none; stroke-width:1.8; flex:none; }
+  .quiz-row span{ font-size:12px; color:var(--ink); flex:1; }
+  .club-mini{ display:flex; align-items:center; gap:9px; margin:4px 6px 2px; padding:9px 10px; border-radius:10px; background:var(--gold-soft); border:1px solid var(--gold); cursor:pointer; }
+  .club-mini svg{ width:15px;height:15px; stroke:var(--gold); fill:none; stroke-width:1.8; flex:none; }
+  .club-mini span{ font-size:11.5px; color:var(--ink); flex:1; }
+  .soon-card{ border:1.5px dashed var(--border); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+  .soon-card .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .soon-list{ display:flex; flex-wrap:wrap; gap:7px; }
+  .soon-pill{ font-size:11.5px; color:var(--ink-muted); background:var(--surface-2); border:1px solid var(--border); padding:5px 10px; border-radius:99px; }
+  .ring{ position:relative; width:76px; height:76px; flex:none; }
+  .ring svg{ width:100%;height:100%; transform:rotate(-90deg); }
+  .ring circle{ fill:none; stroke-width:7; }
+  .ring .bg{ stroke:var(--surface-2); }
+  .ring .fg{ stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .4s ease; }
+  .ring .num{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-weight:700; font-size:15px; }
+  .switch{ width:40px; height:23px; border-radius:99px; background:var(--surface-2); border:1px solid var(--border); position:relative; cursor:pointer; flex:none; }
+  .switch i{ position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:99px; background:var(--ink-faint); transition:.18s; }
+  .switch[aria-pressed="true"]{ background:var(--accent-soft); border-color:var(--accent); }
+  .switch[aria-pressed="true"] i{ transform:translateX(17px); background:var(--accent); }
+  .prof-course-row{ display:flex; align-items:center; gap:11px; padding:9px 0; }
+  .prof-course-row .info{ flex:1; min-width:0; }
+  .prof-course-row .info .between{ margin-bottom:5px; }
+  .prof-course-row .info b{ font-size:12.8px; }
+  .status-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 7px; border-radius:99px; white-space:nowrap; }
+  .status-pill.new{ background:var(--surface-2); color:var(--ink-faint); }
+  .status-pill.progress{ background:var(--accent-soft); color:var(--accent-ink); }
+  .status-pill.done{ background:var(--ok-soft); color:var(--ok); }
+  code.inline{ font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--surface-2); border:1px solid var(--border); padding:1px 6px; border-radius:6px; }
+  .toast{ position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,8px); background:var(--ink); color:var(--bg); font-size:12.5px; font-weight:600; padding:9px 16px; border-radius:99px; opacity:0; pointer-events:none; transition:.2s; z-index:40; white-space:nowrap; max-width:88%; text-align:center; }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .lesson-overlay{ position:absolute; inset:0; z-index:30; background:var(--frame); display:flex; flex-direction:column; }
+  .lesson-overlay[hidden]{ display:none; }
+  .lesson-head{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px; background:var(--frame); border-bottom:1px solid var(--border); }
+  .back-btn{ appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+  .back-btn svg{ width:17px;height:17px; stroke:var(--ink); fill:none; stroke-width:2; }
+  .lesson-head-txt{ min-width:0; flex:1; }
+  .lesson-head-txt .k{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; }
+  .lesson-head-txt .t{ font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lesson-scroll{ flex:1; overflow-y:auto; padding:18px 20px 24px; display:flex; flex-direction:column; gap:16px; -webkit-overflow-scrolling:touch; }
+  .lesson-scroll h3{ font-size:16.5px; margin:0; }
+  .lesson-scroll .body-txt{ display:flex; flex-direction:column; gap:10px; font-size:13.8px; color:var(--ink); }
+  .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--border); }
+  .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .video-link-row{ display:flex; justify-content:flex-end; }
+  .video-link-row a{ font-size:11.5px; color:var(--accent-strong); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+  .video-empty{ border:1.5px dashed var(--border); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; background:var(--surface-2); }
+  .video-empty svg{ width:26px;height:26px; stroke:var(--ink-faint); fill:none; stroke-width:1.6; }
+  .video-empty .add-row{ display:flex; gap:7px; width:100%; }
+  .video-empty .add-row input{ flex:1; font-family:'Golos Text',sans-serif; font-size:12.5px; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:8px 10px; min-width:0; }
+  .quiz-head{ display:flex; align-items:center; gap:8px; }
+  .quiz-head svg{ width:16px;height:16px; stroke:var(--accent-strong); fill:none; stroke-width:1.9; }
+  .quiz-head b{ font-size:13.5px; }
+  .quiz-q{ background:var(--surface-2); border:1px solid var(--border); border-radius:13px; padding:13px; display:flex; flex-direction:column; gap:9px; }
+  .q-text{ font-size:13px; font-weight:600; line-height:1.4; }
+  .q-opts{ display:flex; flex-direction:column; gap:7px; }
+  .q-opt{ appearance:none; text-align:left; width:100%; background:var(--surface); border:1.5px solid var(--border); color:var(--ink); font-family:'Golos Text',sans-serif; font-size:12.6px; padding:9px 11px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .q-opt .mark{ width:16px;height:16px; border-radius:99px; border:1.6px solid var(--border); flex:none; }
+  .q-opt.correct{ border-color:var(--ok); background:var(--ok-soft); color:var(--ok); }
+  .q-opt.correct .mark{ border-color:var(--ok); background:var(--ok); }
+  .q-opt.incorrect{ border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
+  .q-opt.incorrect .mark{ border-color:var(--bad); background:var(--bad); }
+  .q-opt[disabled]{ cursor:default; }
+  .q-explain{ font-size:11.8px; color:var(--ink-muted); padding-top:2px; }
+  .q-explain[hidden]{ display:none; }
+  .lesson-actions{ position:sticky; bottom:0; padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--frame); border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-width="1.8"><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M7.7 7.3 10.5 16M16.3 7.3 13.5 16M8 6h8"/></svg></div>
+      <div><p class="eyebrow" id="screenEyebrow">Практикум</p><h1 id="screenTitle">Старт</h1></div></div>
+  </div>
+  <main class="content">
+    <section class="screen" id="screen-start" data-title="Старт" data-eyebrow="Практикум">
+      <div class="hero">
+        <svg class="net" viewBox="0 0 120 120" fill="none" stroke="currentColor" style="color:var(--accent)"><g stroke-width="1" opacity=".7">
+          <circle cx="20" cy="20" r="2.4" fill="currentColor" stroke="none"/><circle cx="60" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+          <circle cx="98" cy="30" r="2.4" fill="currentColor" stroke="none"/><circle cx="40" cy="55" r="2.4" fill="currentColor" stroke="none"/>
+          <circle cx="85" cy="70" r="2.4" fill="currentColor" stroke="none"/><circle cx="20" cy="90" r="2.4" fill="currentColor" stroke="none"/>
+          <path d="M20 20 60 12M60 12 98 30M20 20 40 55M60 12 40 55M98 30 85 70M40 55 85 70M40 55 20 90"/></g></svg>
+        <p class="eyebrow">Привет, Вова 👋</p>
+        <h2>От основ до профи — 7 блоков</h2>
+        <p>Видео → статья → квиз курса отдельной кнопкой. Курс выбираешь сам.</p>
+        <button class="btn primary" data-goto="courses">Выбрать курс</button>
+      </div>
+      <div class="stack"><div class="section-title"><h2>Твой прогресс</h2></div><div id="startActiveBanner"></div></div>
+      <div class="stack"><div class="section-title"><h2>Сводка</h2></div>
+        <div class="stat-grid">
+          <div class="stat"><div class="num" id="statDone">0<span class="faint" style="font-size:13px;">/0</span></div><div class="lbl">статей прочитано</div></div>
+          <div class="stat"><div class="num" id="statAccuracy">—</div><div class="lbl">точность квизов</div></div>
+        </div>
+      </div>
+      <div class="syntx"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-3 3-3 13 0 17M12 3.5c3 3 3 13 0 17M4 12h16"/></svg></div>
+        <div class="txt"><b>Syntx AI</b>Всё, что разбирается в уроках, уже доступно внутри Syntx — 90+ нейросетей в одном месте, без VPN, по токенам.
+          <a class="btn primary" style="margin-top:8px; padding:7px 12px; font-size:12px;" href="https://t.me/syntxaibot?start=aff_7800944895" target="_blank" rel="noopener">Открыть Syntx AI →</a></div></div>
+    </section>
+
+    <section class="screen" id="screen-courses" data-title="Курсы" data-eyebrow="Обучение" hidden>
+      <div id="coursesActiveBanner"></div>
+      <p class="muted">В каждом уроке: видео → статья. Квиз курса — отдельная кнопка, все вопросы курса собраны на одной странице.</p>
+      <div class="stack" id="blocksList"></div>
+    </section>
+
+    <section class="screen" id="screen-toolkit" data-title="Тулкит" data-eyebrow="Фреймворки" hidden>
+      <div class="card stack">
+        <div class="section-title"><h2>Конструктор промпта</h2><span class="count mono">формула</span></div>
+        <p class="muted">[РОЛЬ] + [ЗАДАЧА] + [КОНТЕКСТ] + [СТИЛЬ] + [РЕЗУЛЬТАТ]</p>
+        <div class="stack" style="gap:8px;">
+          <input id="fRole" placeholder="Роль" style="font-family:'Golos Text';font-size:13.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;">
+          <input id="fTask" placeholder="Задача" style="font-family:'Golos Text';font-size:13.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;">
+          <input id="fContext" placeholder="Контекст" style="font-family:'Golos Text';font-size:13.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;">
+          <input id="fStyle" placeholder="Стиль" style="font-family:'Golos Text';font-size:13.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;">
+          <input id="fResult" placeholder="Результат" style="font-family:'Golos Text';font-size:13.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;">
+        </div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12.2px;line-height:1.6;white-space:pre-wrap;" id="formulaPreview">Заполни поля выше</div>
+        <button class="btn primary block" id="copyPrompt">Скопировать промпт</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-profile" data-title="Профиль" data-eyebrow="Ты" hidden>
+      <div class="card row" style="gap:16px;">
+        <div class="ring"><svg viewBox="0 0 76 76"><circle class="bg" cx="38" cy="38" r="31"/><circle class="fg" id="profileRing" cx="38" cy="38" r="31" stroke-dasharray="194.7" stroke-dashoffset="194.7" pathLength="194.7"/></svg><div class="num" id="profilePct">0%</div></div>
+        <div class="stack" style="gap:6px;"><b style="font-size:14.5px;">Вова</b><span class="muted" id="profileFrac">0 статей прочитано</span><span class="faint mono" style="font-size:11px;" id="profileAccuracy">квизы: пока нет ответов</span></div>
+      </div>
+      <div class="stack"><div class="section-title"><h2>Прогресс по курсам</h2><span class="count faint">реальные данные</span></div><div class="card stack" style="gap:0;" id="profileCourseList"></div></div>
+      <div class="club"><p class="eyebrow">Закрытый клуб</p><h3>Разбор твоего кейса лично</h3><p>Практика с обратной связью — для тех, кто прошёл уроки и хочет результат быстрее.</p><div class="price">$100 <span>или</span> 10 000 ₽</div><a class="btn gold block" href="https://t.me/Desanji" target="_blank" rel="noopener">Написать в клуб →</a></div>
+      <button class="btn ghost block" id="resetBtn" style="color:var(--ink-faint);">Сбросить весь прогресс</button>
+    </section>
+  </main>
+  <nav class="tabbar" id="tabbar">
+    <button class="tab" data-screen="start" aria-current="true"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>Старт</button>
+    <button class="tab" data-screen="courses" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19a2 2 0 0 0 2 2h12M4 19a2 2 0 0 1 2-2h12"/></svg>Курсы</button>
+    <button class="tab" data-screen="toolkit" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M4 12h5M4 18h9"/><circle cx="17" cy="6" r="2"/><circle cx="11" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Тулкит</button>
+    <button class="tab" data-screen="profile" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>Профиль</button>
+  </nav>
+
+  <div class="lesson-overlay" id="lessonOverlay" hidden>
+    <div class="lesson-head"><button class="back-btn" id="lessonBack"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="lesson-head-txt"><div class="k" id="lessonKicker">Курс</div><div class="t" id="lessonTitleTxt">Урок</div></div></div>
+    <div class="lesson-scroll" id="lessonScroll"></div>
+    <div class="lesson-actions"><button class="btn primary block" id="lessonFinishBtn">Следующая статья →</button></div>
+  </div>
+
+  <div class="lesson-overlay" id="quizOverlay" hidden>
+    <div class="lesson-head"><button class="back-btn" id="quizBack"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="lesson-head-txt"><div class="k">Квиз курса</div><div class="t" id="quizTitleTxt">Курс</div></div></div>
+    <div class="lesson-scroll" id="quizScroll"></div>
+    <div class="lesson-actions"><button class="btn primary block" id="quizFinishBtn" disabled>Ответь на все вопросы</button></div>
+  </div>
+
+  <div class="toast" id="toast">Скопировано</div>
+</div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="tg.js"></script>
+<script src="data.js"></script>
+<script src="data2.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
