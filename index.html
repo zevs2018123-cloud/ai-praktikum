@@ -1,4 +1,7 @@
 <title>AI Практикум</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -85,6 +88,8 @@
   .hero{ border-radius:18px; padding:18px; position:relative; overflow:hidden; background:linear-gradient(160deg,var(--accent-soft),var(--surface) 70%); border:1px solid var(--border); }
   .hero .net{ position:absolute; right:-18px; top:-10px; width:150px; height:150px; opacity:.5; }
   .hero .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 8px; }
+  /* приветствие с именем — обычным регистром, капс на имени выглядит как крик */
+  #heroGreeting{ font-family:'Golos Text',sans-serif; font-size:13px; font-weight:600; letter-spacing:0; text-transform:none; }
   .hero h2{ font-size:19px; margin:0 0 8px; max-width:76%; }
   .hero p{ max-width:80%; color:var(--ink-muted); font-size:13.5px; margin-bottom:14px; }
   .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -165,6 +170,26 @@
   code.inline{ font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--surface-2); border:1px solid var(--border); padding:1px 6px; border-radius:6px; }
   .toast{ position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,8px); background:var(--ink); color:var(--bg); font-size:12.5px; font-weight:600; padding:9px 16px; border-radius:99px; opacity:0; pointer-events:none; transition:.2s; z-index:40; white-space:nowrap; max-width:88%; text-align:center; }
   .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  /* ---- очки и ачивки ---- */
+  .xp-card{ background:linear-gradient(135deg,var(--accent),var(--accent-strong)); color:var(--on-accent); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:9px; box-shadow:var(--shadow); }
+  .xp-card .xp-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .xp-card .xp-lvl{ font-family:'Unbounded','Golos Text',sans-serif; font-size:15.5px; font-weight:700; letter-spacing:-.01em; }
+  .xp-card .xp-num{ font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; opacity:.85; }
+  .xp-card .xp-bar{ height:7px; border-radius:99px; background:rgba(4,33,31,.18); overflow:hidden; }
+  .xp-card .xp-bar > i{ display:block; height:100%; border-radius:99px; background:var(--on-accent); transition:width .5s cubic-bezier(.2,.8,.3,1); }
+  .xp-card .xp-hint{ font-size:11.5px; opacity:.8; }
+  .ach-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .ach{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:11px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; opacity:.45; filter:grayscale(1); transition:.25s; }
+  .ach.on{ opacity:1; filter:none; border-color:var(--accent); background:var(--accent-soft); }
+  .ach .ico{ font-size:21px; line-height:1; }
+  .ach .nm{ font-size:10.8px; font-weight:600; line-height:1.25; }
+  .ach-pop{ position:fixed; left:50%; top:22%; transform:translate(-50%,-10px) scale(.94); background:var(--frame); border:1px solid var(--accent); border-radius:18px; padding:18px 22px; display:flex; flex-direction:column; align-items:center; gap:6px; box-shadow:0 20px 50px -18px rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:.28s cubic-bezier(.2,.8,.3,1); z-index:60; max-width:80%; text-align:center; }
+  .ach-pop.show{ opacity:1; transform:translate(-50%,0) scale(1); }
+  .ach-pop .ico{ font-size:38px; line-height:1; }
+  .ach-pop .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-strong); }
+  .ach-pop .nm{ font-family:'Unbounded','Golos Text',sans-serif; font-size:15px; font-weight:700; }
+  .ach-pop .ds{ font-size:12px; color:var(--ink-muted); }
   .lesson-overlay{ position:absolute; inset:0; z-index:30; background:var(--frame); display:flex; flex-direction:column; }
   .lesson-overlay[hidden]{ display:none; }
   .lesson-head{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px; background:var(--frame); border-bottom:1px solid var(--border); }
@@ -229,6 +254,7 @@
         <p>Видео → статья → квиз курса отдельной кнопкой. Курс выбираешь сам.</p>
         <button class="btn primary" data-goto="courses">Выбрать курс</button>
       </div>
+      <div id="xpCardStart"></div>
       <div class="stack"><div class="section-title"><h2>Твой прогресс</h2></div><div id="startActiveBanner"></div></div>
       <div class="stack"><div class="section-title"><h2>Сводка</h2></div>
         <div class="stat-grid">
@@ -268,6 +294,8 @@
         <div class="ring"><svg viewBox="0 0 76 76"><circle class="bg" cx="38" cy="38" r="31"/><circle class="fg" id="profileRing" cx="38" cy="38" r="31" stroke-dasharray="194.7" stroke-dashoffset="194.7" pathLength="194.7"/></svg><div class="num" id="profilePct">0%</div></div>
         <div class="stack" style="gap:6px;"><b style="font-size:14.5px;" id="profileName">Профиль</b><span class="muted" id="profileFrac">0 статей прочитано</span><span class="faint mono" style="font-size:11px;" id="profileAccuracy">квизы: пока нет ответов</span></div>
       </div>
+      <div id="xpCardProfile"></div>
+      <div class="stack"><div class="section-title"><h2>Достижения</h2><span class="count faint" id="achCount">0/12</span></div><div class="ach-grid" id="achGrid"></div></div>
       <div class="stack"><div class="section-title"><h2>Прогресс по курсам</h2><span class="count faint">реальные данные</span></div><div class="card stack" style="gap:0;" id="profileCourseList"></div></div>
       <div class="club"><p class="eyebrow">Закрытый клуб</p><h3>Разбор твоего кейса лично</h3><p>Практика с обратной связью — для тех, кто прошёл уроки и хочет результат быстрее.</p><div class="price">$100 <span>или</span> 10 000 ₽</div><a class="btn gold block" href="https://t.me/Desanji" target="_blank" rel="noopener">Написать в клуб →</a></div>
       <button class="btn ghost block" id="resetBtn" style="color:var(--ink-faint);">Сбросить весь прогресс</button>
@@ -305,6 +333,12 @@
   </div>
 
   <div class="toast" id="toast">Скопировано</div>
+  <div class="ach-pop" id="achPop">
+    <div class="ico" id="achPopIco">🏆</div>
+    <div class="lbl">Новое достижение</div>
+    <div class="nm" id="achPopName"></div>
+    <div class="ds" id="achPopDesc"></div>
+  </div>
 </div>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="tg.js"></script>

@@ -215,6 +215,128 @@
     });
   }
 
+  /* ---------- очки, уровни, ачивки ---------- */
+  var XP_LESSON = 10, XP_CORRECT = 5, XP_COURSE = 50, XP_BLOCK = 150;
+
+  var LEVELS = [
+    { min:0,    name:'Новичок' },
+    { min:150,  name:'Практик' },
+    { min:400,  name:'Уверенный' },
+    { min:800,  name:'Продвинутый' },
+    { min:1400, name:'Мастер' },
+    { min:2200, name:'Профи' },
+    { min:3000, name:'Легенда' }
+  ];
+
+  function blockDone(b){
+    var list = coursesInBlock(b.id);
+    if(!list.length) return false;
+    for(var i=0;i<list.length;i++){ if(!quizDone(list[i])) return false; }
+    return true;
+  }
+
+  /* Всё считается из реального прогресса, отдельно очки нигде не хранятся —
+     значит их нельзя рассинхронизировать с реальным состоянием. */
+  function computeStats(){
+    var s = { xp:0, lessons:0, totalLessons:0, correct:0, coursesDone:0, blocksDone:0, perfect:0, totalCourses:COURSES.length };
+    COURSES.forEach(function(c){
+      var read = readArr(c.id).length;
+      s.lessons += read; s.totalLessons += c.lessons.length;
+      s.xp += read * XP_LESSON;
+      var qz = quizScore(c);
+      s.correct += qz.correct;
+      s.xp += qz.correct * XP_CORRECT;
+      if(quizDone(c)){
+        s.coursesDone++; s.xp += XP_COURSE;
+        if(qz.total && qz.correct === qz.total) s.perfect++;
+      }
+    });
+    BLOCKS.forEach(function(b){ if(blockDone(b)){ s.blocksDone++; s.xp += XP_BLOCK; } });
+    return s;
+  }
+
+  function levelFor(xp){
+    var idx = 0;
+    for(var i=0;i<LEVELS.length;i++){ if(xp >= LEVELS[i].min) idx = i; }
+    var cur = LEVELS[idx], next = LEVELS[idx+1] || null;
+    var pct = next ? Math.round(100 * (xp - cur.min) / (next.min - cur.min)) : 100;
+    return { idx:idx, name:cur.name, min:cur.min, next:next, pct:Math.max(0, Math.min(100, pct)) };
+  }
+
+  var ACHIEVEMENTS = [
+    { id:'first',    ico:'🌱', name:'Первый шаг',   desc:'Прочитана первая статья',        test:function(s){ return s.lessons >= 1; } },
+    { id:'warm',     ico:'🔥', name:'Разогрев',     desc:'5 статей прочитано',             test:function(s){ return s.lessons >= 5; } },
+    { id:'hooked',   ico:'📚', name:'Втянулся',     desc:'15 статей прочитано',            test:function(s){ return s.lessons >= 15; } },
+    { id:'marathon', ico:'🏃', name:'Марафонец',    desc:'30 статей прочитано',            test:function(s){ return s.lessons >= 30; } },
+    { id:'course1',  ico:'🎓', name:'Первый курс',  desc:'Курс пройден целиком',           test:function(s){ return s.coursesDone >= 1; } },
+    { id:'course3',  ico:'🎯', name:'Три курса',    desc:'3 курса пройдено',               test:function(s){ return s.coursesDone >= 3; } },
+    { id:'half',     ico:'⚡', name:'Половина пути', desc:'Половина всех статей позади',    test:function(s){ return s.totalLessons && s.lessons >= s.totalLessons/2; } },
+    { id:'sniper',   ico:'🎯', name:'Снайпер',      desc:'Квиз курса без единой ошибки',   test:function(s){ return s.perfect >= 1; } },
+    { id:'nomiss',   ico:'💎', name:'Без промахов', desc:'3 квиза подряд без ошибок',      test:function(s){ return s.perfect >= 3; } },
+    { id:'block',    ico:'🧩', name:'Блок закрыт',  desc:'Все курсы блока пройдены',       test:function(s){ return s.blocksDone >= 1; } },
+    { id:'theory',   ico:'🧠', name:'Теоретик',     desc:'20 верных ответов в квизах',     test:function(s){ return s.correct >= 20; } },
+    { id:'all',      ico:'👑', name:'Весь путь',    desc:'Все курсы практикума пройдены',  test:function(s){ return s.totalCourses && s.coursesDone >= s.totalCourses; } }
+  ];
+
+  var achPop = document.getElementById('achPop');
+  var achPopTimer = null;
+  function showAchPop(a){
+    if(!achPop) { toast('Достижение: ' + a.name); return; }
+    document.getElementById('achPopIco').textContent = a.ico;
+    document.getElementById('achPopName').textContent = a.name;
+    document.getElementById('achPopDesc').textContent = a.desc;
+    achPop.classList.add('show');
+    if(window.TG) TG.haptic('success');
+    clearTimeout(achPopTimer);
+    achPopTimer = setTimeout(function(){ achPop.classList.remove('show'); }, 2600);
+  }
+
+  /* Показываем ачивку один раз: список уже показанных лежит в том же хранилище,
+     что и прогресс, поэтому синхронизируется между устройствами. */
+  function checkAchievements(silent){
+    var s = computeStats();
+    var seen = storeGet('achUnlocked', []);
+    var fresh = [];
+    ACHIEVEMENTS.forEach(function(a){
+      if(a.test(s) && seen.indexOf(a.id) === -1){ seen.push(a.id); fresh.push(a); }
+    });
+    if(fresh.length){
+      storeSet('achUnlocked', seen);
+      if(!silent){
+        fresh.forEach(function(a, i){ setTimeout(function(){ showAchPop(a); }, i * 2800); });
+      }
+    }
+    return s;
+  }
+
+  function xpCardHtml(s){
+    var lv = levelFor(s.xp);
+    var hint = lv.next
+      ? 'До уровня «' + lv.next.name + '» — ' + (lv.next.min - s.xp) + ' очков'
+      : 'Максимальный уровень достигнут';
+    return '<div class="xp-card">' +
+      '<div class="xp-top"><span class="xp-lvl">' + lv.name + '</span><span class="xp-num">' + s.xp + ' XP</span></div>' +
+      '<div class="xp-bar"><i style="width:' + lv.pct + '%"></i></div>' +
+      '<div class="xp-hint">' + hint + '</div>' +
+    '</div>';
+  }
+
+  function renderGamification(s){
+    var unlocked = storeGet('achUnlocked', []);
+    var cardHtml = xpCardHtml(s);
+    var c1 = document.getElementById('xpCardStart'); if(c1) c1.innerHTML = cardHtml;
+    var c2 = document.getElementById('xpCardProfile'); if(c2) c2.innerHTML = cardHtml;
+    var grid = document.getElementById('achGrid');
+    if(grid){
+      grid.innerHTML = ACHIEVEMENTS.map(function(a){
+        var on = unlocked.indexOf(a.id) !== -1;
+        return '<div class="ach' + (on ? ' on' : '') + '" title="' + a.desc + '"><span class="ico">' + a.ico + '</span><span class="nm">' + a.name + '</span></div>';
+      }).join('');
+    }
+    var cnt = document.getElementById('achCount');
+    if(cnt) cnt.textContent = unlocked.length + '/' + ACHIEVEMENTS.length;
+  }
+
   /* ---------- profile ---------- */
   function refreshProfile(){
     var totalLessons=0, totalRead=0, totalQ=0, totalAns=0, totalCorrect=0;
@@ -248,7 +370,14 @@
     }
   }
 
-  function renderAll(){ renderBlocks(); renderBanners(); refreshProfile(); }
+  function renderAll(){ renderBlocks(); renderBanners(); refreshProfile(); renderGamification(computeStats()); }
+
+  /* Вызывается в момент, когда прогресс реально изменился: здесь и только здесь
+     может выскочить попап новой ачивки. */
+  function progressChanged(){
+    var s = checkAchievements(false);
+    renderGamification(s);
+  }
 
   /* ---------- lesson overlay ---------- */
   var overlay = document.getElementById('lessonOverlay');
@@ -294,13 +423,15 @@
     var lessonNextLabel = isLast ? 'Прочитано → квиз курса' : 'Следующая статья →';
     finishBtn.textContent = lessonNextLabel;
     var lessonNextAction = function(){
-      markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile();
+      markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile(); progressChanged();
       if(isLast) openQuiz(cid); else openLesson(cid, idx+1);
     };
     finishBtn.onclick = lessonNextAction;
     if(window.TG){
       TG.showBack(function(){ closeLesson(); renderAll(); });
-      TG.setMainButton(lessonNextLabel, lessonNextAction);
+      /* нативную кнопку Telegram не показываем: своя кнопка внизу статьи уже есть,
+         а две кнопки подряд (наша + фиолетовая системная) сбивали бета-тестеров */
+      TG.hideMainButton();
     }
     overlay.hidden = false;
   }
@@ -349,6 +480,7 @@
           if(window.TG) TG.haptic(correct ? 'success' : 'error');
           refreshProfile();
           updateQuizFinishState(c, localAnswered, localCorrect);
+          progressChanged();
         });
       });
     });
@@ -363,13 +495,12 @@
       var doneAction = function(){ finishQuiz(c, correct); };
       quizFinishBtn.textContent = doneLabel;
       quizFinishBtn.onclick = doneAction;
-      if(window.TG) TG.setMainButton(doneLabel, doneAction);
     } else {
       quizFinishBtn.disabled = true;
       quizFinishBtn.textContent = 'Ответь на все вопросы (' + answered + '/' + c.quiz.length + ')';
       quizFinishBtn.onclick = null;
-      if(window.TG) TG.hideMainButton();
     }
+    if(window.TG) TG.hideMainButton();
   }
 
   function finishQuiz(c, correct){
@@ -388,7 +519,7 @@
     }
     quizFinishBtn.textContent = nextLabel;
     quizFinishBtn.onclick = nextAction;
-    if(window.TG) TG.setMainButton(nextLabel, nextAction);
+    if(window.TG) TG.hideMainButton();
     renderAll();
   }
 
@@ -463,7 +594,7 @@
   if(resetBtn) resetBtn.addEventListener('click', function(){
     if(!resetArmed){ resetArmed = true; resetBtn.textContent = 'Точно сбросить? Нажми ещё раз'; clearTimeout(resetTimer);
       resetTimer = setTimeout(function(){ resetArmed = false; resetBtn.textContent = 'Сбросить весь прогресс'; }, 2600); return; }
-    storeAllKeys().forEach(function(k){ if(k && (k.indexOf('read_')===0 || k.indexOf('qz_')===0 || k === 'activeCourseId')) storeRemove(k); });
+    storeAllKeys().forEach(function(k){ if(k && (k.indexOf('read_')===0 || k.indexOf('qz_')===0 || k === 'activeCourseId' || k === 'achUnlocked')) storeRemove(k); });
     resetArmed = false; resetBtn.textContent = 'Сбросить весь прогресс';
     renderAll(); toast('Прогресс сброшен');
   });
@@ -479,6 +610,9 @@
 
   function boot(){
     applyUserName();
+    /* тихо проставляем ачивки, которые уже заслужены прошлым прогрессом,
+       чтобы при первом открытии не сыпалась пачка попапов */
+    checkAchievements(true);
     renderAll();
     showScreen(storeGet('activeScreen', 'start'));
   }
