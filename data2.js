@@ -508,4 +508,12 @@ var BLOCKS = [
     stream:{ url:'https://t.me/smm_ai_agent007/133', t:'Эфир: анализ ЦА для SMM-стратегии', d:'Как разбирать аудиторию перед тем, как строить стратегию и контент-план.' } }
 ];
 
-var COURSES = [].concat(BLOCK1, BLOCK2, BLOCK3, BLOCK4, BLOCK5, BLOCK6, BLOCK7);
+/* Порядок внутри блока = порядок показа на вкладке «Курсы».
+   Новые курсы из data4.js встают сразу после базовых курсов своего блока. */
+var COURSES = [].concat(
+  BLOCK1,
+  BLOCK2, COURSE_PHOTOFIX,
+  BLOCK3, COURSE_CHARACTER,
+  BLOCK4, COURSE_CARTOON, COURSE_SCENES, COURSE_POST,
+  BLOCK5, BLOCK6, BLOCK7
+);
