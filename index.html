@@ -13,6 +13,8 @@
     --ok:#2f9e52; --ok-soft:#e5f5ea; --warn:#b8860f; --warn-soft:#faf1dc;
     --bad:#c4483a; --bad-soft:#fbe8e5; --archive:#8a9096; --archive-soft:#eef0f1;
     --gold:#a9720c; --gold-soft:#faf0dc;
+    --code-bg:#14181b; --code-ink:#e8ecee; --code-border:transparent; --code-lbl:#2cd1c9;
+      --tgc-bg1:#eaf4fb; --tgc-bg2:#f4f9fd; --tgc-border:#cfe3f2; --tgc-ink:#10344b; --tgc-ds:#3c5f77; --tgc-lbl:#1c7fb4;
     --shadow: 0 1px 2px rgba(20,24,27,.04), 0 8px 24px -12px rgba(20,24,27,.18);
   }
   @media (prefers-color-scheme: dark){
@@ -23,6 +25,8 @@
       --ok:#4fc373; --ok-soft:#122a1c; --warn:#e0b545; --warn-soft:#2c2410;
       --bad:#e2685a; --bad-soft:#301613; --archive:#8a9198; --archive-soft:#1c2024;
       --gold:#e6b64a; --gold-soft:#2a2109;
+      --code-bg:#0a0d10; --code-ink:#e8ecee; --code-border:#2a3036; --code-lbl:#2cd1c9;
+      --tgc-bg1:#10212c; --tgc-bg2:#13252f; --tgc-border:#1d3d52; --tgc-ink:#dbeaf5; --tgc-ds:#9dbdd2; --tgc-lbl:#5bb7e8;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
     }
   }
@@ -33,6 +37,8 @@
     --ok:#4fc373; --ok-soft:#122a1c; --warn:#e0b545; --warn-soft:#2c2410;
     --bad:#e2685a; --bad-soft:#301613; --archive:#8a9198; --archive-soft:#1c2024;
     --gold:#e6b64a; --gold-soft:#2a2109;
+    --code-bg:#0a0d10; --code-ink:#e8ecee; --code-border:#2a3036; --code-lbl:#2cd1c9;
+    --tgc-bg1:#10212c; --tgc-bg2:#13252f; --tgc-border:#1d3d52; --tgc-ink:#dbeaf5; --tgc-ds:#9dbdd2; --tgc-lbl:#5bb7e8;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
   }
   *{box-sizing:border-box;}
@@ -214,18 +220,20 @@
   .lsn-note.warn{ background:var(--warn-soft); border-left-color:var(--warn); color:var(--ink); }
   .lsn-task{ background:var(--ok-soft); border:1px solid var(--ok); border-radius:14px; padding:12px 13px; font-size:13.2px; line-height:1.5; display:flex; flex-direction:column; gap:5px; }
   .lsn-task .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ok); font-weight:600; }
-  .lsn-prompt{ background:var(--ink); border-radius:14px; padding:12px 13px; display:flex; flex-direction:column; gap:9px; }
-  .lsn-prompt .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); font-weight:600; }
-  .lsn-prompt pre{ margin:0; font-family:'JetBrains Mono',monospace; font-size:11.8px; line-height:1.62; color:#e8ecee; white-space:pre-wrap; word-break:break-word; }
-  .lsn-prompt .copy-prompt{ align-self:flex-start; border-color:rgba(255,255,255,.28); color:#e8ecee; background:transparent; }
+  /* Карточка промпта всегда тёмная — это блок кода. Цвета берём из отдельных
+     токенов, а не из --ink: в тёмной теме --ink светлый, и фон инвертировался. */
+  .lsn-prompt{ background:var(--code-bg); border:1px solid var(--code-border); border-radius:14px; padding:12px 13px; display:flex; flex-direction:column; gap:9px; }
+  .lsn-prompt .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--code-lbl); font-weight:600; }
+  .lsn-prompt pre{ margin:0; font-family:'JetBrains Mono',monospace; font-size:11.8px; line-height:1.62; color:var(--code-ink); white-space:pre-wrap; word-break:break-word; }
+  .lsn-prompt .copy-prompt{ align-self:flex-start; border-color:rgba(255,255,255,.28); color:var(--code-ink); background:transparent; }
   .lsn-prompt .copy-prompt:active{ background:rgba(255,255,255,.12); }
-  .lsn-stream{ display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg,#eaf4fb,#f4f9fd); border:1px solid #cfe3f2; border-radius:16px; padding:13px 14px; }
+  .lsn-stream{ display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg,var(--tgc-bg1),var(--tgc-bg2)); border:1px solid var(--tgc-border); border-radius:16px; padding:13px 14px; }
   .lsn-stream .tg-ico{ flex:none; width:32px; height:32px; border-radius:10px; background:#2ea0da; color:#fff; display:flex; align-items:center; justify-content:center; }
   .lsn-stream .tg-ico svg{ width:18px; height:18px; }
   .lsn-stream .txt{ display:flex; flex-direction:column; gap:4px; min-width:0; }
-  .lsn-stream .lbl{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#1c7fb4; font-weight:600; }
-  .lsn-stream b{ font-size:13.6px; font-weight:700; line-height:1.35; color:#10344b; }
-  .lsn-stream .ds{ font-size:12.6px; line-height:1.5; color:#3c5f77; }
+  .lsn-stream .lbl{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--tgc-lbl); font-weight:600; }
+  .lsn-stream b{ font-size:13.6px; font-weight:700; line-height:1.35; color:var(--tgc-ink); }
+  .lsn-stream .ds{ font-size:12.6px; line-height:1.5; color:var(--tgc-ds); }
   .lsn-stream .open-stream{ align-self:flex-start; margin-top:5px; background:#2ea0da; color:#fff; border-color:#2ea0da; }
   .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--border); }
   .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
