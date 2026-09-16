@@ -389,6 +389,54 @@
   function closeLesson(){ overlay.hidden = true; if(window.TG){ TG.hideBack(); TG.hideMainButton(); } }
   document.getElementById('lessonBack').addEventListener('click', function(){ closeLesson(); renderAll(); });
 
+  /* ---------- рендер тела урока ----------
+     Элемент body — либо строка (обычный абзац, как в старых уроках),
+     либо объект одного из типов:
+       {h:'Заголовок'}                       — подзаголовок внутри статьи
+       {step:1, t:'Название', d:'описание'}  — шаг пошаговой инструкции
+       {list:['пункт','пункт']}              — маркированный список
+       {note:'текст'}                        — врезка-подсказка
+       {warn:'текст'}                        — врезка-предупреждение
+       {prompt:'текст', label:'когда'}       — готовый промпт с кнопкой копирования
+       {task:'текст'}                        — практическое задание
+  */
+  var promptStore = [];
+  function esc(s){ return String(s).replace(/[&<>]/g, function(ch){ return ch==='&'?'&amp;':ch==='<'?'&lt;':'&gt;'; }); }
+
+  function renderBody(body){
+    promptStore = [];
+    return body.map(function(p){
+      if(typeof p === 'string') return '<p>' + p + '</p>';
+      if(p.h) return '<h4 class="lsn-h">' + p.h + '</h4>';
+      if(p.step) return '<div class="lsn-step"><div class="n">' + p.step + '</div><div class="c"><b>' + p.t + '</b>' + (p.d ? '<span>' + p.d + '</span>' : '') + '</div></div>';
+      if(p.list) return '<ul class="lsn-list">' + p.list.map(function(li){ return '<li>' + li + '</li>'; }).join('') + '</ul>';
+      if(p.note) return '<div class="lsn-note">' + p.note + '</div>';
+      if(p.warn) return '<div class="lsn-note warn">' + p.warn + '</div>';
+      if(p.task) return '<div class="lsn-task"><span class="lbl">Практика</span>' + p.task + '</div>';
+      if(p.prompt){
+        var i = promptStore.push(p.prompt) - 1;
+        return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') +
+          '<pre>' + esc(p.prompt) + '</pre>' +
+          '<button class="btn ghost sm copy-prompt" data-pi="' + i + '" type="button">Скопировать промпт</button></div>';
+      }
+      return '';
+    }).join('');
+  }
+
+  function bindPromptCopy(root){
+    root.querySelectorAll('.copy-prompt').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var text = promptStore[Number(btn.dataset.pi)];
+        if(!text) return;
+        try{
+          navigator.clipboard.writeText(text)
+            .then(function(){ toast('Промпт скопирован'); if(window.TG) TG.haptic('light'); })
+            .catch(function(){ toast('Выдели текст промпта и скопируй'); });
+        }catch(e){ toast('Выдели текст промпта и скопируй'); }
+      });
+    });
+  }
+
   var playSvg = '<circle cx="12" cy="12" r="9.5"/><path d="m10 8.5 5 3.5-5 3.5v-7Z"/>';
   function videoBlockHtml(c, idx){
     var vid = getVideo(c, idx);
@@ -410,8 +458,9 @@
     var syntxHtml = '<div class="syntx"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-3 3-3 13 0 17M12 3.5c3 3 3 13 0 17M4 12h16"/></svg></div>' +
       '<div class="txt"><b>Всё это уже есть в Syntx AI</b>То, что разобрано в статье, доступно прямо сейчас в Syntx — удобном сервисе генерации: 90+ нейросетей без VPN, по токенам.' +
       '<a class="btn primary" style="margin-top:8px; padding:7px 12px; font-size:12px;" href="' + SYNTX_LINK + '" target="_blank" rel="noopener">Открыть Syntx AI →</a></div></div>';
-    lessonScroll.innerHTML = videoBlockHtml(c, idx) + '<h3>' + lesson.title + '</h3><div class="body-txt">' + lesson.body.map(function(p){ return '<p>' + p + '</p>'; }).join('') + '</div>' + syntxHtml;
+    lessonScroll.innerHTML = videoBlockHtml(c, idx) + '<h3>' + lesson.title + '</h3><div class="body-txt">' + renderBody(lesson.body) + '</div>' + syntxHtml;
     lessonScroll.scrollTop = 0;
+    bindPromptCopy(lessonScroll);
     var videoInput = document.getElementById('videoAddInput');
     var videoBtn = document.getElementById('videoAddBtn');
     if(videoBtn){ videoBtn.addEventListener('click', function(){
