@@ -200,6 +200,13 @@
       var head = document.createElement('div'); head.className = 'block-head';
       head.innerHTML = '<div class="num">' + b.num + '</div><h2>' + b.name + '</h2><span class="lvl">' + b.level + '</span>';
       blocksListEl.appendChild(head);
+      if(b.stream){
+        var st = document.createElement('div');
+        st.innerHTML = streamCardHtml(b.stream.url, b.stream.t, b.stream.d);
+        var stCard = st.firstChild;
+        blocksListEl.appendChild(stCard);
+        bindStreamLinks(stCard);
+      }
       var list = coursesInBlock(b.id);
       list.forEach(function(c){ blocksListEl.appendChild(renderCourseCard(c)); });
       if(b.soon && b.soon.length){
@@ -403,6 +410,26 @@
   var promptStore = [];
   function esc(s){ return String(s).replace(/[&<>]/g, function(ch){ return ch==='&'?'&amp;':ch==='<'?'&lt;':'&gt;'; }); }
 
+  /* Карточка записи эфира из Telegram-канала. Ссылку открываем через
+     нативный openTelegramLink, чтобы эфир открылся в самом Telegram,
+     а не во встроенном браузере поверх мини-приложения. */
+  function streamCardHtml(url, title, desc){
+    return '<div class="lsn-stream">' +
+      '<div class="tg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 4.3 2.9 11.2c-.9.3-.9 1.6.1 1.8l4.7 1.2 1.8 5.3c.3.8 1.3 1 1.9.4l2.5-2.4 4.6 3.4c.7.5 1.7.1 1.9-.7l3-14.6c.2-.9-.7-1.6-1.9-1.3Z"/><path d="m7.7 14.2 9.6-6.6-7.3 7.9"/></svg></div>' +
+      '<div class="txt"><span class="lbl">Запись эфира</span><b>' + title + '</b>' + (desc ? '<span class="ds">' + desc + '</span>' : '') +
+      '<button class="btn primary sm open-stream" type="button" data-url="' + url + '">Смотреть эфир →</button></div></div>';
+  }
+
+  function bindStreamLinks(root){
+    root.querySelectorAll('.open-stream').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var url = btn.dataset.url;
+        if(window.TG && TG.openTelegramLink && TG.openTelegramLink(url)) return;
+        window.open(url, '_blank', 'noopener');
+      });
+    });
+  }
+
   function renderBody(body){
     promptStore = [];
     return body.map(function(p){
@@ -413,6 +440,7 @@
       if(p.note) return '<div class="lsn-note">' + p.note + '</div>';
       if(p.warn) return '<div class="lsn-note warn">' + p.warn + '</div>';
       if(p.task) return '<div class="lsn-task"><span class="lbl">Практика</span>' + p.task + '</div>';
+      if(p.stream) return streamCardHtml(p.stream, p.t, p.d);
       if(p.prompt){
         var i = promptStore.push(p.prompt) - 1;
         return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') +
@@ -461,6 +489,7 @@
     lessonScroll.innerHTML = videoBlockHtml(c, idx) + '<h3>' + lesson.title + '</h3><div class="body-txt">' + renderBody(lesson.body) + '</div>' + syntxHtml;
     lessonScroll.scrollTop = 0;
     bindPromptCopy(lessonScroll);
+    bindStreamLinks(lessonScroll);
     var videoInput = document.getElementById('videoAddInput');
     var videoBtn = document.getElementById('videoAddBtn');
     if(videoBtn){ videoBtn.addEventListener('click', function(){

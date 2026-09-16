@@ -139,6 +139,15 @@ var TG = (function(){
       try{ tg.MainButton.hide(); }catch(e){}
     },
 
+    /* Ссылки на t.me внутри мини-приложения нужно открывать нативно,
+       иначе Telegram откроет их во встроенном браузере поверх приложения. */
+    openTelegramLink: function(url){
+      try{
+        if(tg && tg.openTelegramLink){ tg.openTelegramLink(url); return true; }
+      }catch(e){}
+      return false;
+    },
+
     close: function(){ if(tg && tg.close) try{ tg.close(); }catch(e){} }
   };
 })();
