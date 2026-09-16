@@ -24,6 +24,24 @@
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
   var titleEl = document.getElementById('screenTitle');
   var eyebrowEl = document.getElementById('screenEyebrow');
+  /* Реальная высота чата: топбар и таббар меняются по контенту/устройству,
+     поэтому меряем их фактическую высоту, а не подбираем магические px. */
+  function syncChatHeight(){
+    var topbar = document.querySelector('.topbar');
+    var tabbar = document.querySelector('.tabbar');
+    var content = document.querySelector('.content');
+    if(!topbar || !tabbar || !content) return;
+    try{
+      var cs = getComputedStyle(content);
+      var padTop = parseFloat(cs.paddingTop) || 0;
+      var padBottom = parseFloat(cs.paddingBottom) || 0;
+      var avail = (window.visualViewport ? window.visualViewport.height : window.innerHeight) - topbar.offsetHeight - tabbar.offsetHeight - padTop - padBottom;
+      if(avail > 220){ document.documentElement.style.setProperty('--chat-avail-h', avail + 'px'); }
+    }catch(e){}
+  }
+  window.addEventListener('resize', syncChatHeight);
+  window.addEventListener('orientationchange', function(){ setTimeout(syncChatHeight, 60); });
+
   function showScreen(name){
     closeLesson(); closeQuiz();
     screens.forEach(function(s){ s.hidden = (s.id !== 'screen-' + name); });
@@ -32,6 +50,7 @@
     if(active){ titleEl.textContent = active.dataset.title; eyebrowEl.textContent = active.dataset.eyebrow; }
     storeSet('activeScreen', name);
     document.querySelector('.content').scrollTop = 0;
+    if(name === 'assistant'){ syncChatHeight(); if(chatLog) chatLog.scrollTop = chatLog.scrollHeight; }
   }
   tabs.forEach(function(t){ t.addEventListener('click', function(){ if(window.TG) TG.haptic('select'); showScreen(t.dataset.screen); }); });
   document.querySelectorAll('[data-goto]').forEach(function(b){ b.addEventListener('click', function(){ showScreen(b.dataset.goto); }); });

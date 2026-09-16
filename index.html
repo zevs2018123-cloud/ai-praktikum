@@ -200,12 +200,14 @@
   .q-explain{ font-size:11.8px; color:var(--ink-muted); padding-top:2px; }
   .q-explain[hidden]{ display:none; }
   .lesson-actions{ position:sticky; bottom:0; padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--frame); border-top:1px solid var(--border); }
-  .chat-log{ display:flex; flex-direction:column; gap:10px; min-height:40px; }
-  .chat-msg{ padding:10px 13px; border-radius:14px; font-size:13.3px; line-height:1.48; max-width:88%; white-space:pre-wrap; }
+  #screen-assistant{ height:var(--chat-avail-h, 62vh); }
+  #screen-assistant .muted{ flex:none; }
+  .chat-log{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; gap:10px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:2px; }
+  .chat-msg{ padding:10px 13px; border-radius:14px; font-size:13.3px; line-height:1.48; max-width:88%; white-space:pre-wrap; flex:none; }
   .chat-msg.user{ align-self:flex-end; background:var(--accent); color:var(--on-accent); border-bottom-right-radius:4px; }
   .chat-msg.bot{ align-self:flex-start; background:var(--surface-2); border:1px solid var(--border); border-bottom-right-radius:14px; border-bottom-left-radius:4px; }
   .chat-msg.typing{ align-self:flex-start; color:var(--ink-faint); font-style:italic; }
-  .chat-row{ display:flex; gap:8px; position:sticky; bottom:calc(-18px); padding-top:2px; }
+  .chat-row{ display:flex; gap:8px; flex:none; }
   .chat-row input{ flex:1; min-width:0; font-family:'Golos Text',sans-serif; font-size:13.5px; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:10px 13px; color:var(--ink); }
   .chat-row button{ width:44px; height:44px; border-radius:12px; flex:none; font-size:17px; padding:0; }
 </style>
