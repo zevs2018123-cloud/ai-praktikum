@@ -235,9 +235,10 @@
   .lsn-stream b{ font-size:13.6px; font-weight:700; line-height:1.35; color:var(--tgc-ink); }
   .lsn-stream .ds{ font-size:12.6px; line-height:1.5; color:var(--tgc-ds); }
   .lsn-stream .open-stream{ align-self:flex-start; margin-top:5px; background:#2ea0da; color:#fff; border-color:#2ea0da; }
-  /* flex:none обязателен: контейнер лежит во flex-колонке, а всё его содержимое
-     позиционировано абсолютно — без этого высота по aspect-ratio схлопывается в ноль. */
-  .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; flex:none; border-radius:14px; overflow:hidden; background:#0b0e10; border:1px solid var(--border); }
+  /* Пропорция 16:9 задана через padding, а не aspect-ratio: контейнер лежит во
+     flex-колонке, всё его содержимое позиционировано абсолютно, и в этом случае
+     aspect-ratio в разных движках схлопывает высоту в ноль. padding-top работает везде. */
+  .video-wrap{ position:relative; width:100%; height:0; padding-top:56.25%; flex:none; border-radius:14px; overflow:hidden; background:#0b0e10; border:1px solid var(--border); }
   .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; z-index:2; }
   .video-thumb{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .video-play{ position:absolute; inset:0; width:100%; height:100%; border:0; background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55)); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; color:#fff; font-family:'Golos Text',sans-serif; }
