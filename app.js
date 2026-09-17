@@ -710,6 +710,25 @@
 
   /* ---------- ИИ-помощник ---------- */
   var CHAT_ENDPOINT = 'https://ai-praktikum-bot.zevs2018123.workers.dev/chat';
+  var OPEN_ENDPOINT = 'https://ai-praktikum-bot.zevs2018123.workers.dev/open';
+
+  /* ---- отметка открытия ----
+     Без неё «активные студенты» считались бы только по тем, кто писал боту.
+     Шлём один раз за сессию, тихо и не блокируя загрузку: если воркер лежит
+     или сети нет, приложение этого даже не замечает. Уходит только id и имя,
+     которые Telegram и так передаёт боту. */
+  function pingOpen(){
+    try{
+      if(!window.TG || !TG.user || !TG.user.id) return;
+      var mark = 'pinged_' + TG.user.id;
+      try{ if(sessionStorage.getItem(mark)) return; sessionStorage.setItem(mark, '1'); }catch(e){}
+      fetch(OPEN_ENDPOINT, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ id: TG.user.id, name: TG.user.first_name || TG.user.username || null })
+      }).catch(function(){});
+    }catch(e){}
+  }
   var chatHistory = [];
   var chatLog = document.getElementById('chatLog');
   var chatInput = document.getElementById('chatInput');
@@ -781,7 +800,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260918c';
+  var BUILD = '20260918d';
 
   function checkForUpdate(){
     try{
@@ -833,6 +852,7 @@
 
   function boot(){
     checkForUpdate();
+    pingOpen();
     shuffleQuizzes();
     var bi = document.getElementById('buildInfo');
     if(bi){
