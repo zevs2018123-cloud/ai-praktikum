@@ -141,6 +141,15 @@ var TG = (function(){
 
     /* Ссылки на t.me внутри мини-приложения нужно открывать нативно,
        иначе Telegram откроет их во встроенном браузере поверх приложения. */
+    /* Внешние ссылки (YouTube и прочее) — во внешнем браузере или профильном
+       приложении, а не внутри окна мини-приложения. */
+    openLink: function(url){
+      try{
+        if(tg && tg.openLink){ tg.openLink(url, { try_instant_view:false }); return true; }
+      }catch(e){}
+      return false;
+    },
+
     openTelegramLink: function(url){
       try{
         if(tg && tg.openTelegramLink){ tg.openTelegramLink(url); return true; }

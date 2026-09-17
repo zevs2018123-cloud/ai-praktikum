@@ -466,15 +466,74 @@
   }
 
   var playSvg = '<circle cx="12" cy="12" r="9.5"/><path d="m10 8.5 5 3.5-5 3.5v-7Z"/>';
+  /* Плеер грузится не сразу, а по тапу на превью. Это заметно ускоряет открытие
+     урока и, главное, даёт запасной путь: если встроенный плеер заблокирован
+     (например, строгой политикой хостинга предпросмотра), открываем ролик в
+     YouTube — в Telegram через нативный openLink, иначе новой вкладкой. */
   function videoBlockHtml(c, idx){
     var vid = getVideo(c, idx);
     if(vid){
-      return '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/' + vid + '" title="Видео к уроку" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>' +
-        '<div class="video-link-row"><a href="https://youtu.be/' + vid + '" target="_blank" rel="noopener">Смотреть на YouTube ↗</a></div>';
+      return '<div class="video-wrap" data-vid="' + vid + '">' +
+          '<img class="video-thumb" src="https://i.ytimg.com/vi/' + vid + '/hqdefault.jpg" alt="" loading="lazy">' +
+          '<button class="video-play" type="button" aria-label="Смотреть видео">' +
+            '<span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span>' +
+            '<span class="lbl">Смотреть видео</span>' +
+          '</button>' +
+        '</div>' +
+        '<div class="video-link-row"><a href="https://youtu.be/' + vid + '" class="video-ext" data-vid="' + vid + '" target="_blank" rel="noopener">Открыть на YouTube ↗</a></div>';
     }
     return '<div class="video-empty"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + playSvg + '</svg>' +
       '<span class="muted" style="font-size:12.3px;">Видео к этой статье ещё не добавлено</span>' +
       '<div class="add-row"><input type="text" placeholder="Вставь ссылку на YouTube" id="videoAddInput"><button class="btn primary sm" id="videoAddBtn">Добавить</button></div></div>';
+  }
+
+  function openYoutube(vid){
+    var url = 'https://youtu.be/' + vid;
+    try{
+      if(window.TG && TG.openLink && TG.openLink(url)) return;
+    }catch(e){}
+    window.open(url, '_blank', 'noopener');
+  }
+
+  function bindVideo(root){
+    /* превью не загрузилось (нет сети или домен картинок закрыт) — не показываем битую картинку */
+    root.querySelectorAll('.video-thumb').forEach(function(img){
+      img.addEventListener('error', function(){ img.style.display = 'none'; });
+    });
+
+    root.querySelectorAll('.video-ext').forEach(function(a){
+      a.addEventListener('click', function(ev){ ev.preventDefault(); openYoutube(a.dataset.vid); });
+    });
+
+    root.querySelectorAll('.video-wrap').forEach(function(wrap){
+      var btn = wrap.querySelector('.video-play');
+      if(!btn) return;
+      btn.addEventListener('click', function(){
+        var vid = wrap.dataset.vid;
+        if(window.TG) TG.haptic('light');
+        var frame = document.createElement('iframe');
+        frame.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&playsinline=1&rel=0';
+        frame.title = 'Видео к уроку';
+        frame.setAttribute('allow', 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+        frame.setAttribute('allowfullscreen', '');
+        frame.setAttribute('referrerpolicy', 'origin-when-cross-origin');
+        wrap.classList.add('playing');
+        wrap.appendChild(frame);
+
+        /* Если плеер не ожил за 4 секунды — значит встроенное видео тут не работает.
+           Возвращаем превью и подсказываем открыть в YouTube. */
+        var alive = false;
+        frame.addEventListener('load', function(){ alive = true; });
+        setTimeout(function(){
+          if(alive || !wrap.classList.contains('playing')) return;
+          wrap.classList.remove('playing');
+          frame.remove();
+          wrap.classList.add('blocked');
+          toast('Встроенный плеер недоступен — открываю YouTube');
+          openYoutube(vid);
+        }, 4000);
+      });
+    });
   }
 
   function openLesson(cid, idx){
@@ -490,6 +549,7 @@
     lessonScroll.scrollTop = 0;
     bindPromptCopy(lessonScroll);
     bindStreamLinks(lessonScroll);
+    bindVideo(lessonScroll);
     var videoInput = document.getElementById('videoAddInput');
     var videoBtn = document.getElementById('videoAddBtn');
     if(videoBtn){ videoBtn.addEventListener('click', function(){

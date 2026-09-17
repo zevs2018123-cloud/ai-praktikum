@@ -235,8 +235,18 @@
   .lsn-stream b{ font-size:13.6px; font-weight:700; line-height:1.35; color:var(--tgc-ink); }
   .lsn-stream .ds{ font-size:12.6px; line-height:1.5; color:var(--tgc-ds); }
   .lsn-stream .open-stream{ align-self:flex-start; margin-top:5px; background:#2ea0da; color:#fff; border-color:#2ea0da; }
-  .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--border); }
-  .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  /* flex:none обязателен: контейнер лежит во flex-колонке, а всё его содержимое
+     позиционировано абсолютно — без этого высота по aspect-ratio схлопывается в ноль. */
+  .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; flex:none; border-radius:14px; overflow:hidden; background:#0b0e10; border:1px solid var(--border); }
+  .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; z-index:2; }
+  .video-thumb{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .video-play{ position:absolute; inset:0; width:100%; height:100%; border:0; background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55)); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; color:#fff; font-family:'Golos Text',sans-serif; }
+  .video-play .ico{ width:52px; height:52px; border-radius:99px; background:rgba(255,255,255,.95); color:#0b0e10; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px -6px rgba(0,0,0,.6); transition:transform .18s; }
+  .video-play .ico svg{ width:26px; height:26px; margin-left:3px; }
+  .video-play .lbl{ font-size:12.5px; font-weight:600; letter-spacing:.01em; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+  .video-play:active .ico{ transform:scale(.92); }
+  .video-wrap.playing .video-play, .video-wrap.playing .video-thumb{ display:none; }
+  .video-wrap.blocked .video-play .lbl::after{ content:' — откроется в YouTube'; font-weight:400; opacity:.85; }
   .video-link-row{ display:flex; justify-content:flex-end; }
   .video-link-row a{ font-size:11.5px; color:var(--accent-strong); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
   .video-empty{ border:1.5px dashed var(--border); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; background:var(--surface-2); }
