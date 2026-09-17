@@ -511,8 +511,8 @@ var BLOCKS = [
 /* Порядок внутри блока = порядок показа на вкладке «Курсы».
    Новые курсы из data4.js встают сразу после базовых курсов своего блока. */
 var COURSES = [].concat(
-  BLOCK1,
-  BLOCK2, COURSE_PHOTOFIX,
+  BLOCK1, COURSE_ACCESS,
+  COURSE_WHERE, BLOCK2, COURSE_PHOTOFIX,
   BLOCK3, COURSE_CHARACTER,
   BLOCK4, COURSE_CARTOON, COURSE_SCENES, COURSE_POST,
   BLOCK5, BLOCK6,

@@ -751,7 +751,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260917b';
+  var BUILD = '20260918a';
 
   function checkForUpdate(){
     try{
@@ -767,8 +767,43 @@
     }catch(e){}
   }
 
+  /* ---- разброс правильных ответов ----
+     В исходных данных верный вариант всегда стоит первым — это подсказка,
+     и квиз решается без чтения вопроса. Перемешиваем варианты один раз при
+     загрузке. Порядок детерминированный: он считается из id курса, номера
+     вопроса и его текста, поэтому один и тот же вопрос на любом устройстве и
+     после любой перезагрузки даёт один и тот же порядок — сохранённые ответы
+     не «съезжают». */
+  function seedFrom(str){
+    var h = 2166136261;
+    for(var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0) || 1;
+  }
+  function shuffleQuizzes(){
+    COURSES.forEach(function(c){
+      (c.quiz || []).forEach(function(q, qi){
+        if(!q || !q.opts || q.opts.length < 2 || q._mixed) return;
+        var seed = seedFrom(c.id + '#' + qi + '#' + (q.q || ''));
+        var idx = q.opts.map(function(_, i){ return i; });
+        /* Фишер–Йетс на детерминированном генераторе (xorshift32) */
+        for(var i = idx.length - 1; i > 0; i--){
+          seed ^= seed << 13; seed >>>= 0;
+          seed ^= seed >>> 17;
+          seed ^= seed << 5;  seed >>>= 0;
+          var j = seed % (i + 1);
+          var t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+        }
+        var correctOld = (typeof q.correct === 'number') ? q.correct : 0;
+        q.opts = idx.map(function(i){ return q.opts[i]; });
+        q.correct = idx.indexOf(correctOld);
+        q._mixed = true;
+      });
+    });
+  }
+
   function boot(){
     checkForUpdate();
+    shuffleQuizzes();
     var bi = document.getElementById('buildInfo');
     if(bi){
       var withVideo = 0, totalLessons = 0;
