@@ -746,7 +746,35 @@
     if(profEl) profEl.textContent = name || 'Профиль';
   }
 
+  /* ---------- самообновление ----------
+     Telegram держит страницу мини-приложения в кэше долго, поэтому одной смены
+     файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
+     сервере лежит более свежая сборка, перезагружаемся один раз.
+     Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
+  var BUILD = '20260917a';
+
+  function checkForUpdate(){
+    try{
+      fetch('version.json?t=' + Date.now(), { cache:'no-store' })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          if(!j || !j.v || j.v === BUILD) return;
+          var mark = 'reloadedFor_' + j.v;
+          try{ if(sessionStorage.getItem(mark)) return; sessionStorage.setItem(mark, '1'); }catch(e){}
+          location.reload();
+        })
+        .catch(function(){});
+    }catch(e){}
+  }
+
   function boot(){
+    checkForUpdate();
+    var bi = document.getElementById('buildInfo');
+    if(bi){
+      var withVideo = 0, totalLessons = 0;
+      COURSES.forEach(function(c){ c.lessons.forEach(function(l){ totalLessons++; if(l.video) withVideo++; }); });
+      bi.textContent = 'сборка ' + BUILD + ' · ' + COURSES.length + ' курсов · ' + totalLessons + ' статей · видео в ' + withVideo;
+    }
     applyUserName();
     /* тихо проставляем ачивки, которые уже заслужены прошлым прогрессом,
        чтобы при первом открытии не сыпалась пачка попапов */
