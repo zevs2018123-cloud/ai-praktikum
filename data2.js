@@ -518,3 +518,107 @@ var COURSES = [].concat(
   BLOCK5, BLOCK6,
   BLOCK7, COURSE_AIMARKETING
 );
+
+/* ---------------- Ссылки на сервисы ----------------
+   Держим отдельно от текстов уроков: адреса меняются чаще, чем содержание,
+   и так видно одним взглядом, где ссылки есть, а где ещё нет.
+   Ключ — id курса, дальше номер статьи (с 1) и карточка.
+   Поле syntx — короткая строка о том, что из этого доступно в Syntx;
+   если его нет, строка про Syntx не рисуется. */
+var SERVICE_LINKS = {
+  chatgpt: { 1: {
+    links:[ { n:'ChatGPT', u:'https://chatgpt.com', d:'Сам сервис. Четыре режима из урока переключаются в выпадающем списке модели над полем ввода.' } ],
+    syntx:'GPT-модели доступны и здесь — из Telegram, без VPN и зарубежной карты.' } },
+
+  claude: { 1: {
+    links:[
+      { n:'Claude', u:'https://claude.ai', d:'Веб-версия: Projects и Artifacts, о которых речь во второй статье курса.' },
+      { n:'Claude Code', u:'https://claude.com/product/claude-code', d:'Тот самый агент, который работает с файлами напрямую. Ставится на компьютер.' }
+    ],
+    syntx:'Claude есть и в общем чате Syntx — удобно, когда не хочется заводить отдельный аккаунт.' } },
+
+  gemini: { 1: {
+    links:[
+      { n:'Gemini', u:'https://gemini.google.com', d:'Сам сервис и Gems из второй статьи курса.' },
+      { n:'Google AI Studio', u:'https://aistudio.google.com', d:'Те же модели без ограничений обычного интерфейса — удобно для тестов и длинных промптов.' }
+    ],
+    syntx:'Gemini доступен и здесь — вариант, если из вашей страны Google не открывается.' } },
+
+  'where-photo': {
+    1: {
+      links:[
+        { n:'Gemini', u:'https://gemini.google.com', d:'Nano Banana 2 и Nano Banana Pro. Бесплатный лимит есть, из СНГ часто нужен VPN.' },
+        { n:'ChatGPT', u:'https://chatgpt.com', d:'GPT Image прямо в диалоге. Несколько картинок в сутки бесплатно.' },
+        { n:'Midjourney', u:'https://www.midjourney.com', d:'Художественный визуал. Бесплатного тарифа нет, от 10 долларов в месяц.' },
+        { n:'Freepik AI', u:'https://www.freepik.com/ai/image-generator', d:'Веб-агрегатор: несколько моделей плюс апскейл и редактор в одной подписке.' },
+        { n:'Krea', u:'https://www.krea.ai', d:'Ещё один агрегатор, сильный в реалтайм-правках изображения.' }
+      ],
+      syntx:'Всё перечисленное собрано в одном боте: 90+ нейросетей, без VPN, оплата обычной картой по токенам.' },
+    2: {
+      links:[ { n:'Gemini', u:'https://gemini.google.com', d:'Маршрут Б из этой статьи.' } ],
+      syntx:'Маршрут А из этой статьи начинается здесь — нажмите Start и выберите генерацию изображения.' }
+  },
+
+  'photo-basics': { 1: {
+    links:[
+      { n:'Gemini', u:'https://gemini.google.com', d:'Nano Banana — сильна в фотореализме и тексте на картинке.' },
+      { n:'ChatGPT', u:'https://chatgpt.com', d:'GPT Image — удобно, когда идею и картинку делаешь в одном диалоге.' }
+    ],
+    syntx:'Nano Banana и GPT Image переключаются здесь одной командой — заводить два аккаунта не нужно.' } },
+
+  avatarvoice: { 1: {
+    links:[
+      { n:'HeyGen', u:'https://www.heygen.com', d:'Говорящий аватар и липсинк. Есть бесплатный пробный объём.' },
+      { n:'ElevenLabs', u:'https://elevenlabs.io', d:'Озвучка и клонирование голоса. Бесплатного лимита хватает на первый тест.' }
+    ],
+    syntx:'Озвучка доступна и здесь — в одном окне с генерацией видео, без отдельной подписки.' } },
+
+  video: { 1: {
+    links:[
+      { n:'Google Flow', u:'https://labs.google/flow', d:'Veo — видео со звуком. Входит в тарифы Google AI.' },
+      { n:'Kling', u:'https://app.klingai.com', d:'Стабильный персонаж в движении, о котором вторая статья курса.' }
+    ],
+    syntx:'Kling, Veo и Seedance — все три в одном боте, вместо трёх отдельных подписок.' } },
+
+  claudecode: { 1: {
+    links:[ { n:'Claude Code', u:'https://claude.com/product/claude-code', d:'Установка и документация. Работает в терминале на вашем компьютере.' } ] } },
+
+  access: {
+    1: {
+      links:[
+        { n:'Тарифы ChatGPT', u:'https://chatgpt.com/pricing/', d:'Официальная страница. Смотрите цену здесь, а не в статьях и видео.' },
+        { n:'Тарифы Google AI', u:'https://gemini.google/subscriptions/', d:'Free, Plus, Pro и Ultra — что входит в каждый.' },
+        { n:'Тарифы Midjourney', u:'https://www.midjourney.com', d:'Раздел Pricing в меню сайта.' }
+      ],
+      syntx:'Здесь подписки нет вообще — оплата по токенам за конкретные генерации, обычной картой.' },
+    2: {
+      links:[ { n:'Playerok', u:'https://playerok.com', d:'Маркетплейс с гарантом из Пути 5. Берите только лоты формата «активация на ваш аккаунт».' } ],
+      syntx:'Путь 4 из этой статьи: оплата обычной картой, зарубежная подписка не нужна.' },
+    3: {
+      links:[
+        { n:'ChatGPT', u:'https://chatgpt.com', d:'Бесплатный тариф: текст, идеи, сценарии.' },
+        { n:'Gemini', u:'https://gemini.google.com', d:'Бесплатный тариф: около 20 картинок в сутки.' },
+        { n:'Академия SYNTX', u:'https://academy.syntx.ai', d:'Бесплатные уроки по генерации — дополнение к этому курсу.' }
+      ] }
+  }
+};
+
+(function attachServiceLinks(){
+  Object.keys(SERVICE_LINKS).forEach(function(cid){
+    var course = COURSES.filter(function(c){ return c.id === cid; })[0];
+    if(!course) return;
+    var byLesson = SERVICE_LINKS[cid];
+    Object.keys(byLesson).forEach(function(num){
+      var lesson = course.lessons[Number(num) - 1];
+      if(!lesson || !lesson.body) return;
+      /* карточка встаёт перед блоком «Практика», если он есть, иначе в конец —
+         чтобы задание оставалось последним, что видит студент */
+      var card = byLesson[num];
+      var at = lesson.body.length;
+      for(var i = lesson.body.length - 1; i >= 0; i--){
+        if(lesson.body[i] && lesson.body[i].task) at = i;
+      }
+      lesson.body.splice(at, 0, card);
+    });
+  });
+})();

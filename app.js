@@ -420,6 +420,34 @@
       '<button class="btn primary sm open-stream" type="button" data-url="' + url + '">Смотреть эфир →</button></div></div>';
   }
 
+  /* ---- карточка сервисов из урока ----
+     { links:[{n:'Название', u:'https://...', d:'зачем он тут'}], syntx:'что именно из этого есть в Syntx' }
+     Ссылки открываются во внешнем браузере: внутри Telegram это TG.openLink,
+     иначе обычная новая вкладка. Телеграм-ссылки уходят в openTelegramLink. */
+  function linksCardHtml(items, syntxNote){
+    var rows = items.map(function(it){
+      return '<div class="lsn-svc">' +
+        '<div class="svc-txt"><b>' + it.n + '</b>' + (it.d ? '<span>' + it.d + '</span>' : '') + '</div>' +
+        '<button class="btn sm open-svc" type="button" data-url="' + it.u + '">Открыть ↗</button></div>';
+    }).join('');
+    var syntxRow = syntxNote ? '<div class="lsn-svc syntx-row">' +
+      '<div class="svc-txt"><b>Syntx AI</b><span>' + syntxNote + '</span></div>' +
+      '<button class="btn primary sm open-svc" type="button" data-url="' + SYNTX_LINK + '">Открыть ↗</button></div>' : '';
+    return '<div class="lsn-links"><span class="lbl">Сервисы из урока</span>' + rows + syntxRow + '</div>';
+  }
+
+  function bindServiceLinks(root){
+    root.querySelectorAll('.open-svc').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var url = btn.dataset.url;
+        if(window.TG) TG.haptic('light');
+        if(/^https?:\/\/t\.me\//.test(url) && window.TG && TG.openTelegramLink && TG.openTelegramLink(url)) return;
+        if(window.TG && TG.openLink && TG.openLink(url)) return;
+        window.open(url, '_blank', 'noopener');
+      });
+    });
+  }
+
   function bindStreamLinks(root){
     root.querySelectorAll('.open-stream').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -441,6 +469,7 @@
       if(p.warn) return '<div class="lsn-note warn">' + p.warn + '</div>';
       if(p.task) return '<div class="lsn-task"><span class="lbl">Практика</span>' + p.task + '</div>';
       if(p.stream) return streamCardHtml(p.stream, p.t, p.d);
+      if(p.links) return linksCardHtml(p.links, p.syntx);
       if(p.prompt){
         var i = promptStore.push(p.prompt) - 1;
         return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') +
@@ -549,6 +578,7 @@
     lessonScroll.scrollTop = 0;
     bindPromptCopy(lessonScroll);
     bindStreamLinks(lessonScroll);
+    bindServiceLinks(lessonScroll);
     bindVideo(lessonScroll);
     var videoInput = document.getElementById('videoAddInput');
     var videoBtn = document.getElementById('videoAddBtn');
@@ -751,7 +781,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260918b';
+  var BUILD = '20260918c';
 
   function checkForUpdate(){
     try{

@@ -227,6 +227,17 @@
   .lsn-prompt pre{ margin:0; font-family:'JetBrains Mono',monospace; font-size:11.8px; line-height:1.62; color:var(--code-ink); white-space:pre-wrap; word-break:break-word; }
   .lsn-prompt .copy-prompt{ align-self:flex-start; border-color:rgba(255,255,255,.28); color:var(--code-ink); background:transparent; }
   .lsn-prompt .copy-prompt:active{ background:rgba(255,255,255,.12); }
+  /* карточка ссылок на сервисы, которые разбираются в уроке */
+  .lsn-links{ background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:12px 13px; display:flex; flex-direction:column; gap:2px; }
+  .lsn-links .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; margin-bottom:6px; }
+  .lsn-svc{ display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--border); }
+  .lsn-svc:nth-of-type(1){ border-top:0; padding-top:0; }
+  .lsn-svc .svc-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .lsn-svc .svc-txt b{ font-size:13.2px; font-weight:700; }
+  .lsn-svc .svc-txt span{ font-size:12.2px; color:var(--ink-muted); line-height:1.45; }
+  .lsn-svc .btn{ flex:none; }
+  .lsn-svc.syntx-row{ margin-top:2px; border-top:1px solid var(--accent); }
+  .lsn-svc.syntx-row .svc-txt b{ color:var(--accent-strong); }
   .lsn-stream{ display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg,var(--tgc-bg1),var(--tgc-bg2)); border:1px solid var(--tgc-border); border-radius:16px; padding:13px 14px; }
   .lsn-stream .tg-ico{ flex:none; width:32px; height:32px; border-radius:10px; background:#2ea0da; color:#fff; display:flex; align-items:center; justify-content:center; }
   .lsn-stream .tg-ico svg{ width:18px; height:18px; }
@@ -389,9 +400,9 @@
 <!-- ?v= — версия сборки. Telegram кэширует файлы мини-приложения надолго,
      и без смены адреса подтягивает старые. Меняется при каждом обновлении. -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="tg.js?v=20260918b"></script>
-<script src="data.js?v=20260918b"></script>
-<script src="data3.js?v=20260918b"></script>
-<script src="data4.js?v=20260918b"></script>
-<script src="data2.js?v=20260918b"></script>
-<script src="app.js?v=20260918b"></script>
+<script src="tg.js?v=20260918c"></script>
+<script src="data.js?v=20260918c"></script>
+<script src="data3.js?v=20260918c"></script>
+<script src="data4.js?v=20260918c"></script>
+<script src="data2.js?v=20260918c"></script>
+<script src="app.js?v=20260918c"></script>
