@@ -384,6 +384,7 @@
   function progressChanged(){
     var s = checkAchievements(false);
     renderGamification(s);
+    pingProgress();
   }
 
   /* ---------- lesson overlay ---------- */
@@ -717,17 +718,46 @@
      Шлём один раз за сессию, тихо и не блокируя загрузку: если воркер лежит
      или сети нет, приложение этого даже не замечает. Уходит только id и имя,
      которые Telegram и так передаёт боту. */
+  function progressSnapshot(){
+    try{
+      var st = computeStats();
+      return { lessons: st.lessons, totalLessons: st.totalLessons, coursesDone: st.coursesDone, xp: st.xp };
+    }catch(e){ return null; }
+  }
+
+  function sendPing(opts){
+    try{
+      if(!window.TG || !TG.user || !TG.user.id) return;
+      var payload = {
+        id: TG.user.id,
+        name: TG.user.displayName || TG.user.username || null,
+        progress: progressSnapshot()
+      };
+      if(opts && opts.progressOnly) payload.progressOnly = true;
+      fetch(OPEN_ENDPOINT, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(function(){});
+    }catch(e){}
+  }
+
   function pingOpen(){
     try{
       if(!window.TG || !TG.user || !TG.user.id) return;
       var mark = 'pinged_' + TG.user.id;
       try{ if(sessionStorage.getItem(mark)) return; sessionStorage.setItem(mark, '1'); }catch(e){}
-      fetch(OPEN_ENDPOINT, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ id: TG.user.id, name: TG.user.first_name || TG.user.username || null })
-      }).catch(function(){});
+      sendPing();
     }catch(e){}
+  }
+
+  /* Прогресс догоняем отдельно и с задержкой: студент за минуту может
+     прочитать статью и ответить на пять вопросов — незачем слать пять запросов.
+     progressOnly не увеличивает счётчик открытий, только обновляет цифры. */
+  var progressTimer = null;
+  function pingProgress(){
+    clearTimeout(progressTimer);
+    progressTimer = setTimeout(function(){ sendPing({ progressOnly:true }); }, 8000);
   }
   var chatHistory = [];
   var chatLog = document.getElementById('chatLog');
@@ -760,7 +790,12 @@
     fetch(CHAT_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: chatHistory.slice(-8, -1) })
+      body: JSON.stringify({
+        message: text,
+        history: chatHistory.slice(-8, -1),
+        id: (window.TG && TG.user && TG.user.id) || null,
+        name: (window.TG && TG.user && (TG.user.displayName || TG.user.username)) || null
+      })
     }).then(function(r){ return r.json(); }).then(function(data){
       chatBusy = false;
       var reply = (data && data.reply) ? data.reply : 'Не получилось ответить, попробуй ещё раз.';
@@ -800,7 +835,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260918d';
+  var BUILD = '20260918e';
 
   function checkForUpdate(){
     try{
