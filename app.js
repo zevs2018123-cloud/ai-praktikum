@@ -384,7 +384,7 @@
   function progressChanged(){
     var s = checkAchievements(false);
     renderGamification(s);
-    pingProgress();
+    pingStudied();
   }
 
   /* ---------- lesson overlay ---------- */
@@ -592,7 +592,11 @@
     var lessonNextLabel = isLast ? 'Прочитано → квиз курса' : 'Следующая статья →';
     finishBtn.textContent = lessonNextLabel;
     var lessonNextAction = function(){
-      markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile(); progressChanged();
+      var wasRead = readArr(cid).indexOf(idx) !== -1;
+      markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile();
+      /* Перечитывание тоже засчитываем в цель дня: человек занимался.
+         А вот очки и ачивки за повтор не начисляем — для них progressChanged. */
+      if(wasRead) pingStudied(); else progressChanged();
       if(isLast) openQuiz(cid); else openLesson(cid, idx+1);
     };
     finishBtn.onclick = lessonNextAction;
@@ -775,6 +779,10 @@
         tz: -new Date().getTimezoneOffset() / 60
       };
       if(opts && opts.progressOnly) payload.progressOnly = true;
+      /* Явный сигнал «студент только что дочитал статью». Сравнения счётчиков
+         для этого мало: у тех, кто читал до появления серий, счётчик уже
+         большой, а перечитывание статьи его вообще не двигает. */
+      if(opts && opts.studied) payload.studied = true;
       fetch(OPEN_ENDPOINT, {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
@@ -801,6 +809,12 @@
   function pingProgress(){
     clearTimeout(progressTimer);
     progressTimer = setTimeout(function(){ sendPing({ progressOnly:true }); }, 8000);
+  }
+  /* Прочитанная статья — событие, а не накопление: шлём сразу, чтобы серия
+     обновилась на экране, пока студент ещё смотрит на него. */
+  function pingStudied(){
+    clearTimeout(progressTimer);
+    sendPing({ progressOnly:true, studied:true });
   }
   var chatHistory = [];
   var chatLog = document.getElementById('chatLog');
@@ -878,7 +892,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260919a';
+  var BUILD = '20260919b';
 
   function checkForUpdate(){
     try{
