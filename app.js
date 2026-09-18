@@ -4,17 +4,32 @@
   var CLUB_LINK = "https://t.me/Desanji";
 
   var mem = {};
-  function storeGet(k, fb){ try{ var v = localStorage.getItem(k); return v===null ? fb : JSON.parse(v); } catch(e){ return (k in mem) ? mem[k] : fb; } }
+  /* Ключи localStorage разведены по Telegram-аккаунту (см. tg.js): на одном
+     телефоне можно переключать аккаунты, и без этого второй видел бы прогресс
+     первого. В CloudStorage уходит имя ключа без префикса — облако у каждого своё. */
+  function lk(k){ return (window.TG && TG.lsKey) ? TG.lsKey(k) : k; }
+  function storeGet(k, fb){ try{ var v = localStorage.getItem(lk(k)); return v===null ? fb : JSON.parse(v); } catch(e){ return (k in mem) ? mem[k] : fb; } }
   function storeSet(k, v){
     var s = JSON.stringify(v);
-    try{ localStorage.setItem(k, s); } catch(e){ mem[k]=v; }
+    try{ localStorage.setItem(lk(k), s); } catch(e){ mem[k]=v; }
     if(window.TG && TG.cloudSet) TG.cloudSet(k, s);
   }
   function storeRemove(k){
-    try{ localStorage.removeItem(k); } catch(e){ delete mem[k]; }
+    try{ localStorage.removeItem(lk(k)); } catch(e){ delete mem[k]; }
     if(window.TG && TG.cloudRemove) TG.cloudRemove(k);
   }
-  function storeAllKeys(){ var keys=[]; try{ for(var i=0;i<localStorage.length;i++){ keys.push(localStorage.key(i)); } } catch(e){ keys = Object.keys(mem); } return keys; }
+  function storeAllKeys(){
+    var pref = (window.TG && TG.lsPrefix) || '';
+    var keys = [];
+    try{
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(pref){ if(k.indexOf(pref) === 0) keys.push(k.slice(pref.length)); }
+        else if(k.indexOf(':') === -1 || k.indexOf('u') !== 0) keys.push(k);
+      }
+    } catch(e){ keys = Object.keys(mem); }
+    return keys;
+  }
 
   var toastEl = document.getElementById('toast');
   var toastTimer;
@@ -934,7 +949,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260919c';
+  var BUILD = '20260919d';
 
   function checkForUpdate(){
     try{

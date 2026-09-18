@@ -56,6 +56,14 @@ var TG = (function(){
   /* CloudStorage: кросс-устройственная синхронизация прогресса.
      localStorage остаётся источником истины для мгновенного рендера;
      CloudStorage — фоновое зеркало поверх него, доступное только внутри Telegram. */
+  /* ---- изоляция прогресса по аккаунту ----
+     localStorage общий для всего домена, а Telegram на одном телефоне может
+     переключать аккаунты. Без префикса второй аккаунт видит прогресс первого
+     и, что хуже, перезаписывает им своё облако. Ключи разводим по id.
+     В CloudStorage префикс не нужен — там хранилище и так своё у каждого. */
+  var LS_PREFIX = (tgUser && tgUser.id) ? ('u' + tgUser.id + ':') : '';
+  function lsKey(k){ return LS_PREFIX + k; }
+
   var cloudOn = !!(tg && tg.CloudStorage);
 
   function cloudSync(done){
@@ -72,7 +80,7 @@ var TG = (function(){
             try{
               Object.keys(items).forEach(function(k){
                 var v = items[k];
-                if(v){ localStorage.setItem(k, v); }
+                if(v){ localStorage.setItem(lsKey(k), v); }
               });
             }catch(e){}
           }
@@ -95,6 +103,8 @@ var TG = (function(){
     active: !!tg,
     user: tgUser,
     cloudAvailable: cloudOn,
+    lsKey: lsKey,
+    lsPrefix: LS_PREFIX,
     cloudSync: cloudSync,
     cloudSet: cloudSet,
     cloudRemove: cloudRemove,
