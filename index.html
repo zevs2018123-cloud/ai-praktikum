@@ -177,6 +177,17 @@
   .toast{ position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,8px); background:var(--ink); color:var(--bg); font-size:12.5px; font-weight:600; padding:9px 16px; border-radius:99px; opacity:0; pointer-events:none; transition:.2s; z-index:40; white-space:nowrap; max-width:88%; text-align:center; }
   .toast.show{ opacity:1; transform:translate(-50%,0); }
 
+  /* ---- серия дней ---- */
+  .streak-card{ display:flex; align-items:center; gap:13px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px 15px; box-shadow:var(--shadow); }
+  .streak-card.done{ border-color:var(--ok); background:linear-gradient(135deg,var(--ok-soft),var(--surface) 70%); }
+  .streak-card .st-flame{ font-size:28px; line-height:1; flex:none; }
+  .streak-card .st-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .streak-card .st-txt b{ font-family:'Unbounded','Golos Text',sans-serif; font-size:14.5px; font-weight:700; letter-spacing:-.01em; }
+  .streak-card .st-txt span{ font-size:12.3px; color:var(--ink-muted); line-height:1.4; }
+  .streak-card .st-goal{ flex:none; width:26px; height:26px; border-radius:99px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--on-accent); }
+  .streak-card.done .st-goal{ background:var(--ok); border-color:var(--ok); color:#fff; }
+  .streak-card .st-goal svg{ width:14px; height:14px; }
+
   /* ---- очки и ачивки ---- */
   .xp-card{ background:linear-gradient(135deg,var(--accent),var(--accent-strong)); color:var(--on-accent); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:9px; box-shadow:var(--shadow); }
   .xp-card .xp-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
@@ -310,6 +321,7 @@
         <p>Видео → статья → квиз курса отдельной кнопкой. Курс выбираешь сам.</p>
         <button class="btn primary" data-goto="courses">Выбрать курс</button>
       </div>
+      <div id="streakCard"></div>
       <div id="xpCardStart"></div>
       <div class="stack"><div class="section-title"><h2>Твой прогресс</h2></div><div id="startActiveBanner"></div></div>
       <div class="stack"><div class="section-title"><h2>Сводка</h2></div>
@@ -400,9 +412,9 @@
 <!-- ?v= — версия сборки. Telegram кэширует файлы мини-приложения надолго,
      и без смены адреса подтягивает старые. Меняется при каждом обновлении. -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="tg.js?v=20260918f"></script>
-<script src="data.js?v=20260918f"></script>
-<script src="data3.js?v=20260918f"></script>
-<script src="data4.js?v=20260918f"></script>
-<script src="data2.js?v=20260918f"></script>
-<script src="app.js?v=20260918f"></script>
+<script src="tg.js?v=20260919a"></script>
+<script src="data.js?v=20260919a"></script>
+<script src="data3.js?v=20260919a"></script>
+<script src="data4.js?v=20260919a"></script>
+<script src="data2.js?v=20260919a"></script>
+<script src="app.js?v=20260919a"></script>

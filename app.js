@@ -718,6 +718,44 @@
      Шлём один раз за сессию, тихо и не блокируя загрузку: если воркер лежит
      или сети нет, приложение этого даже не замечает. Уходит только id и имя,
      которые Telegram и так передаёт боту. */
+  /* ---- серия дней ----
+     Считает сервер (он же шлёт напоминания), приложение только показывает.
+     Последнее известное значение кладём в локальное хранилище, чтобы карточка
+     не мигала пустой, пока идёт запрос. */
+  function getStreak(){ return storeGet('streakState', null); }
+  function saveStreak(j){
+    storeSet('streakState', {
+      streak: j.streak || 0, best: j.bestStreak || 0,
+      freezes: j.freezes || 0, doneToday: !!j.goalDoneToday, at: Date.now()
+    });
+  }
+  function plural(n, one, few, many){
+    var n10 = n % 10, n100 = n % 100;
+    if(n10 === 1 && n100 !== 11) return one;
+    if(n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+    return many;
+  }
+  function renderStreak(){
+    var el = document.getElementById('streakCard');
+    if(!el) return;
+    var s = getStreak();
+    if(!s){ el.innerHTML = ''; return; }
+    var n = s.streak || 0;
+    var done = s.doneToday;
+    el.innerHTML = '<div class="streak-card' + (done ? ' done' : '') + '">' +
+      '<div class="st-flame">' + (n ? '🔥' : '🌱') + '</div>' +
+      '<div class="st-txt">' +
+        '<b>' + (n ? n + ' ' + plural(n, 'день', 'дня', 'дней') + ' подряд' : 'Серия ещё не началась') + '</b>' +
+        '<span>' + (done
+          ? 'Цель на сегодня выполнена'
+          : 'Цель на сегодня: прочитать одну статью') + '</span>' +
+      '</div>' +
+      '<div class="st-goal" aria-label="' + (done ? 'цель выполнена' : 'цель не выполнена') + '">' +
+        (done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>' : '') +
+      '</div></div>' +
+      (s.best > n && s.best > 1 ? '<p class="faint mono" style="font-size:10.5px; text-align:center; margin-top:6px;">лучшая серия: ' + s.best + ' ' + plural(s.best, 'день', 'дня', 'дней') + (s.freezes ? ' · заморозок в запасе: ' + s.freezes : '') + '</p>' : '');
+  }
+
   function progressSnapshot(){
     try{
       var st = computeStats();
@@ -731,14 +769,19 @@
       var payload = {
         id: TG.user.id,
         name: TG.user.displayName || TG.user.username || null,
-        progress: progressSnapshot()
+        progress: progressSnapshot(),
+        /* смещение часового пояса в часах: без него сервер не знает,
+           когда у студента утро, и напоминания приходят ночью */
+        tz: -new Date().getTimezoneOffset() / 60
       };
       if(opts && opts.progressOnly) payload.progressOnly = true;
       fetch(OPEN_ENDPOINT, {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
-      }).catch(function(){});
+      }).then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){ if(j && typeof j.streak === 'number'){ saveStreak(j); renderStreak(); } })
+        .catch(function(){});
     }catch(e){}
   }
 
@@ -835,7 +878,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260918f';
+  var BUILD = '20260919a';
 
   function checkForUpdate(){
     try{
@@ -899,6 +942,7 @@
     /* тихо проставляем ачивки, которые уже заслужены прошлым прогрессом,
        чтобы при первом открытии не сыпалась пачка попапов */
     checkAchievements(true);
+    renderStreak();
     renderAll();
     showScreen(storeGet('activeScreen', 'start'));
   }
