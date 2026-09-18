@@ -853,9 +853,16 @@
   function pingOpen(){
     try{
       if(!window.TG || !TG.user || !TG.user.id) return;
+      /* Запрос уходит ВСЕГДА: именно его ответ решает, показывать ли замок.
+         Раньше метка в sessionStorage гасила повторный запрос — и после
+         самообновления приложения (оно перезагружает страницу, а sessionStorage
+         переживает перезагрузку) проверка доступа молча не выполнялась.
+         Метка осталась, но теперь она лишь не даёт накручивать счётчик
+         открытий: повторный запрос уходит как progressOnly. */
       var mark = 'pinged_' + TG.user.id;
-      try{ if(sessionStorage.getItem(mark)) return; sessionStorage.setItem(mark, '1'); }catch(e){}
-      sendPing();
+      var already = false;
+      try{ already = !!sessionStorage.getItem(mark); if(!already) sessionStorage.setItem(mark, '1'); }catch(e){}
+      sendPing(already ? { progressOnly:true } : undefined);
     }catch(e){}
   }
 
@@ -949,7 +956,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260919d';
+  var BUILD = '20260919e';
 
   function checkForUpdate(){
     try{
