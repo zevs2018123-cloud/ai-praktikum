@@ -516,7 +516,7 @@ var COURSES = [].concat(
   BLOCK3, COURSE_CHARACTER,
   BLOCK4, COURSE_CARTOON, COURSE_SCENES, COURSE_POST,
   BLOCK5, BLOCK6,
-  BLOCK7, COURSE_AIMARKETING
+  BLOCK7, COURSE_AIMARKETING, COURSE_MONEY
 );
 
 /* ---------------- Ссылки на сервисы ----------------
@@ -582,6 +582,14 @@ var SERVICE_LINKS = {
 
   claudecode: { 1: {
     links:[ { n:'Claude Code', u:'https://claude.com/product/claude-code', d:'Установка и документация. Работает в терминале на вашем компьютере.' } ] } },
+
+  money: {
+    3: {
+      links:[
+        { n:'Условия партнёрской программы', u:'https://docs.syntx.ai/%D0%98%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%86%D0%B8%D0%B8-(%D0%9E%D1%81%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5)/%F0%9F%A4%9D-%D0%9F%D0%B0%D1%80%D1%82%D0%BD%D0%B5%D1%80%D1%81%D0%BA%D0%B0%D1%8F-%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC%D0%B0', d:'Официальная база знаний: проценты, лимиты вывода, примеры расчёта. Сверяйтесь здесь — условия меняются.' }
+      ],
+      syntx:'Свою ссылку берите в боте: Главное меню → Профиль → Партнёрство → Ссылка.' }
+  },
 
   access: {
     1: {
