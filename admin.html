@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>AI Практикум — панель</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#eef1f2; --surface:#ffffff; --surface-2:#f4f6f7; --border:#e1e6e8;
+    --ink:#14181b; --ink-muted:#5b6268; --ink-faint:#8b9298;
+    --accent:#0e9b96; --accent-strong:#0b7d79; --accent-soft:#e2f4f3; --on-accent:#04211f;
+    --ok:#2f9e52; --ok-soft:#e5f5ea; --bad:#c4483a; --bad-soft:#fbe8e5;
+    --warn:#b8860f; --warn-soft:#faf1dc;
+    /* серии графика — проверены валидатором для этой поверхности */
+    --series-1:#2a78d6; --series-2:#eb6834;
+    --step-1:#1c5cab; --step-2:#2a78d6; --step-3:#5598e7; --step-4:#86b6ef;
+    --grid:#e6eaec;
+    --shadow: 0 1px 2px rgba(20,24,27,.04), 0 8px 24px -12px rgba(20,24,27,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0c0e11; --surface:#181c21; --surface-2:#1f242a; --border:#2a3036;
+      --ink:#edf0f2; --ink-muted:#9aa3ab; --ink-faint:#6c7580;
+      --accent:#2cd1c9; --accent-strong:#3fe0d8; --accent-soft:#122a29; --on-accent:#04211f;
+      --ok:#4fc373; --ok-soft:#122a1c; --bad:#e2685a; --bad-soft:#301613;
+      --warn:#e0b545; --warn-soft:#2c2410;
+      --series-1:#3987e5; --series-2:#d95926;
+      --step-1:#9ec5f4; --step-2:#6da7ec; --step-3:#3987e5; --step-4:#256abf;
+      --grid:#242a30;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Golos Text','Segoe UI',sans-serif; font-size:14px; -webkit-text-size-adjust:100%; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:16px 16px 64px; }
+  h1,h2{ font-family:'Unbounded','Golos Text',sans-serif; letter-spacing:-.01em; margin:0; }
+  h1{ font-size:20px; } h2{ font-size:15px; }
+  .mono{ font-family:'JetBrains Mono',ui-monospace,monospace; }
+  .muted{ color:var(--ink-muted); } .faint{ color:var(--ink-faint); }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); }
+  .stack{ display:flex; flex-direction:column; gap:16px; }
+  .btn{ appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font-family:inherit; font-weight:600; font-size:13px; padding:9px 14px; border-radius:11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .btn.sm{ padding:6px 10px; font-size:12px; border-radius:9px; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn:focus-visible, input:focus-visible, textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  input,textarea{ font-family:inherit; font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:10px 12px; color:var(--ink); width:100%; }
+  textarea{ resize:vertical; min-height:88px; line-height:1.5; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .topbar .sub{ font-size:12px; color:var(--ink-faint); margin-top:3px; }
+
+  /* ---- вход ---- */
+  .gate{ max-width:380px; margin:14vh auto 0; }
+  .gate p{ margin:0 0 14px; line-height:1.5; }
+
+  /* ---- KPI ---- */
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:13px 14px; }
+  .kpi .num{ font-family:'Unbounded',sans-serif; font-size:26px; font-weight:700; line-height:1.05; }
+  .kpi .lbl{ font-size:12px; color:var(--ink-muted); margin-top:5px; line-height:1.35; }
+  .kpi .delta{ font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:4px; }
+  .kpi .delta.up{ color:var(--ok); } .kpi .delta.flat{ color:var(--ink-faint); }
+
+  /* ---- воронка ---- */
+  .funnel{ display:flex; flex-direction:column; gap:10px; }
+  .fn-row{ display:grid; grid-template-columns:1fr; gap:5px; }
+  .fn-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .fn-head .nm{ font-size:13px; font-weight:600; }
+  .fn-head .vl{ font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--ink-muted); white-space:nowrap; }
+  .fn-head .nm{ min-width:0; }
+  .fn-track{ height:22px; background:var(--surface-2); border-radius:6px; overflow:hidden; }
+  .fn-bar{ height:100%; border-radius:0 4px 4px 0; transition:width .5s cubic-bezier(.2,.8,.3,1); }
+
+  /* ---- график ---- */
+  .chart-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-muted); }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .chart-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  svg.chart{ display:block; width:100%; height:auto; }
+  svg.chart text{ font-family:'JetBrains Mono',monospace; font-size:10px; fill:var(--ink-faint); }
+  svg.chart .grid{ stroke:var(--grid); stroke-width:1; }
+  .col{ cursor:pointer; }
+  .col:hover rect{ opacity:.82; }
+  .tip{ position:fixed; z-index:50; background:var(--ink); color:var(--bg); font-size:12px; line-height:1.45; padding:7px 10px; border-radius:9px; pointer-events:none; opacity:0; transition:opacity .12s; white-space:nowrap; }
+  .tip.show{ opacity:1; }
+  .tip b{ display:block; font-size:11px; opacity:.75; font-weight:500; margin-bottom:2px; }
+
+  /* ---- таблица ---- */
+  .tbl-tools{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .tbl-tools input{ flex:1; min-width:170px; }
+  /* Заголовки таблицы на телефоне скрыты, поэтому сортировка переезжает сюда */
+  #sortSel{ display:block; width:100%; font-family:inherit; font-size:13px; background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:10px 12px; color:var(--ink); }
+  @media (min-width:700px){ #sortSel{ display:none; } }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600; cursor:pointer; user-select:none; }
+  th[aria-sort="descending"]::after{ content:' ↓'; } th[aria-sort="ascending"]::after{ content:' ↑'; }
+  td.num{ font-family:'JetBrains Mono',monospace; }
+  tbody tr:hover{ background:var(--surface-2); }
+  .tag{ font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:2px 7px; border-radius:99px; }
+  .tag.on{ background:var(--ok-soft); color:var(--ok); }
+  .tag.off{ background:var(--bad-soft); color:var(--bad); }
+  .tag.idle{ background:var(--surface-2); color:var(--ink-faint); }
+  .tbl-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  th.opt, td.opt, .m-meta{ display:none; }
+  td:first-child{ white-space:normal; }
+  /* Узкий экран: строка таблицы превращается в карточку — имя, сводка, кнопка */
+  @media (max-width:699px){
+    thead{ display:none; }
+    table, tbody, tr{ display:block; width:100%; }
+    tr{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:2px 10px; padding:11px 0; border-bottom:1px solid var(--border); }
+    td{ display:block; border:0; padding:0; white-space:normal; }
+    td:first-child{ grid-column:1; font-weight:600; }
+    td.m-meta{ display:block; grid-column:1; font-size:11.5px; font-family:'JetBrains Mono',monospace; }
+    td.m-act{ grid-column:2; grid-row:1 / span 2; }
+    tbody tr:hover{ background:transparent; }
+  }
+  @media (min-width:700px){ th.opt, td.opt{ display:table-cell; } .m-act{ text-align:right; } }
+
+  .note{ background:var(--warn-soft); border-left:3px solid var(--warn); border-radius:0 11px 11px 0; padding:11px 13px; font-size:12.8px; line-height:1.5; }
+  .err{ background:var(--bad-soft); border:1px solid var(--bad); color:var(--bad); border-radius:11px; padding:10px 12px; font-size:13px; }
+  .ok-msg{ background:var(--ok-soft); border:1px solid var(--ok); color:var(--ok); border-radius:11px; padding:10px 12px; font-size:13px; }
+  [hidden]{ display:none !important; }
+
+  @media (max-width:560px){
+    h1{ font-size:18px; }
+    .kpi .num{ font-size:22px; }
+    .wrap{ padding:12px 12px 56px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ---------- вход ---------- -->
+  <section class="gate card stack" id="gate">
+    <h1>Панель администратора</h1>
+    <p class="muted">Введите ключ статистики — тот, что задан секретом <span class="mono">STATS_KEY</span> в воркере. Он сохранится в этом браузере, вводить каждый раз не придётся.</p>
+    <input type="password" id="keyInput" placeholder="Ключ" autocomplete="current-password">
+    <button class="btn primary" id="keyBtn">Войти</button>
+    <div class="err" id="gateErr" hidden></div>
+  </section>
+
+  <!-- ---------- панель ---------- -->
+  <main id="panel" hidden class="stack">
+
+    <div class="topbar">
+      <div>
+        <h1>AI Практикум</h1>
+        <div class="sub" id="updatedAt">загрузка…</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn sm" id="refreshBtn">Обновить</button>
+        <button class="btn sm" id="logoutBtn">Выйти</button>
+      </div>
+    </div>
+
+    <div class="err" id="loadErr" hidden></div>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card stack">
+      <div class="chart-head">
+        <h2>Путь студента</h2>
+        <span class="faint mono" style="font-size:11px;" id="funnelNote"></span>
+      </div>
+      <div class="funnel" id="funnel"></div>
+      <p class="faint" style="font-size:11.5px; margin:0;">Первый процент — доля от всей базы, стрелка — доля от предыдущего шага.</p>
+    </section>
+
+    <section class="card">
+      <div class="chart-head">
+        <h2>Приходы и заходы по дням</h2>
+        <div class="legend">
+          <span><i style="background:var(--series-1)"></i>пришли впервые</span>
+          <span><i style="background:var(--series-2)"></i>заходили</span>
+        </div>
+      </div>
+      <div class="chart-scroll"><svg class="chart" id="daysChart" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Столбчатая диаграмма: новые студенты и заходы по дням"></svg></div>
+      <p class="faint" style="font-size:11.5px; margin-top:8px;">«Пришли» считается с самого начала. «Заходили» — только с 18 сентября, раньше это не записывалось. <span id="daysRange"></span></p>
+    </section>
+
+    <section class="card stack">
+      <div class="chart-head"><h2>Студенты</h2><span class="faint mono" style="font-size:11px;" id="rowCount"></span></div>
+      <div class="tbl-tools">
+        <input type="search" id="search" placeholder="Поиск по имени или id">
+        <select id="sortSel" aria-label="Порядок сортировки">
+          <option value="последний_раз">Сначала кто заходил недавно</option>
+          <option value="первый_раз">Сначала кто пришёл раньше</option>
+          <option value="статей">Больше всего прочитано</option>
+          <option value="курсов">Больше всего курсов</option>
+          <option value="дней">Больше дней заходов</option>
+          <option value="имя">По имени</option>
+        </select>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>Написать студентам</h2>
+      <p class="muted" style="font-size:13px;">Сообщение уходит от имени бота. Отписавшихся рассылка не трогает.</p>
+      <textarea id="msgText" placeholder="Текст сообщения…"></textarea>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input id="msgTo" style="flex:1; min-width:160px;" placeholder="id студента, или оставьте пустым для всех">
+        <button class="btn" id="sendOneBtn">Отправить одному</button>
+        <button class="btn primary" id="sendAllBtn">Отправить всем</button>
+      </div>
+      <div class="note">Рассылка уходит сразу и отменить её нельзя. Перечитайте текст перед отправкой.</div>
+      <div class="ok-msg" id="sendOk" hidden></div>
+      <div class="err" id="sendErr" hidden></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+  "use strict";
+  var BASE = 'https://ai-praktikum-bot.zevs2018123.workers.dev';
+  var KEY_STORE = 'praktikum_admin_key';
+  var key = null, data = null, timer = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+  function readKey(){ try{ return localStorage.getItem(KEY_STORE); }catch(e){ return null; } }
+  function writeKey(v){ try{ v ? localStorage.setItem(KEY_STORE, v) : localStorage.removeItem(KEY_STORE); }catch(e){} }
+
+  /* ---------- загрузка ---------- */
+  function load(){
+    return fetch(BASE + '/stats?key=' + encodeURIComponent(key) + '&detail=1', { cache:'no-store' })
+      .then(function(r){
+        if(r.status === 403) throw new Error('Ключ не подошёл');
+        if(!r.ok) throw new Error('Сервер ответил ' + r.status);
+        return r.json();
+      });
+  }
+
+  function start(){
+    $('gate').hidden = true;
+    $('panel').hidden = false;
+    refresh();
+    clearInterval(timer);
+    timer = setInterval(refresh, 60000);
+  }
+
+  function refresh(){
+    load().then(function(j){
+      data = j;
+      $('loadErr').hidden = true;
+      render();
+    }).catch(function(e){
+      $('loadErr').textContent = e.message;
+      $('loadErr').hidden = false;
+    });
+  }
+
+  /* ---------- KPI ---------- */
+  function renderKpis(){
+    var s = data.сводка;
+    var dnr = (data.по_дням || []);
+    var today = dnr.length ? dnr[dnr.length - 1].пришли : 0;
+    var items = [
+      { n: s.всего, l: 'всего студентов', d: today ? '+' + today + ' сегодня' : 'сегодня никого' },
+      { n: s.активны_24ч, l: 'активны за сутки' },
+      { n: s.активны_7д, l: 'активны за неделю' },
+      { n: s.открывали_приложение, l: 'открывали приложение' },
+      { n: s.начали_учиться, l: 'прочли хотя бы статью' },
+      { n: s.закрыли_хотя_бы_один_курс, l: 'закрыли курс' }
+    ];
+    $('kpis').innerHTML = items.map(function(i){
+      return '<div class="kpi"><div class="num">' + i.n + '</div><div class="lbl">' + i.l + '</div>' +
+        (i.d ? '<div class="delta ' + (i.d.charAt(0) === '+' ? 'up' : 'flat') + '">' + esc(i.d) + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
+  /* ---------- воронка ---------- */
+  function renderFunnel(){
+    var s = data.сводка;
+    var stages = [
+      { nm:'Есть в базе',          v:s.всего,                      c:'var(--step-1)' },
+      { nm:'Открыли приложение',   v:s.открывали_приложение,       c:'var(--step-2)' },
+      { nm:'Прочли хотя бы статью',v:s.начали_учиться,             c:'var(--step-3)' },
+      { nm:'Закрыли курс',         v:s.закрыли_хотя_бы_один_курс,  c:'var(--step-4)' }
+    ];
+    var top = stages[0].v || 1;
+    $('funnel').innerHTML = stages.map(function(st, i){
+      var pct = Math.round(100 * st.v / top);
+      /* Шаги считаются из разных источников и иногда не вложены друг в друга
+         (прогресс есть, а открытие не записалось). Врать «110%» не будем. */
+      var prev = i === 0 ? 0 : stages[i-1].v;
+      var rel = prev ? Math.round(100 * st.v / prev) : 0;
+      var fromPrev = (i === 0 || rel > 100) ? '' : ' · →' + rel + '%';
+      return '<div class="fn-row"><div class="fn-head"><span class="nm">' + st.nm + '</span>' +
+        '<span class="vl">' + st.v + ' · ' + pct + '%' + fromPrev + '</span></div>' +
+        '<div class="fn-track"><div class="fn-bar" style="width:' + Math.max(pct, st.v ? 2 : 0) + '%; background:' + st.c + '"></div></div></div>';
+    }).join('');
+    $('funnelNote').textContent = 'от ' + top + ' человек';
+  }
+
+  /* ---------- график по дням ---------- */
+  var tip = $('tip');
+  function showTip(evt, html){
+    tip.innerHTML = html;
+    tip.classList.add('show');
+    var pad = 12, r = tip.getBoundingClientRect();
+    var x = Math.min(Math.max(evt.clientX - r.width / 2, pad), window.innerWidth - r.width - pad);
+    var y = evt.clientY - r.height - 14;
+    if(y < pad) y = evt.clientY + 18;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTip(){ tip.classList.remove('show'); }
+
+  function renderDays(){
+    /* На телефоне 14 столбиков превращаются в кашу и уезжают за край,
+       поэтому на узком экране показываем последнюю неделю. */
+    var all = data.по_дням || [];
+    var show = window.innerWidth < 620 ? 7 : 14;
+    var rows = all.slice(-show);
+    if(!rows.length) return;
+    var W = rows.length <= 7 ? 340 : 640, H = 220, L = 30, R = 10, T = 14, B = 34;
+    var iw = W - L - R, ih = H - T - B;
+    var max = Math.max(1, rows.reduce(function(m, r){ return Math.max(m, r.пришли, r.заходили); }, 0));
+    /* «круглый» потолок, чтобы подписи оси были читаемыми числами */
+    var step = max <= 4 ? 1 : max <= 10 ? 2 : Math.ceil(max / 5);
+    var top = Math.ceil(max / step) * step;
+    var band = iw / rows.length;
+    var barW = Math.min(12, (band - 8) / 2);
+    var gap = 2; /* разрыв поверхностью между соседними столбцами */
+
+    var parts = [];
+    for(var t = 0; t <= top; t += step){
+      var y = T + ih - (t / top) * ih;
+      parts.push('<line class="grid" x1="' + L + '" y1="' + y.toFixed(1) + '" x2="' + (W - R) + '" y2="' + y.toFixed(1) + '"/>');
+      parts.push('<text x="' + (L - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end">' + t + '</text>');
+    }
+
+    rows.forEach(function(r, i){
+      var cx = L + band * i + band / 2;
+      var d = r.дата.slice(8) + '.' + r.дата.slice(5, 7);
+      /* подписываем не каждый день, иначе на мобильном они слипаются */
+      if(rows.length <= 8 || i % 2 === 1 || i === rows.length - 1){
+        parts.push('<text x="' + cx.toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle">' + d + '</text>');
+      }
+      [['пришли','var(--series-1)', -1], ['заходили','var(--series-2)', 1]].forEach(function(pair){
+        var v = r[pair[0]];
+        var h = (v / top) * ih;
+        var x = cx + (pair[2] < 0 ? -barW - gap / 2 : gap / 2);
+        var y = T + ih - h;
+        var rad = Math.min(4, h / 2);
+        if(v > 0){
+          parts.push('<g class="col" data-d="' + r.дата + '" data-a="' + r.пришли + '" data-b="' + r.заходили + '">' +
+            '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) +
+            '" rx="' + rad.toFixed(1) + '" fill="' + pair[1] + '"/>' +
+            '<rect x="' + x.toFixed(1) + '" y="' + (y + Math.min(rad, h)).toFixed(1) + '" width="' + barW.toFixed(1) +
+            '" height="' + Math.max(0, h - rad).toFixed(1) + '" fill="' + pair[1] + '"/></g>');
+        }
+      });
+      /* прозрачная зона попадания на всю ширину дня — палец мельче столбика не бывает */
+      parts.push('<rect class="col" x="' + (L + band * i).toFixed(1) + '" y="' + T + '" width="' + band.toFixed(1) + '" height="' + ih +
+        '" fill="transparent" data-d="' + r.дата + '" data-a="' + r.пришли + '" data-b="' + r.заходили + '"/>');
+    });
+
+    parts.push('<line class="grid" x1="' + L + '" y1="' + (T + ih) + '" x2="' + (W - R) + '" y2="' + (T + ih) + '"/>');
+    var svg = $('daysChart');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.innerHTML = parts.join('');
+    svg.querySelectorAll('.col').forEach(function(g){
+      function show(e){
+        var p = e.touches ? e.touches[0] : e;
+        showTip(p, '<b>' + g.dataset.d.split('-').reverse().join('.') + '</b>пришли: ' + g.dataset.a + '<br>заходили: ' + g.dataset.b);
+      }
+      g.addEventListener('mousemove', show);
+      g.addEventListener('mouseleave', hideTip);
+      g.addEventListener('touchstart', show, { passive:true });
+      g.addEventListener('touchend', hideTip);
+    });
+  }
+
+  /* ---------- таблица ---------- */
+  var COLS = [
+    { k:'имя',            t:'Имя',      num:false },
+    { k:'первый_раз',     t:'Пришёл',   num:false, opt:true },
+    { k:'последний_раз',  t:'Был',      num:false, opt:true },
+    { k:'дней',           t:'Дней',     num:true, opt:true },
+    { k:'открытий',       t:'Открытий', num:true, opt:true },
+    { k:'статей',         t:'Статей',   num:true, opt:true },
+    { k:'курсов',         t:'Курсов',   num:true, opt:true }
+  ];
+  var sortKey = 'последний_раз', sortDir = -1;
+
+  function renderTable(){
+    var q = ($('search').value || '').trim().toLowerCase();
+    var rows = (data.записи || []).filter(function(r){
+      return !q || String(r.имя || '').toLowerCase().indexOf(q) >= 0 || String(r.id).indexOf(q) >= 0;
+    });
+    rows.sort(function(a, b){
+      var x = a[sortKey], y = b[sortKey];
+      if(typeof x === 'number' || typeof y === 'number') return ((x || 0) - (y || 0)) * sortDir;
+      return String(x || '').localeCompare(String(y || '')) * sortDir;
+    });
+
+    $('thead').innerHTML = COLS.map(function(c){
+      var s = c.k === sortKey ? (sortDir < 0 ? 'descending' : 'ascending') : 'none';
+      return '<th data-k="' + c.k + '" aria-sort="' + s + '"' + (c.opt ? ' class="opt"' : '') + '>' + c.t + '</th>';
+    }).join('') + '<th class="opt">Напоминания</th><th class="m-meta"></th><th class="m-act"></th>';
+
+    $('tbody').innerHTML = rows.map(function(r){
+      var cells = COLS.map(function(c){
+        var v = r[c.k];
+        if(c.k === 'имя') v = (v || '—') + ' <span class="faint mono" style="font-size:10.5px;">' + r.id + '</span>';
+        else if(c.k === 'первый_раз' || c.k === 'последний_раз') v = String(v).slice(5);
+        var cls = [c.num ? 'num' : '', c.opt ? 'opt' : ''].filter(Boolean).join(' ');
+        return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (c.k === 'имя' ? v : esc(v)) + '</td>';
+      }).join('');
+      var off = r.напоминания === false;
+      /* На телефоне колонки не влезают, поэтому те же цифры собираем
+         в одну строку под именем, а сами колонки прячем через .opt */
+      var meta = 'был ' + String(r.последний_раз).slice(5, 10).split('-').reverse().join('.') +
+        ' · статей ' + r.статей + ' · курсов ' + r.курсов + (off ? ' · напоминания выкл' : '');
+      return '<tr>' + cells +
+        '<td class="opt"><span class="tag ' + (off ? 'off' : 'on') + '">' + (off ? 'выкл' : 'вкл') + '</span></td>' +
+        '<td class="m-meta faint">' + meta + '</td>' +
+        '<td class="m-act"><button class="btn sm" data-msg="' + r.id + '">Написать</button></td></tr>';
+    }).join('');
+
+    $('rowCount').textContent = rows.length + ' из ' + (data.записи || []).length;
+
+    $('thead').querySelectorAll('th[data-k]').forEach(function(th){
+      th.addEventListener('click', function(){
+        if(sortKey === th.dataset.k) sortDir = -sortDir; else { sortKey = th.dataset.k; sortDir = -1; }
+        $('sortSel').value = sortKey;
+        renderTable();
+      });
+    });
+    $('tbody').querySelectorAll('[data-msg]').forEach(function(b){
+      b.addEventListener('click', function(){
+        $('msgTo').value = b.dataset.msg;
+        $('msgText').focus();
+        $('msgText').scrollIntoView({ behavior:'smooth', block:'center' });
+      });
+    });
+  }
+
+  function render(){
+    $('updatedAt').textContent = 'обновлено ' + new Date(data.обновлено).toLocaleString('ru-RU', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
+    renderKpis(); renderFunnel(); renderDays(); renderTable();
+  }
+
+  /* ---------- отправка ---------- */
+  function send(to){
+    var text = $('msgText').value.trim();
+    $('sendOk').hidden = true; $('sendErr').hidden = true;
+    if(!text){ $('sendErr').textContent = 'Текст пустой.'; $('sendErr').hidden = false; return; }
+    var who = to === 'all' ? 'всем студентам' : 'студенту ' + to;
+    if(!confirm('Отправить сообщение ' + who + '?\n\n' + text)) return;
+    $('sendOneBtn').disabled = $('sendAllBtn').disabled = true;
+    fetch(BASE + '/admin?key=' + encodeURIComponent(key), {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action:'send', to:to, text:text })
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if(j.error) throw new Error(j.error);
+      $('sendOk').textContent = 'Отправлено: ' + j.отправлено + (j.ошибок ? ', не доставлено: ' + j.ошибок : '');
+      $('sendOk').hidden = false;
+      $('msgText').value = '';
+    }).catch(function(e){
+      $('sendErr').textContent = 'Не отправилось: ' + e.message;
+      $('sendErr').hidden = false;
+    }).then(function(){
+      $('sendOneBtn').disabled = $('sendAllBtn').disabled = false;
+    });
+  }
+
+  /* ---------- события ---------- */
+  $('keyBtn').addEventListener('click', function(){
+    var v = $('keyInput').value.trim();
+    if(!v) return;
+    key = v;
+    load().then(function(j){ data = j; writeKey(v); start(); })
+      .catch(function(e){ $('gateErr').textContent = e.message; $('gateErr').hidden = false; });
+  });
+  $('keyInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('keyBtn').click(); });
+  $('refreshBtn').addEventListener('click', refresh);
+  $('logoutBtn').addEventListener('click', function(){
+    writeKey(null); key = null; clearInterval(timer);
+    $('panel').hidden = true; $('gate').hidden = false; $('keyInput').value = '';
+  });
+  $('search').addEventListener('input', function(){ if(data) renderTable(); });
+  $('sortSel').addEventListener('change', function(){
+    sortKey = $('sortSel').value;
+    sortDir = sortKey === 'имя' ? 1 : -1; /* имена читаются по алфавиту, числа — от большего */
+    if(data) renderTable();
+  });
+  $('sendAllBtn').addEventListener('click', function(){ send('all'); });
+  $('sendOneBtn').addEventListener('click', function(){
+    var id = $('msgTo').value.trim();
+    if(!id){ $('sendErr').textContent = 'Укажите id студента — его видно в таблице.'; $('sendErr').hidden = false; return; }
+    send(id);
+  });
+  var resizeTimer = null;
+  window.addEventListener('resize', function(){
+    hideTip();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function(){ if(data){ renderDays(); renderTable(); } }, 200);
+  });
+
+  var saved = readKey();
+  if(saved){ key = saved; start(); }
+})();
+</script>
+</body>
+</html>
