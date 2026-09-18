@@ -760,6 +760,43 @@
       (s.best > n && s.best > 1 ? '<p class="faint mono" style="font-size:10.5px; text-align:center; margin-top:6px;">лучшая серия: ' + s.best + ' ' + plural(s.best, 'день', 'дня', 'дней') + (s.freezes ? ' · заморозок в запасе: ' + s.freezes : '') + '</p>' : '');
   }
 
+  /* ---- доступ по подписке на канал ----
+     Решение принимает сервер (только у него есть токен бота). Приложение
+     лишь показывает замок. Это не защита от взлома — данные курса лежат в
+     открытых файлах, — а способ не пускать в интерфейс без подписки. */
+  var channelLink = 'https://t.me/smm_ai_agent007';
+  function applyAccess(j){
+    var ov = document.getElementById('gateOverlay');
+    if(!ov) return;
+    if(j.channel){ channelLink = 'https://t.me/' + String(j.channel).replace(/^@/, ''); }
+    ov.hidden = j.access !== false;
+    if(!ov.hidden && window.TG) TG.hideMainButton && TG.hideMainButton();
+  }
+  function bindGate(){
+    var openBtn = document.getElementById('gateOpenChannel');
+    var reBtn = document.getElementById('gateRecheck');
+    var hint = document.getElementById('gateHint');
+    if(openBtn) openBtn.addEventListener('click', function(){
+      if(window.TG) TG.haptic('light');
+      if(window.TG && TG.openTelegramLink && TG.openTelegramLink(channelLink)) return;
+      window.open(channelLink, '_blank', 'noopener');
+    });
+    if(reBtn) reBtn.addEventListener('click', function(){
+      reBtn.disabled = true;
+      if(hint) hint.textContent = 'Проверяю…';
+      sendPing({ progressOnly:true, recheck:true });
+      /* Ответ придёт в общий обработчик пинга; если через пару секунд замок
+         всё ещё на месте — значит подписки не видно. */
+      setTimeout(function(){
+        reBtn.disabled = false;
+        var ov = document.getElementById('gateOverlay');
+        if(hint) hint.textContent = (ov && !ov.hidden)
+          ? 'Подписку пока не видно. Если только что подписался — подожди несколько секунд и нажми ещё раз.'
+          : '';
+      }, 2500);
+    });
+  }
+
   function progressSnapshot(){
     try{
       var st = computeStats();
@@ -783,12 +820,17 @@
          для этого мало: у тех, кто читал до появления серий, счётчик уже
          большой, а перечитывание статьи его вообще не двигает. */
       if(opts && opts.studied) payload.studied = true;
+      if(opts && opts.recheck) payload.recheck = true;
       fetch(OPEN_ENDPOINT, {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       }).then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(j){ if(j && typeof j.streak === 'number'){ saveStreak(j); renderStreak(); } })
+        .then(function(j){
+          if(!j) return;
+          if(typeof j.streak === 'number'){ saveStreak(j); renderStreak(); }
+          if(typeof j.access === 'boolean') applyAccess(j);
+        })
         .catch(function(){});
     }catch(e){}
   }
@@ -892,7 +934,7 @@
      файлов на сервере мало. Сверяемся с version.json (мимо кэша) и, если на
      сервере лежит более свежая сборка, перезагружаемся один раз.
      Повторную перезагрузку блокирует отметка в sessionStorage — защита от петли. */
-  var BUILD = '20260919b';
+  var BUILD = '20260919c';
 
   function checkForUpdate(){
     try{
@@ -956,6 +998,7 @@
     /* тихо проставляем ачивки, которые уже заслужены прошлым прогрессом,
        чтобы при первом открытии не сыпалась пачка попапов */
     checkAchievements(true);
+    bindGate();
     renderStreak();
     renderAll();
     showScreen(storeGet('activeScreen', 'start'));
