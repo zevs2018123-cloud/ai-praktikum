@@ -47,7 +47,8 @@ var TG = (function(){
         lastName: last || null,
         username: uname || null,
         fullName: (first + ' ' + last).trim() || null,
-        displayName: first || uname || null
+        displayName: first || uname || null,
+        languageCode: rawUser.language_code || null
       };
     }
   }catch(e){}

@@ -36,7 +36,11 @@
   var toastTimer;
   function toast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 1900); }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(ch){ return ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':'&quot;'; }); }
-  function s(n, one, many){ return n === 1 ? one : (many || one + 's'); }
+  function lessonsN(n){
+    if(n === 1) return T('lessonsN1');
+    if(LANG === 'ru'){ var m10 = n % 10, m100 = n % 100; if(m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return T('lessonsN2',{n:n}); }
+    return T('lessonsN',{n:n});
+  }
 
   function openExternal(url){
     if(!url) return;
@@ -109,11 +113,11 @@
     return Math.round(100 * (readShare*0.6 + quizShare*0.4));
   }
   function ctaLabel(c){
-    if(courseStatus(c)==='done') return 'Done ↻';
+    if(courseStatus(c)==='done') return T('ctaDone');
     var read = readArr(c.id).length;
-    if(read===0) return 'Start';
-    if(read < c.lessons.length) return 'Continue';
-    return 'Take quiz';
+    if(read===0) return T('ctaStart');
+    if(read < c.lessons.length) return T('ctaContinue');
+    return T('ctaQuiz');
   }
   function continueCourse(cid){
     var c = findCourse(cid); if(!c) return;
@@ -128,17 +132,17 @@
   var clubSvg = '<path d="M12 3 4 7v5c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V7l-8-4Z"/>';
   function clubCardHtml(eyebrow, id){
     if(!CLUB_LINK) return '';
-    return '<div class="club"' + (id ? ' id="' + id + '" hidden' : '') + '><p class="eyebrow">' + esc(eyebrow || 'Private club') + '</p>' +
-      '<h3>' + esc(C.CLUB_TITLE || 'Join the private club') + '</h3><p>' + esc(C.CLUB_TEXT || '') + '</p>' +
+    return '<div class="club"' + (id ? ' id="' + id + '" hidden' : '') + '><p class="eyebrow">' + esc(eyebrow || T('clubEyebrow')) + '</p>' +
+      '<h3>' + esc(T('clubTitle')) + '</h3><p>' + esc(T('clubText')) + '</p>' +
       (C.CLUB_PRICE ? '<div class="price">' + esc(C.CLUB_PRICE) + '</div>' : '') +
-      '<button class="btn gold block" type="button" data-ext="' + esc(CLUB_LINK) + '">Join the club →</button>' +
-      '<p class="faint" style="font-size:10.5px; margin:9px 0 0; line-height:1.4;">Past results don\'t guarantee future returns. Copying trades carries the same risk as placing them yourself.</p></div>';
+      '<button class="btn gold block" type="button" data-ext="' + esc(CLUB_LINK) + '">' + T('clubBtn') + '</button>' +
+      '<p class="faint" style="font-size:10.5px; margin:9px 0 0; line-height:1.4;">' + T('clubRisk') + '</p></div>';
   }
   function brokerCardHtml(){
     if(!C.BROKER_LINK) return '';
     return '<div class="syntx"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 19h16M6 16V9M10 16V6M14 16v-5M18 16V8"/></svg></div>' +
-      '<div class="txt"><b>Practise on a demo — ' + esc(C.BROKER_NAME || 'broker') + '</b>' + esc(C.BROKER_TEXT || '') +
-      '<button class="btn primary" style="margin-top:8px; padding:7px 12px; font-size:12px;" type="button" data-ext="' + esc(C.BROKER_LINK) + '">Open demo account →</button></div></div>';
+      '<div class="txt"><b>' + esc(T('brokerTitle',{name:C.BROKER_NAME||'broker'})) + '</b>' + esc(T('brokerText')) +
+      '<button class="btn primary" style="margin-top:8px; padding:7px 12px; font-size:12px;" type="button" data-ext="' + esc(C.BROKER_LINK) + '">' + T('brokerBtn') + '</button></div></div>';
   }
 
   /* ---------- banners ---------- */
@@ -147,14 +151,14 @@
     var c = activeId ? findCourse(activeId) : null;
     if(!c){
       return '<div class="empty-banner"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19a2 2 0 0 0 2 2h12M4 19a2 2 0 0 1 2-2h12"/></svg>' +
-        '<span class="muted" style="font-size:12.5px;">No course picked yet — start with Trading 101</span><button class="btn primary sm" data-start-first>Start learning</button></div>';
+        '<span class="muted" style="font-size:12.5px;">' + T('noCourse') + '</span><button class="btn primary sm" data-start-first>' + T('startLearning') + '</button></div>';
     }
     var pct = coursePct(c), read = readArr(c.id);
     var next = 0; while(read.indexOf(next) !== -1) next++;
-    var label = courseStatus(c)==='done' ? 'Course complete · you can retake the quiz' : (next < c.lessons.length ? 'Next: ' + c.lessons[next].title : 'Next: course quiz');
-    return '<div class="active-banner"><div class="between"><span class="eyebrow">Current course</span><span class="faint mono" style="font-size:11px;">' + pct + '%</span></div>' +
+    var label = courseStatus(c)==='done' ? T('courseDoneRetake') : (next < c.lessons.length ? T('nextLbl',{t:c.lessons[next].title}) : T('nextQuiz'));
+    return '<div class="active-banner"><div class="between"><span class="eyebrow">' + T('currentCourse') + '</span><span class="faint mono" style="font-size:11px;">' + pct + '%</span></div>' +
       '<span class="name">' + c.name + '</span><div class="progress"><i style="width:' + pct + '%"></i></div><span class="next">' + label + '</span>' +
-      '<div class="row" style="gap:8px;"><button class="btn primary" data-continue="' + c.id + '" style="flex:1;">' + ctaLabel(c) + '</button><button class="btn ghost sm" data-switch>Switch</button></div></div>';
+      '<div class="row" style="gap:8px;"><button class="btn primary" data-continue="' + c.id + '" style="flex:1;">' + ctaLabel(c) + '</button><button class="btn ghost sm" data-switch>' + T('switchBtn') + '</button></div></div>';
   }
   function renderBanners(){
     var html = bannerHtml();
@@ -191,7 +195,7 @@
     wrap.innerHTML =
       '<summary><div class="course-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[c.icon] || ICONS.book) + '</svg></div>' +
       '<div class="course-meta"><div class="name">' + c.name + '</div>' +
-      '<span class="faint mono course-sub" style="font-size:11px;">' + c.lessons.length + ' ' + s(c.lessons.length,'lesson') + ' · ' + pct + '%</span>' +
+      '<span class="faint mono course-sub" style="font-size:11px;">' + lessonsN(c.lessons.length) + ' · ' + pct + '%</span>' +
       '<div class="progress sm" style="margin-top:6px;"><i style="width:' + pct + '%"></i></div></div>' +
       '<div class="course-actions"><button class="btn primary sm course-cta" type="button">' + ctaLabel(c) + '</button>' +
       '<svg class="chev" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div></summary>' +
@@ -201,8 +205,8 @@
     c.lessons.forEach(function(l, i){
       var row = document.createElement('div'); row.className = 'lesson-row';
       var isRead = readArr(c.id).indexOf(i) !== -1;
-      row.innerHTML = '<button class="lesson-check" data-read="' + isRead + '" aria-label="Mark as read"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + checkSvg + '</svg></button>' +
-        '<span class="lesson-txt"><span class="n">' + String(i+1).padStart(2,'0') + '</span>' + (l.video ? '<span class="lesson-video-dot" title="Has video"></span>' : '') + l.title + '</span>' +
+      row.innerHTML = '<button class="lesson-check" data-read="' + isRead + '" aria-label="' + T('markRead') + '"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + checkSvg + '</svg></button>' +
+        '<span class="lesson-txt"><span class="n">' + String(i+1).padStart(2,'0') + '</span>' + (l.video ? '<span class="lesson-video-dot" title="' + T('hasVideo') + '"></span>' : '') + l.title + '</span>' +
         '<svg class="lesson-arrow" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + arrowSvg + '</svg>';
       row.querySelector('.lesson-check').addEventListener('click', function(ev){ ev.stopPropagation(); toggleRead(c.id, i); syncCourseCard(c); });
       row.addEventListener('click', function(){ storeSet('activeCourseId', c.id); renderBanners(); openLesson(c.id, i); });
@@ -211,12 +215,12 @@
     var quizRow = document.createElement('div');
     quizRow.className = 'quiz-row';
     var qs = quizScore(c);
-    quizRow.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><span>Course quiz — ' + c.quiz.length + ' questions' + (quizDone(c) ? (' · done ' + qs.correct + '/' + qs.total) : '') + '</span>';
+    quizRow.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><span>' + T('quizRow',{n:c.quiz.length}) + (quizDone(c) ? T('quizRowDone',{c:qs.correct,t:qs.total}) : '') + '</span>';
     quizRow.addEventListener('click', function(ev){ ev.stopPropagation(); storeSet('activeCourseId', c.id); openQuiz(c.id); });
     list.appendChild(quizRow);
     if(CLUB_LINK){
       var clubMini = document.createElement('div'); clubMini.className = 'club-mini';
-      clubMini.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + clubSvg + '</svg><span>See it applied live — Jason\'s private club</span>';
+      clubMini.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + clubSvg + '</svg><span>' + T('clubMini') + '</span>';
       clubMini.addEventListener('click', function(ev){ ev.stopPropagation(); openExternal(CLUB_LINK); });
       list.appendChild(clubMini);
     }
@@ -237,7 +241,7 @@
   function syncCourseCard(c){
     var wrap = document.getElementById('course-' + c.id); if(!wrap) return;
     var pct = coursePct(c);
-    wrap.querySelector('.course-sub').textContent = c.lessons.length + ' ' + s(c.lessons.length,'lesson') + ' · ' + pct + '%';
+    wrap.querySelector('.course-sub').textContent = lessonsN(c.lessons.length) + ' · ' + pct + '%';
     wrap.querySelector('.progress > i').style.width = pct + '%';
     wrap.querySelector('.course-cta').textContent = ctaLabel(c);
     var arr = readArr(c.id);
@@ -256,7 +260,7 @@
       list.forEach(function(c){ var card = renderCourseCard(c); if(openIds.indexOf(card.id) !== -1) card.open = true; blocksListEl.appendChild(card); });
       if(b.soon && b.soon.length){
         var soon = document.createElement('div'); soon.className = 'soon-card';
-        soon.innerHTML = '<span class="eyebrow">Coming soon</span><div class="soon-list">' + b.soon.map(function(x){ return '<span class="soon-pill">' + x + '</span>'; }).join('') + '</div>';
+        soon.innerHTML = '<span class="eyebrow">' + T('comingSoon') + '</span><div class="soon-list">' + b.soon.map(function(x){ return '<span class="soon-pill">' + x + '</span>'; }).join('') + '</div>';
         blocksListEl.appendChild(soon);
       }
     });
@@ -339,7 +343,7 @@
   }
   function xpCardHtml(st){
     var lv = levelFor(st.xp);
-    var hint = lv.next ? (lv.next.min - st.xp) + ' XP to “' + lv.next.name + '”' : 'Max level reached';
+    var hint = lv.next ? T('xpTo',{n:lv.next.min - st.xp, lvl:lv.next.name}) : T('maxLevel');
     return '<div class="xp-card"><div class="xp-top"><span class="xp-lvl">' + lv.name + '</span><span class="xp-num">' + st.xp + ' XP</span></div>' +
       '<div class="xp-bar"><i style="width:' + lv.pct + '%"></i></div><div class="xp-hint">' + hint + '</div></div>';
   }
@@ -370,18 +374,18 @@
     var ring = document.getElementById('profileRing');
     if(ring) ring.setAttribute('stroke-dashoffset', String(194.7 - 194.7*pct/100));
     document.getElementById('profilePct').textContent = pct + '%';
-    document.getElementById('profileFrac').textContent = totalRead + ' of ' + totalLessons + ' lessons read';
+    document.getElementById('profileFrac').textContent = T('lessonsOf',{r:totalRead,t:totalLessons});
     var acc = totalAns ? Math.round(100*totalCorrect/totalAns) : null;
-    document.getElementById('profileAccuracy').textContent = 'quizzes: ' + (acc===null ? 'no answers yet' : acc + '% (' + totalCorrect + '/' + totalAns + ')');
+    document.getElementById('profileAccuracy').textContent = T('quizzesLbl',{v:(acc===null ? T('noAnswers') : acc + '% (' + totalCorrect + '/' + totalAns + ')')});
     document.getElementById('statAccuracy').textContent = acc===null ? '—' : acc + '%';
     var listEl = document.getElementById('profileCourseList');
     listEl.innerHTML = '';
     var activeId = storeGet('activeCourseId', null);
     COURSES.forEach(function(c, i){
       var p = coursePct(c), status = courseStatus(c);
-      var statusTxt = status==='new' ? 'not started' : status==='done' ? 'completed' : 'in progress';
+      var statusTxt = status==='new' ? T('stNew') : status==='done' ? T('stDone') : T('stProgress');
       var row = document.createElement('div'); row.className = 'prof-course-row';
-      row.innerHTML = '<div class="info"><div class="between"><b>' + c.name + (c.id===activeId ? ' <span class="faint" style="font-weight:500;">· current</span>' : '') + '</b><span class="status-pill ' + status + '">' + statusTxt + '</span></div><div class="progress sm"><i style="width:' + p + '%"></i></div></div>';
+      row.innerHTML = '<div class="info"><div class="between"><b>' + c.name + (c.id===activeId ? ' <span class="faint" style="font-weight:500;">· ' + T('current') + '</span>' : '') + '</b><span class="status-pill ' + status + '">' + statusTxt + '</span></div><div class="progress sm"><i style="width:' + p + '%"></i></div></div>';
       listEl.appendChild(row);
       if(i < COURSES.length-1){ var hr = document.createElement('hr'); hr.className='divider'; listEl.appendChild(hr); }
     });
@@ -402,9 +406,9 @@
      {formula,label} (monospace example, copyable) | {links:[{n,u,d}]} | {table:{head:[],rows:[[]]}} */
   var copyStore = [];
   function linksCardHtml(items){
-    return '<div class="lsn-links"><span class="lbl">Links from this lesson</span>' + items.map(function(it){
+    return '<div class="lsn-links"><span class="lbl">' + T('linksLbl') + '</span>' + items.map(function(it){
       return '<div class="lsn-svc"><div class="svc-txt"><b>' + it.n + '</b>' + (it.d ? '<span>' + it.d + '</span>' : '') + '</div>' +
-        '<button class="btn sm" type="button" data-ext="' + esc(it.u) + '">Open ↗</button></div>';
+        '<button class="btn sm" type="button" data-ext="' + esc(it.u) + '">' + T('open') + '</button></div>';
     }).join('') + '</div>';
   }
   function tableHtml(t){
@@ -420,15 +424,15 @@
       if(p.list) return '<ul class="lsn-list">' + p.list.map(function(li){ return '<li>' + li + '</li>'; }).join('') + '</ul>';
       if(p.note) return '<div class="lsn-note">' + p.note + '</div>';
       if(p.warn) return '<div class="lsn-note warn">' + p.warn + '</div>';
-      if(p.task) return '<div class="lsn-task"><span class="lbl">Practice</span>' + p.task + '</div>';
+      if(p.task) return '<div class="lsn-task"><span class="lbl">' + T('practice') + '</span>' + p.task + '</div>';
       if(p.links) return linksCardHtml(p.links);
       if(p.table) return '<div class="card" style="padding:12px 13px; box-shadow:none;">' + tableHtml(p.table) + '</div>';
       if(p.formula){
         var i = copyStore.push(p.formula) - 1;
         return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') + '<pre>' + esc(p.formula) + '</pre>' +
-          (p.copy ? '<button class="btn ghost sm copy-prompt" data-pi="' + i + '" type="button">Copy</button>' : '') + '</div>';
+          (p.copy ? '<button class="btn ghost sm copy-prompt" data-pi="' + i + '" type="button">' + T('copy') + '</button>' : '') + '</div>';
       }
-      if(p.tool) return '<button class="btn block" type="button" data-open-tool="' + p.tool + '">' + (p.t || 'Open the calculator') + ' →</button>';
+      if(p.tool) return '<button class="btn block" type="button" data-open-tool="' + p.tool + '">' + (p.t || T('openCalc')) + ' →</button>';
       return '';
     }).join('');
   }
@@ -436,8 +440,8 @@
     root.querySelectorAll('.copy-prompt').forEach(function(btn){
       btn.addEventListener('click', function(){
         var text = copyStore[Number(btn.dataset.pi)]; if(!text) return;
-        try{ navigator.clipboard.writeText(text).then(function(){ toast('Copied'); if(window.TG) TG.haptic('light'); }).catch(function(){ toast('Select the text and copy'); }); }
-        catch(e){ toast('Select the text and copy'); }
+        try{ navigator.clipboard.writeText(text).then(function(){ toast(T('copied')); if(window.TG) TG.haptic('light'); }).catch(function(){ toast(T('selectCopy')); }); }
+        catch(e){ toast(T('selectCopy')); }
       });
     });
     root.querySelectorAll('[data-open-tool]').forEach(function(btn){
@@ -448,8 +452,8 @@
   function videoBlockHtml(vid){
     if(!vid) return '';
     return '<div class="video-wrap" data-vid="' + esc(vid) + '"><img class="video-thumb" src="https://i.ytimg.com/vi/' + esc(vid) + '/hqdefault.jpg" alt="" loading="lazy">' +
-      '<button class="video-play" type="button" aria-label="Watch video"><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span><span class="lbl">Watch the video</span></button></div>' +
-      '<div class="video-link-row"><a href="#" data-ext="https://youtu.be/' + esc(vid) + '">Open on YouTube ↗</a></div>';
+      '<button class="video-play" type="button" aria-label="Watch video"><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span><span class="lbl">' + T('watchVideo') + '</span></button></div>' +
+      '<div class="video-link-row"><a href="#" data-ext="https://youtu.be/' + esc(vid) + '">' + T('openYt') + '</a></div>';
   }
   function bindVideo(root){
     root.querySelectorAll('.video-thumb').forEach(function(img){ img.addEventListener('error', function(){ img.style.display = 'none'; }); });
@@ -459,7 +463,7 @@
         var vid = wrap.dataset.vid;
         var frame = document.createElement('iframe');
         frame.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&playsinline=1&rel=0';
-        frame.title = 'Lesson video';
+        frame.title = T('watchVideo');
         frame.setAttribute('allow', 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen');
         frame.setAttribute('allowfullscreen', '');
         wrap.classList.add('playing'); wrap.appendChild(frame);
@@ -483,15 +487,15 @@
     if(idx >= c.lessons.length){ openQuiz(cid); return; }
     quizOverlay.hidden = true;
     var lesson = c.lessons[idx];
-    lessonKicker.textContent = c.name + ' · lesson ' + (idx+1) + '/' + c.lessons.length;
+    lessonKicker.textContent = T('lessonKicker',{c:c.name,i:idx+1,n:c.lessons.length});
     lessonTitleTxt.textContent = lesson.title;
     lessonScroll.innerHTML = videoBlockHtml(lesson.video) + '<h3>' + lesson.title + '</h3>' +
-      (lesson.min ? '<span class="faint mono" style="font-size:11px; margin-top:-8px;">' + lesson.min + ' min read</span>' : '') +
+      (lesson.min ? '<span class="faint mono" style="font-size:11px; margin-top:-8px;">' + T('minRead',{n:lesson.min}) + '</span>' : '') +
       '<div class="body-txt">' + renderBody(lesson.body) + '</div>';
     lessonScroll.scrollTop = 0;
     bindLessonExtras(lessonScroll); bindVideo(lessonScroll);
     var isLast = idx === c.lessons.length - 1;
-    finishBtn.textContent = isLast ? 'Done → course quiz' : 'Next lesson →';
+    finishBtn.textContent = isLast ? T('doneToQuiz') : T('nextLesson');
     finishBtn.onclick = function(){
       var wasRead = readArr(cid).indexOf(idx) !== -1;
       markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile();
@@ -516,19 +520,19 @@
     quizTitleTxt.textContent = c.name;
     if(window.TG) TG.showBack(function(){ closeQuiz(); renderAll(); });
     var saved = getAnswers(cid);
-    var html = '<div class="quiz-head"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><b>' + c.name + ' — ' + c.quiz.length + ' questions</b></div>';
+    var html = '<div class="quiz-head"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><b>' + T('quizHead',{name:c.name,n:c.quiz.length}) + '</b></div>';
     c.quiz.forEach(function(q, qi){
       html += '<div class="quiz-q" data-qi="' + qi + '"><p class="q-text">' + (qi+1) + '. ' + q.q + '</p><div class="q-opts">' +
         q.opts.map(function(o, oi){ return '<button class="q-opt" data-oi="' + oi + '"><span>' + o + '</span><span class="mark"></span></button>'; }).join('') +
         '</div><p class="q-explain" hidden></p></div>';
     });
-    quizScroll.innerHTML = html + clubCardHtml('“' + c.name + '” complete', 'quizClub');
+    quizScroll.innerHTML = html + clubCardHtml(T('clubCourseDone',{name:c.name}), 'quizClub');
     quizScroll.scrollTop = 0;
     var answered = Object.keys(saved).length, correctN = 0;
     c.quiz.forEach(function(q,qi){ if(saved[qi]===q.correct) correctN++; });
     function paint(qEl, q, chosen){
       qEl.querySelectorAll('.q-opt').forEach(function(o2, oi2){ o2.disabled = true; if(oi2===q.correct) o2.classList.add('correct'); else if(oi2===chosen) o2.classList.add('incorrect'); });
-      var exp = qEl.querySelector('.q-explain'); exp.textContent = (chosen===q.correct ? '✓ Correct. ' : '✕ Not quite. ') + q.explain; exp.hidden = false;
+      var exp = qEl.querySelector('.q-explain'); exp.textContent = (chosen===q.correct ? T('correctPfx') : T('wrongPfx')) + q.explain; exp.hidden = false;
     }
     quizScroll.querySelectorAll('.quiz-q').forEach(function(qEl){
       var qi = Number(qEl.dataset.qi), q = c.quiz[qi];
@@ -551,21 +555,21 @@
   function updateQuizFinishState(c, answered, correct){
     if(answered >= c.quiz.length){
       quizFinishBtn.disabled = false;
-      quizFinishBtn.textContent = 'Quiz done (' + correct + '/' + c.quiz.length + ') · continue';
+      quizFinishBtn.textContent = T('quizDoneBtn',{c:correct,t:c.quiz.length});
       quizFinishBtn.onclick = function(){ finishQuiz(c, correct); };
     } else {
       quizFinishBtn.disabled = true;
-      quizFinishBtn.textContent = 'Answer all questions (' + answered + '/' + c.quiz.length + ')';
+      quizFinishBtn.textContent = T('answerAllN',{a:answered,t:c.quiz.length});
       quizFinishBtn.onclick = null;
     }
   }
   function finishQuiz(c, correct){
-    toast('Quiz complete · ' + correct + '/' + c.quiz.length + ' correct');
+    toast(T('quizToast',{c:correct,t:c.quiz.length}));
     if(window.TG) TG.haptic('success');
     var clubBlock = document.getElementById('quizClub');
     if(clubBlock){ clubBlock.hidden = false; clubBlock.scrollIntoView({behavior:'smooth', block:'start'}); }
     var order = flatOrder(), nextId = order[order.indexOf(c.id)+1];
-    quizFinishBtn.textContent = nextId ? 'Next course →' : 'Back to courses';
+    quizFinishBtn.textContent = nextId ? T('nextCourse') : T('backCourses');
     quizFinishBtn.onclick = nextId
       ? function(){ closeQuiz(); showScreen('courses'); continueCourse(nextId); }
       : function(){ closeQuiz(); renderAll(); showScreen('courses'); };
@@ -603,7 +607,7 @@
     var out = document.getElementById('sizeOut'), msg = document.getElementById('sizeMsg');
     msg.className = 'calc-msg';
     if(!(bal > 0) || !(risk > 0) || !(entry > 0) || !(stop > 0) || entry === stop){
-      out.innerHTML = ''; msg.textContent = 'Fill in balance, risk, entry and a stop that differs from entry.'; return;
+      out.innerHTML = ''; msg.textContent = T('sizeFill'); return;
     }
     var dist = Math.abs(entry - stop);
     var perLot; // $ lost per 1.00 lot if stop is hit
@@ -614,20 +618,20 @@
     var lots = riskUsd / perLot;
     var lotsR = Math.floor(lots * 100) / 100;
     var realRisk = lotsR * perLot;
-    var distTxt = instr === 'xau' ? '$' + dist.toFixed(2) : (dist / (instr === 'jpy' ? 0.01 : 0.0001)).toFixed(1) + ' pips';
+    var distTxt = instr === 'xau' ? '$' + dist.toFixed(2) : (dist / (instr === 'jpy' ? 0.01 : 0.0001)).toFixed(1) + ' ' + T('pips');
     var rr = null, reward = null, dir = entry > stop ? 1 : -1;
     if(tp > 0 && (tp - entry) * dir > 0){ rr = Math.abs(tp - entry) / dist; reward = lotsR * perLot * rr; }
     out.innerHTML =
-      '<div><div class="k">Lot size</div><div class="v acc">' + (lotsR >= 0.01 ? lotsR.toFixed(2) : '< 0.01') + '</div></div>' +
-      '<div><div class="k">Money at risk</div><div class="v bad">' + money(lotsR >= 0.01 ? realRisk : riskUsd) + '</div></div>' +
-      '<div><div class="k">Stop distance</div><div class="v">' + distTxt + '</div></div>' +
-      '<div><div class="k">Reward : risk</div><div class="v ' + (rr ? (rr >= 2 ? 'ok' : rr >= 1 ? '' : 'bad') : '') + '">' + (rr ? '1 : ' + rr.toFixed(1) : '—') + '</div></div>';
-    var parts = [ (dir > 0 ? 'Long (buy)' : 'Short (sell)') + ' setup.' ];
-    if(lotsR < 0.01){ msg.className = 'calc-msg bad'; parts.push('Even 0.01 lots risks ' + money(perLot*0.01) + ' here — more than your ' + risk + '%. Widen your account, tighten the stop logically, or skip the trade.'); }
+      '<div><div class="k">' + T('kLot') + '</div><div class="v acc">' + (lotsR >= 0.01 ? lotsR.toFixed(2) : '< 0.01') + '</div></div>' +
+      '<div><div class="k">' + T('kRisk') + '</div><div class="v bad">' + money(lotsR >= 0.01 ? realRisk : riskUsd) + '</div></div>' +
+      '<div><div class="k">' + T('kStopDist') + '</div><div class="v">' + distTxt + '</div></div>' +
+      '<div><div class="k">' + T('kRR') + '</div><div class="v ' + (rr ? (rr >= 2 ? 'ok' : rr >= 1 ? '' : 'bad') : '') + '">' + (rr ? '1 : ' + rr.toFixed(1) : '—') + '</div></div>';
+    var parts = [ dir > 0 ? T('sizeLong') : T('sizeShort') ];
+    if(lotsR < 0.01){ msg.className = 'calc-msg bad'; parts.push(T('sizeTooBig',{m:money(perLot*0.01), r:risk})); }
     else {
-      if(reward) parts.push('If the target hits: +' + money(reward) + '.');
-      if(risk > 2){ msg.className = 'calc-msg bad'; parts.push('Risking more than 2% per trade makes a normal losing streak very painful — see Risk First.'); }
-      else if(rr && rr < 1) parts.push('Reward is smaller than risk — you need a very high win rate for this to pay.');
+      if(reward) parts.push(T('sizeReward',{m:money(reward)}));
+      if(risk > 2){ msg.className = 'calc-msg bad'; parts.push(T('sizeOver2')); }
+      else if(rr && rr < 1) parts.push(T('sizeRRlow'));
     }
     msg.textContent = parts.join(' ');
     if(user) markToolUsed('size');
@@ -637,14 +641,14 @@
   function calcDD(user){
     var loss = num('dLoss'), bal = num('dBal');
     var out = document.getElementById('ddOut');
-    if(!(loss > 0 && loss < 100) || !(bal > 0)){ out.innerHTML = '<div class="calc-msg" style="grid-column:1/-1;">Enter a loss between 0 and 100%.</div>'; }
+    if(!(loss > 0 && loss < 100) || !(bal > 0)){ out.innerHTML = '<div class="calc-msg" style="grid-column:1/-1;">' + T('ddEnter') + '</div>'; }
     else {
       var need = 100 * loss / (100 - loss);
-      out.innerHTML = '<div><div class="k">Balance after</div><div class="v bad">' + money(bal * (1 - loss/100)) + '</div></div>' +
-        '<div><div class="k">Gain needed to recover</div><div class="v acc">+' + need.toFixed(1) + '%</div></div>';
+      out.innerHTML = '<div><div class="k">' + T('kBalAfter') + '</div><div class="v bad">' + money(bal * (1 - loss/100)) + '</div></div>' +
+        '<div><div class="k">' + T('kNeed') + '</div><div class="v acc">+' + need.toFixed(1) + '%</div></div>';
     }
     var rows = [5,10,20,30,40,50,75];
-    document.getElementById('ddTable').innerHTML = '<tr><th>Loss</th><th>Needed to get back</th></tr>' + rows.map(function(l){
+    document.getElementById('ddTable').innerHTML = '<tr><th>' + T('thLoss') + '</th><th>' + T('thNeed') + '</th></tr>' + rows.map(function(l){
       var n = 100 * l / (100 - l);
       return '<tr><td>−' + l + '%</td><td>+' + (n % 1 ? n.toFixed(1) : n) + '%<div class="dd-bar" style="width:' + Math.min(100, n/3) + '%; margin-left:auto;"></div></td></tr>';
     }).join('');
@@ -655,12 +659,12 @@
   function calcComp(user){
     var a = num('gStart'), b = num('gTarget'), r = num('gRate');
     var out = document.getElementById('compOut'), msg = document.getElementById('compMsg');
-    if(!(a > 0) || !(b > a) || !(r > 0)){ out.innerHTML = ''; msg.textContent = 'Target must be larger than start, return above 0.'; return; }
+    if(!(a > 0) || !(b > a) || !(r > 0)){ out.innerHTML = ''; msg.textContent = T('compFill'); return; }
     var months = Math.log(b / a) / Math.log(1 + r/100);
     var yearly = (Math.pow(1 + r/100, 12) - 1) * 100;
-    out.innerHTML = '<div><div class="k">Time needed</div><div class="v acc">' + (months < 24 ? Math.ceil(months) + ' mo' : (months/12).toFixed(1) + ' yrs') + '</div></div>' +
-      '<div><div class="k">Same as yearly</div><div class="v">' + (yearly > 10000 ? '>10,000%' : '+' + Math.round(yearly).toLocaleString('en-US') + '%') + '</div></div>';
-    msg.textContent = 'That assumes ' + r + '% every single month with zero losing months. For context, top professional funds are happy with 15–25% a year. The math is why risk control matters more than any single trade.';
+    out.innerHTML = '<div><div class="k">' + T('kTime') + '</div><div class="v acc">' + (months < 24 ? Math.ceil(months) + ' ' + T('mo') : (months/12).toFixed(1) + ' ' + T('yrs')) + '</div></div>' +
+      '<div><div class="k">' + T('kYearly') + '</div><div class="v">' + (yearly > 10000 ? '>10,000%' : '+' + Math.round(yearly).toLocaleString('en-US') + '%') + '</div></div>';
+    msg.textContent = T('compMsg',{r:r});
     if(user) markToolUsed('comp');
   }
   ['gStart','gTarget','gRate'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcComp(true); }); });
@@ -670,7 +674,7 @@
     var el = document.getElementById('dailyTip'); if(!el || !window.TIPS || !TIPS.length) return;
     var d = new Date(); var dayN = Math.floor((d - new Date(d.getFullYear(),0,0)) / 864e5);
     var t = TIPS[dayN % TIPS.length];
-    el.innerHTML = '<div class="tip-card"><div class="ico">' + t.ico + '</div><div class="txt"><span class="lbl">Rule of the day</span><b>' + t.t + '</b><span>' + t.d + '</span></div></div>';
+    el.innerHTML = '<div class="tip-card"><div class="ico">' + t.ico + '</div><div class="txt"><span class="lbl">' + T('ruleOfDay') + '</span><b>' + t.t + '</b><span>' + t.d + '</span></div></div>';
   }
 
   /* ---------- daily streak (local, synced via CloudStorage) ----------
@@ -703,9 +707,9 @@
     var el = document.getElementById('streakCard'); if(!el) return;
     var st = effectiveStreak(), n = st.n;
     el.innerHTML = '<div class="streak-card' + (st.done ? ' done' : '') + '"><div class="st-flame">' + (n ? '🔥' : '🌱') + '</div>' +
-      '<div class="st-txt"><b>' + (n ? n + '-day streak' : 'Start your streak today') + '</b><span>' + (st.done ? 'Today\'s goal done — see you tomorrow' : 'Today\'s goal: read one lesson') + '</span></div>' +
-      '<div class="st-goal" aria-label="' + (st.done ? 'goal done' : 'goal not done') + '">' + (st.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>' : '') + '</div></div>' +
-      ((st.best > 1 || st.freezes) ? '<p class="faint mono" style="font-size:10.5px; text-align:center; margin-top:6px;">best: ' + st.best + ' ' + s(st.best,'day') + (st.freezes ? ' · streak freezes: ' + st.freezes : '') + '</p>' : '');
+      '<div class="st-txt"><b>' + (n ? T('streakN',{n:n}) : T('streakStart')) + '</b><span>' + (st.done ? T('goalDone') : T('goalTodo')) + '</span></div>' +
+      '<div class="st-goal" aria-label="' + (st.done ? T('goalDoneA') : T('goalTodoA')) + '">' + (st.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>' : '') + '</div></div>' +
+      ((st.best > 1 || st.freezes) ? '<p class="faint mono" style="font-size:10.5px; text-align:center; margin-top:6px;">' + T('best',{n:st.best, d:st.best===1?T('day'):T('days')}) + (st.freezes ? T('freezes',{n:st.freezes}) : '') + '</p>' : '');
   }
 
   /* ---------- backend: subscription lock + activity pings ---------- */
@@ -719,11 +723,11 @@
     var reBtn = document.getElementById('gateRecheck'), hint = document.getElementById('gateHint');
     document.getElementById('gateOpenChannel').addEventListener('click', function(){ openExternal(channelLink); });
     reBtn.addEventListener('click', function(){
-      reBtn.disabled = true; hint.textContent = 'Checking…';
+      reBtn.disabled = true; hint.textContent = T('gateChecking');
       sendPing({ progressOnly:true, recheck:true });
       setTimeout(function(){
         reBtn.disabled = false;
-        hint.textContent = document.getElementById('gateOverlay').hidden ? '' : 'Can\'t see your subscription yet. If you just joined, wait a few seconds and tap again.';
+        hint.textContent = document.getElementById('gateOverlay').hidden ? '' : T('gateNotYet');
       }, 2500);
     });
   }
@@ -731,7 +735,7 @@
   function sendPing(opts){
     if(!API || !window.TG || !TG.user || !TG.user.id) return;
     try{
-      var payload = { id:TG.user.id, name:TG.user.displayName || TG.user.username || null, initData:TG.initData || '', progress:progressSnapshot(), tz:-new Date().getTimezoneOffset()/60 };
+      var payload = { lang:LANG, id:TG.user.id, name:TG.user.displayName || TG.user.username || null, initData:TG.initData || '', progress:progressSnapshot(), tz:-new Date().getTimezoneOffset()/60 };
       if(opts){ ['progressOnly','studied','recheck'].forEach(function(k){ if(opts[k]) payload[k] = true; }); }
       fetch(API + '/open', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) })
         .then(function(r){ return r.ok ? r.json() : null; })
@@ -764,27 +768,27 @@
     chatInput.value = '';
     chatHistory.push({ role:'user', content:text }); renderChatLog();
     if(!API){
-      chatHistory.push({ role:'assistant', content:'Jason AI is being switched on — for now, check the Courses tab or the lesson glossary. I\'ll be here soon.' });
+      chatHistory.push({ role:'assistant', content:T('aiOff') });
       renderChatLog(); return;
     }
     chatBusy = true;
-    var typingEl = document.createElement('div'); typingEl.className = 'chat-msg bot typing'; typingEl.textContent = 'typing…';
+    var typingEl = document.createElement('div'); typingEl.className = 'chat-msg bot typing'; typingEl.textContent = T('typing');
     chatLog.appendChild(typingEl); chatLog.scrollTop = chatLog.scrollHeight;
     fetch(API + '/chat', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ message:text, history:chatHistory.slice(-9, -1), id:(window.TG && TG.user && TG.user.id) || null, initData:(window.TG && TG.initData) || '', name:(window.TG && TG.user && TG.user.displayName) || null })
+      body:JSON.stringify({ message:text, history:chatHistory.slice(-9, -1), lang:LANG, id:(window.TG && TG.user && TG.user.id) || null, initData:(window.TG && TG.initData) || '', name:(window.TG && TG.user && TG.user.displayName) || null })
     }).then(function(r){ return r.json(); }).then(function(data){
       chatBusy = false;
-      chatHistory.push({ role:'assistant', content:(data && data.reply) ? data.reply : 'Couldn\'t answer that one — try again.' }); renderChatLog();
+      chatHistory.push({ role:'assistant', content:(data && data.reply) ? data.reply : T('aiErr') }); renderChatLog();
     }).catch(function(){
       chatBusy = false;
-      chatHistory.push({ role:'assistant', content:'Jason AI is offline right now — try again in a bit.' }); renderChatLog();
+      chatHistory.push({ role:'assistant', content:T('aiOffline') }); renderChatLog();
     });
   }
   chatSend.addEventListener('click', sendChatMessage);
   chatInput.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); sendChatMessage(); } });
   function seedChat(){
     var name = (window.TG && TG.user && TG.user.displayName) || '';
-    chatHistory = [{ role:'assistant', content:'Hey' + (name ? ' ' + name : '') + ' 👋 Ask me anything from the lessons — what a pip is, how to size a gold trade, why a stop goes where it goes. I explain; I don\'t give signals.' }];
+    chatHistory = [{ role:'assistant', content:T('aiHello',{name:(name ? ' ' + name : '')}) }];
     renderChatLog();
   }
 
@@ -792,21 +796,21 @@
   var resetBtn = document.getElementById('resetBtn');
   var resetArmed = false, resetTimer;
   resetBtn.addEventListener('click', function(){
-    if(!resetArmed){ resetArmed = true; resetBtn.textContent = 'Sure? Tap again to reset'; clearTimeout(resetTimer);
-      resetTimer = setTimeout(function(){ resetArmed = false; resetBtn.textContent = 'Reset all progress'; }, 2600); return; }
+    if(!resetArmed){ resetArmed = true; resetBtn.textContent = T('resetSure'); clearTimeout(resetTimer);
+      resetTimer = setTimeout(function(){ resetArmed = false; resetBtn.textContent = T('resetAll'); }, 2600); return; }
     storeAllKeys().forEach(function(k){ if(k && (k.indexOf('read_')===0 || k.indexOf('qz_')===0 || k === 'activeCourseId' || k === 'achUnlocked' || k === 'toolsUsed')) storeRemove(k); });
-    resetArmed = false; resetBtn.textContent = 'Reset all progress';
-    renderAll(); toast('Progress reset');
+    resetArmed = false; resetBtn.textContent = T('resetAll');
+    renderAll(); toast(T('resetDone'));
   });
 
   function applyUserName(){
     var name = (window.TG && TG.user && TG.user.displayName) ? TG.user.displayName : null;
-    document.getElementById('heroGreeting').textContent = name ? ('Hey, ' + name + ' 👋') : 'Hey 👋';
-    document.getElementById('profileName').textContent = name || 'Profile';
+    document.getElementById('heroGreeting').textContent = name ? T('heroHeyName',{name:name}) : T('heroHey');
+    document.getElementById('profileName').textContent = name || T('profile');
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202609282120';
+  var BUILD = '202609282141';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -824,7 +828,7 @@
     COURSES.forEach(function(c){
       (c.quiz || []).forEach(function(q, qi){
         if(!q || !q.opts || q.opts.length < 2 || q._mixed) return;
-        var seed = seedFrom(c.id + '#' + qi + '#' + (q.q || ''));
+        var seed = seedFrom(c.id + '#' + qi);
         var idx = q.opts.map(function(_, i){ return i; });
         for(var i = idx.length - 1; i > 0; i--){
           seed ^= seed << 13; seed >>>= 0; seed ^= seed >>> 17; seed ^= seed << 5; seed >>>= 0;
@@ -838,11 +842,40 @@
     });
   }
 
+  function localizeLists(){
+    LEVELS.forEach(function(l, i){ l.name = T('lvl' + i); });
+    ACHIEVEMENTS.forEach(function(a){ var p = T('ach_' + a.id).split('|'); a.name = p[0]; a.desc = p[1] || ''; });
+  }
+  function applyStatic(){
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = T(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){ el.placeholder = T(el.getAttribute('data-i18n-ph')); });
+    document.querySelectorAll('[data-i18n-title]').forEach(function(el){ el.setAttribute('data-title', T(el.getAttribute('data-i18n-title'))); });
+    document.querySelectorAll('[data-i18n-eyebrow]').forEach(function(el){ el.setAttribute('data-eyebrow', T(el.getAttribute('data-i18n-eyebrow'))); });
+    var cur = LANGS.filter(function(l){ return l.code === LANG; })[0];
+    document.getElementById('langBtnTxt').textContent = LANG.toUpperCase();
+    document.getElementById('langList').innerHTML = LANGS.map(function(l){
+      return '<button class="lang-opt" type="button" data-lang="' + l.code + '" aria-pressed="' + (l.code === LANG) + '"><span class="fl">' + l.flag + '</span>' + l.name + '</button>';
+    }).join('');
+  }
+  var langSheet = document.getElementById('langSheet');
+  document.getElementById('langBtn').addEventListener('click', function(){ if(window.TG) TG.haptic('select'); langSheet.hidden = false; });
+  langSheet.addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-lang]');
+    if(b){
+      var code = b.getAttribute('data-lang');
+      if(code !== LANG){ storeSet('lang', code); try{ sessionStorage.setItem('langSwitch','1'); }catch(e){} location.reload(); return; }
+    }
+    if(b || ev.target === langSheet) langSheet.hidden = true;
+  });
+
   function boot(){
     checkForUpdate();
+    localizeLists();
+    applyStatic();
     shuffleQuizzes();
     var totalLessons = 0; COURSES.forEach(function(c){ totalLessons += c.lessons.length; });
-    document.getElementById('buildInfo').textContent = 'build ' + BUILD + ' · ' + COURSES.length + ' courses · ' + totalLessons + ' lessons';
+    document.getElementById('buildInfo').textContent = T('build',{b:BUILD,c:COURSES.length,l:totalLessons});
     applyUserName();
     ['clubCardProfile'].forEach(function(id){ document.getElementById(id).innerHTML = clubCardHtml('Private club'); });
     document.getElementById('brokerCardStart').innerHTML = brokerCardHtml();
@@ -856,5 +889,22 @@
     showScreen(storeGet('activeScreen', 'start'));
     pingOpen();
   }
-  if(window.TG && TG.cloudSync){ TG.cloudSync(boot); } else { boot(); }
+  function pickLang(){
+    var saved = storeGet('lang', null);
+    if(saved && LANGS.some(function(l){ return l.code === saved; })) return saved;
+    var tl = (window.TG && TG.user && TG.user.languageCode) || (navigator.language || 'en');
+    tl = String(tl).slice(0,2).toLowerCase();
+    if(tl === 'uk' || tl === 'be' || tl === 'kk') tl = 'ru';
+    return LANGS.some(function(l){ return l.code === tl; }) ? tl : 'en';
+  }
+  function start(){
+    LANG = pickLang();
+    if(LANG === 'en'){ boot(); return; }
+    var sc = document.createElement('script');
+    sc.src = 'lang/' + LANG + '.js?v=' + BUILD;
+    sc.onload = function(){ try{ applyContentPack(I18N[LANG]); }catch(e){} boot(); };
+    sc.onerror = function(){ LANG = 'en'; boot(); };
+    document.head.appendChild(sc);
+  }
+  if(window.TG && TG.cloudSync){ TG.cloudSync(start); } else { start(); }
 })();

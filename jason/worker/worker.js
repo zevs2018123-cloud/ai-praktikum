@@ -31,6 +31,32 @@ Rules:
 - You may mention Jason's private club (live trades with reasoning) when someone asks how to see trades applied live — once, without pressure.
 - This is education, not financial advice.`;
 
+const LANG_NAMES = { en:'English', ru:'Russian', fr:'French', de:'German' };
+const pickLang = (c) => { c = String(c || '').slice(0, 2).toLowerCase(); if (['uk','be','kk'].includes(c)) c = 'ru'; return LANG_NAMES[c] ? c : 'en'; };
+
+const T = {
+  start: {
+    en: "Welcome to Jason Trading Academy 📈\n\n10 short courses — from your first chart to trading gold — with quizzes, streaks and a position-size calculator.\n\nRisk first. Tap below to start.",
+    ru: "Добро пожаловать в Jason Trading Academy 📈\n\n10 коротких курсов — от первого графика до торговли золотом — с квизами, сериями и калькулятором размера позиции.\n\nРиск прежде всего. Жми ниже, чтобы начать.",
+    fr: "Bienvenue à la Jason Trading Academy 📈\n\n10 cours courts — de ton premier graphique au trading de l’or — avec quiz, séries et calculateur de taille de position.\n\nLe risque d’abord. Appuie ci-dessous pour commencer.",
+    de: "Willkommen in der Jason Trading Academy 📈\n\n10 kurze Kurse — vom ersten Chart bis zum Goldhandel — mit Quizzen, Serien und Positionsgrößen-Rechner.\n\nRisiko zuerst. Tippe unten, um zu starten."
+  },
+  openBtn: { en:'Open the Academy', ru:'Открыть Академию', fr:'Ouvrir l’Académie', de:'Akademie öffnen' },
+  contBtn: { en:'Continue learning', ru:'Продолжить обучение', fr:'Continuer', de:'Weiterlernen' },
+  limit: {
+    en: "That's my limit for today — back tomorrow. Meanwhile, the lessons in the Courses tab cover most questions.",
+    ru: 'На сегодня мой лимит исчерпан — вернусь завтра. А пока большинство ответов есть в уроках во вкладке «Курсы».',
+    fr: 'J’ai atteint ma limite pour aujourd’hui — à demain. En attendant, les leçons de l’onglet Cours répondent à la plupart des questions.',
+    de: 'Mein Limit für heute ist erreicht — morgen wieder. Bis dahin beantworten die Lektionen im Tab Kurse die meisten Fragen.'
+  },
+  nudges: {
+    en: ["Your streak is waiting 🔥 One 4-minute lesson keeps it alive.", "Gold didn't stop moving while you were away. Pick up where you left off — next lesson is ready.", "Rule of the day: risk is decided before entry. Want to see why? Your next lesson covers it.", "Quick one: can you size a gold trade with a $6 stop on a $1,000 account? The calculator's in the app 👇"],
+    ru: ["Твоя серия ждёт 🔥 Один урок на 4 минуты — и она жива.", "Золото не стояло, пока тебя не было. Продолжи с того места, где остановился, — следующий урок готов.", "Правило дня: риск решается до входа. Хочешь понять почему? Об этом твой следующий урок.", "Быстрый вопрос: сможешь посчитать лот по золоту со стопом $6 на счёте $1 000? Калькулятор в приложении 👇"],
+    fr: ["Ta série t’attend 🔥 Une leçon de 4 minutes suffit à la garder.", "L’or n’a pas arrêté de bouger pendant ton absence. Reprends là où tu t’étais arrêté — la prochaine leçon est prête.", "Règle du jour : le risque se décide avant l’entrée. Tu veux savoir pourquoi ? C’est dans ta prochaine leçon.", "Question rapide : sais-tu dimensionner un trade sur l’or avec un stop de 6 $ sur un compte de 1 000 $ ? Le calculateur est dans l’appli 👇"],
+    de: ["Deine Serie wartet 🔥 Eine 4-Minuten-Lektion hält sie am Leben.", "Gold hat sich weiterbewegt, während du weg warst. Mach da weiter, wo du aufgehört hast — die nächste Lektion ist bereit.", "Regel des Tages: Risiko wird vor dem Einstieg festgelegt. Warum? Das zeigt deine nächste Lektion.", "Kurze Frage: Kannst du einen Gold-Trade mit 6 $ Stop auf einem 1.000-$-Konto dimensionieren? Der Rechner ist in der App 👇"]
+  }
+};
+
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' }
 });
@@ -81,6 +107,7 @@ async function handleOpen(req, env) {
   if (body.studied) u.lastStudied = Date.now();
   if (body.progress) u.progress = body.progress;
   if (typeof body.tz === 'number') u.tz = body.tz;
+  if (body.lang) u.lang = pickLang(body.lang);
   // subscription check is cached for 10 min unless the user taps "I've subscribed"
   if (body.recheck || !u.subAt || Date.now() - u.subAt > 600000) {
     u.sub = await isSubscribed(env, user.id); u.subAt = Date.now();
@@ -97,7 +124,8 @@ async function handleChat(req, env) {
   if (!msg) return json({ reply: 'Ask me anything from the lessons.' });
   const quotaKey = `q:${user.id}:${today()}`;
   const used = Number(await env.USERS.get(quotaKey)) || 0;
-  if (used >= CHAT_LIMIT_PER_DAY) return json({ reply: "That's my limit for today — back tomorrow. Meanwhile, the lessons in the Courses tab cover most questions." });
+  const lang = pickLang(body.lang || user.language_code);
+  if (used >= CHAT_LIMIT_PER_DAY) return json({ reply: T.limit[lang] });
   await env.USERS.put(quotaKey, String(used + 1), { expirationTtl: 172800 });
 
   const history = (Array.isArray(body.history) ? body.history : [])
@@ -106,7 +134,7 @@ async function handleChat(req, env) {
   while (history.length && history[0].role !== 'user') history.shift();
   const messages = [...history, { role: 'user', content: msg }];
 
-  const system = SYSTEM + (user.first_name ? `\nThe student's name is ${user.first_name}.` : '');
+  const system = SYSTEM + (user.first_name ? `\nThe student's name is ${user.first_name}.` : '') + `\nThe app is set to ${LANG_NAMES[lang]}. Always reply in ${LANG_NAMES[lang]} unless the student clearly writes in another language — then reply in theirs.`;
   let reply = null;
   if (env.ANTHROPIC_API_KEY) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -132,25 +160,16 @@ async function handleWebhook(req, env) {
   const upd = await req.json().catch(() => ({}));
   const m = upd.message;
   if (m && m.text && m.text.startsWith('/start')) {
-    await tg(env, 'sendMessage', {
-      chat_id: m.chat.id,
-      text: `Welcome to Jason Trading Academy 📈\n\n10 short courses — from your first chart to trading gold — with quizzes, streaks and a position-size calculator.\n\nRisk first. Tap below to start.`,
-      reply_markup: openButton(env, 'Open the Academy')
-    });
     const key = 'u:' + m.from.id;
     const u = (await env.USERS.get(key, 'json')) || { id: m.from.id, first: Date.now(), opens: 0 };
-    u.chatOk = true; u.name = m.from.first_name || u.name;
+    const lang = u.lang || pickLang(m.from.language_code);
+    await tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[lang], reply_markup: openButton(env, T.openBtn[lang]) });
+    u.chatOk = true; u.name = m.from.first_name || u.name; if (!u.lang) u.lang = lang;
     await env.USERS.put(key, JSON.stringify(u));
   }
   return new Response('ok');
 }
 
-const NUDGES = [
-  "Your streak is waiting 🔥 One 4-minute lesson keeps it alive.",
-  "Gold didn't stop moving while you were away. Pick up where you left off — next lesson is ready.",
-  "Rule of the day: risk is decided before entry. Want to see why? Your next lesson covers it.",
-  "Quick one: can you size a gold trade with a $6 stop on a $1,000 account? The calculator's in the app 👇"
-];
 
 async function nudge(env) {
   let cursor;
@@ -166,7 +185,7 @@ async function nudge(env) {
       if (u.nudges >= 6 && now - lastActive > 30 * 864e5) continue;   // stop pestering the long-gone
       const localHour = (new Date().getUTCHours() + (u.tz || 0) + 24) % 24;
       if (localHour < 10 || localHour > 20) continue;                 // daytime only
-      const r = await tg(env, 'sendMessage', { chat_id: u.id, text: NUDGES[(u.nudges || 0) % NUDGES.length], reply_markup: openButton(env, 'Continue learning') });
+      const r = await tg(env, 'sendMessage', { chat_id: u.id, text: T.nudges[pickLang(u.lang)][(u.nudges || 0) % 4], reply_markup: openButton(env, T.contBtn[pickLang(u.lang)]) });
       if (!r.ok && r.error_code === 403) u.chatOk = false;            // user blocked the bot
       u.nudgedAt = now; u.nudges = (u.nudges || 0) + 1;
       await env.USERS.put(k.name, JSON.stringify(u));

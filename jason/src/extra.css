@@ -34,3 +34,13 @@
   .seg button{ flex:1; appearance:none; border:0; background:transparent; color:var(--ink-muted); font-family:'Inter',sans-serif; font-weight:600; font-size:12px; padding:7px 4px; border-radius:8px; cursor:pointer; }
   .seg button[aria-pressed="true"]{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
   .tool-panel[hidden]{ display:none; }
+  .lang-btn{ appearance:none; display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); border-radius:99px; padding:6px 10px 6px 8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:600; cursor:pointer; }
+  .lang-btn svg{ width:15px; height:15px; color:var(--accent-strong); }
+  .lang-sheet{ position:fixed; inset:0; justify-content:center; z-index:70; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; }
+  .lang-sheet[hidden]{ display:none; }
+  .lang-box{ width:100%; max-width:432px; background:var(--frame); border-radius:20px 20px 0 0; padding:18px 18px calc(22px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:10px; animation:rise .2s ease both; }
+  .lang-box .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:0; }
+  #langList{ display:flex; flex-direction:column; gap:7px; }
+  .lang-opt{ appearance:none; display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:var(--surface-2); border:1.5px solid var(--border); color:var(--ink); border-radius:13px; padding:12px 14px; font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; cursor:pointer; }
+  .lang-opt .fl{ font-size:20px; line-height:1; }
+  .lang-opt[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-soft); }

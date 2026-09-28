@@ -5,120 +5,121 @@
   <div class="topbar">
     <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-width="1.8" stroke-linecap="round"><path d="M6 4v16M6 8h0M12 7v10M18 5v12"/><rect x="4.3" y="9" width="3.4" height="6" rx=".6" fill="var(--on-accent)"/><rect x="10.3" y="10" width="3.4" height="4" rx=".6"/><rect x="16.3" y="7" width="3.4" height="6" rx=".6" fill="var(--on-accent)"/></svg></div>
       <div><p class="eyebrow" id="screenEyebrow">Academy</p><h1 id="screenTitle">Home</h1></div></div>
+    <button class="lang-btn" id="langBtn" type="button" aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg><span id="langBtnTxt">EN</span></button>
   </div>
   <main class="content">
-    <section class="screen" id="screen-start" data-title="Home" data-eyebrow="Academy">
+    <section class="screen" id="screen-start" data-i18n-title="tabHome" data-i18n-eyebrow="eyebrowAcademy" data-title="Home" data-eyebrow="Academy">
       <div class="hero">
         <svg class="chart" viewBox="0 0 130 110" fill="none" stroke-linecap="round">
           <g stroke="var(--bad)" stroke-width="1.4"><path d="M14 44v30"/><rect x="10" y="50" width="8" height="16" rx="1.2" fill="var(--bad)" stroke="none"/><path d="M50 50v28"/><rect x="46" y="56" width="8" height="14" rx="1.2" fill="var(--bad)" stroke="none"/></g>
           <g stroke="var(--ok)" stroke-width="1.4"><path d="M32 40v34"/><rect x="28" y="46" width="8" height="20" rx="1.2" fill="var(--ok)" stroke="none"/><path d="M68 34v36"/><rect x="64" y="40" width="8" height="22" rx="1.2" fill="var(--ok)" stroke="none"/><path d="M86 22v36"/><rect x="82" y="28" width="8" height="22" rx="1.2" fill="var(--ok)" stroke="none"/><path d="M104 10v34"/><rect x="100" y="14" width="8" height="22" rx="1.2" fill="var(--ok)" stroke="none"/></g>
           <path d="M8 86 40 70l26-6 22-18 30-24" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 4"/>
         </svg>
-        <p class="eyebrow" id="heroGreeting">Hey 👋</p>
-        <h2>Learn to trade like a pro — risk first</h2>
-        <p>Short lessons, a quiz after every course, and tools you'll actually use on a live chart.</p>
-        <button class="btn primary" data-goto="courses">Pick a course</button>
+        <p data-i18n="heroHey" class="eyebrow" id="heroGreeting">Hey 👋</p>
+        <h2 data-i18n="heroTitle">Learn to trade like a pro — risk first</h2>
+        <p data-i18n="heroText">Short lessons, a quiz after every course, and tools you'll actually use on a live chart.</p>
+        <button data-i18n="pickCourse" class="btn primary" data-goto="courses">Pick a course</button>
       </div>
       <div id="streakCard"></div>
       <div id="xpCardStart"></div>
-      <div class="stack"><div class="section-title"><h2>Your progress</h2></div><div id="startActiveBanner"></div></div>
-      <div class="stack"><div class="section-title"><h2>Summary</h2></div>
+      <div class="stack"><div class="section-title"><h2 data-i18n="yourProgress">Your progress</h2></div><div id="startActiveBanner"></div></div>
+      <div class="stack"><div class="section-title"><h2 data-i18n="summary">Summary</h2></div>
         <div class="stat-grid">
-          <div class="stat"><div class="num" id="statDone">0<span class="faint" style="font-size:13px;">/0</span></div><div class="lbl">lessons read</div></div>
-          <div class="stat"><div class="num" id="statAccuracy">—</div><div class="lbl">quiz accuracy</div></div>
+          <div class="stat"><div class="num" id="statDone">0<span class="faint" style="font-size:13px;">/0</span></div><div data-i18n="lessonsRead" class="lbl">lessons read</div></div>
+          <div class="stat"><div class="num" id="statAccuracy">—</div><div data-i18n="quizAccuracy" class="lbl">quiz accuracy</div></div>
         </div>
       </div>
       <div id="dailyTip"></div>
       <div id="brokerCardStart"></div>
-      <p class="risk-note">Educational content, not financial advice. Trading CFDs and forex with leverage carries a high risk of losing money. Never trade money you can't afford to lose.</p>
+      <p data-i18n="riskNote" class="risk-note">Educational content, not financial advice. Trading CFDs and forex with leverage carries a high risk of losing money. Never trade money you can't afford to lose.</p>
     </section>
 
-    <section class="screen" id="screen-courses" data-title="Courses" data-eyebrow="Learn" hidden>
+    <section class="screen" id="screen-courses" data-i18n-title="tabCourses" data-i18n-eyebrow="eyebrowLearn" data-title="Courses" data-eyebrow="Learn" hidden>
       <div id="coursesActiveBanner"></div>
-      <p class="muted">Each lesson is a short read. The course quiz is a separate button — all its questions on one page.</p>
+      <p data-i18n="coursesIntro" class="muted">Each lesson is a short read. The course quiz is a separate button — all its questions on one page.</p>
       <div class="stack" id="blocksList"></div>
     </section>
 
-    <section class="screen" id="screen-toolkit" data-title="Tools" data-eyebrow="Trader's kit" hidden>
+    <section class="screen" id="screen-toolkit" data-i18n-title="tabTools" data-i18n-eyebrow="eyebrowKit" data-title="Tools" data-eyebrow="Trader's kit" hidden>
       <div class="seg" id="toolSeg">
-        <button data-tool="size" aria-pressed="true">Position size</button>
-        <button data-tool="dd" aria-pressed="false">Drawdown</button>
-        <button data-tool="comp" aria-pressed="false">Compounding</button>
+        <button data-i18n="toolSize" data-tool="size" aria-pressed="true">Position size</button>
+        <button data-i18n="toolDD" data-tool="dd" aria-pressed="false">Drawdown</button>
+        <button data-i18n="toolComp" data-tool="comp" aria-pressed="false">Compounding</button>
       </div>
 
       <div class="card stack tool-panel" id="tool-size">
-        <div class="section-title"><h2>Position size calculator</h2><span class="count mono">risk-first</span></div>
-        <p class="muted">Decide how much you're willing to lose first. The calculator turns that into a lot size.</p>
+        <div class="section-title"><h2 data-i18n="sizeTitle">Position size calculator</h2><span data-i18n="sizeTag" class="count mono">risk-first</span></div>
+        <p data-i18n="sizeIntro" class="muted">Decide how much you're willing to lose first. The calculator turns that into a lot size.</p>
         <div class="calc-grid">
-          <div class="fld full"><label for="cInstr">Instrument</label>
+          <div class="fld full"><label data-i18n="fInstr" for="cInstr">Instrument</label>
             <select id="cInstr">
-              <option value="xau">XAUUSD — gold (100 oz per lot)</option>
-              <option value="fx">EURUSD / GBPUSD / AUDUSD (USD-quoted)</option>
-              <option value="jpy">USDJPY (JPY-quoted)</option>
+              <option data-i18n="optXau" value="xau">XAUUSD — gold (100 oz per lot)</option>
+              <option data-i18n="optFx" value="fx">EURUSD / GBPUSD / AUDUSD (USD-quoted)</option>
+              <option data-i18n="optJpy" value="jpy">USDJPY (JPY-quoted)</option>
             </select></div>
-          <div class="fld"><label for="cBal">Account balance, $</label><input id="cBal" type="number" inputmode="decimal" value="1000"></div>
-          <div class="fld"><label for="cRisk">Risk per trade, %</label><input id="cRisk" type="number" inputmode="decimal" value="1" step="0.1"></div>
-          <div class="fld"><label for="cEntry">Entry price</label><input id="cEntry" type="number" inputmode="decimal" value="4000" step="any"></div>
-          <div class="fld"><label for="cStop">Stop loss</label><input id="cStop" type="number" inputmode="decimal" value="3992" step="any"></div>
-          <div class="fld full"><label for="cTp">Take profit (optional)</label><input id="cTp" type="number" inputmode="decimal" value="4016" step="any"></div>
+          <div class="fld"><label data-i18n="fBal" for="cBal">Account balance, $</label><input id="cBal" type="number" inputmode="decimal" value="1000"></div>
+          <div class="fld"><label data-i18n="fRisk" for="cRisk">Risk per trade, %</label><input id="cRisk" type="number" inputmode="decimal" value="1" step="0.1"></div>
+          <div class="fld"><label data-i18n="fEntry" for="cEntry">Entry price</label><input id="cEntry" type="number" inputmode="decimal" value="4000" step="any"></div>
+          <div class="fld"><label data-i18n="fStop" for="cStop">Stop loss</label><input id="cStop" type="number" inputmode="decimal" value="3992" step="any"></div>
+          <div class="fld full"><label data-i18n="fTp" for="cTp">Take profit (optional)</label><input id="cTp" type="number" inputmode="decimal" value="4016" step="any"></div>
         </div>
         <div class="calc-out" id="sizeOut"></div>
         <p class="calc-msg" id="sizeMsg"></p>
-        <p class="faint" style="font-size:11px;">Contract sizes differ between brokers — check your instrument's spec before trading. USDJPY value uses entry price for the JPY→USD conversion.</p>
+        <p data-i18n="sizeFoot" class="faint" style="font-size:11px;">Contract sizes differ between brokers — check your instrument's spec before trading. USDJPY value uses entry price for the JPY→USD conversion.</p>
       </div>
 
       <div class="card stack tool-panel" id="tool-dd" hidden>
-        <div class="section-title"><h2>Drawdown recovery</h2><span class="count mono">the math of losses</span></div>
-        <p class="muted">Losses and gains aren't symmetrical. The deeper the hole, the harder the climb out.</p>
+        <div class="section-title"><h2 data-i18n="ddTitle">Drawdown recovery</h2><span data-i18n="ddTag" class="count mono">the math of losses</span></div>
+        <p data-i18n="ddIntro" class="muted">Losses and gains aren't symmetrical. The deeper the hole, the harder the climb out.</p>
         <div class="calc-grid">
-          <div class="fld"><label for="dLoss">Loss, %</label><input id="dLoss" type="number" inputmode="decimal" value="30"></div>
-          <div class="fld"><label for="dBal">Balance before, $</label><input id="dBal" type="number" inputmode="decimal" value="1000"></div>
+          <div class="fld"><label data-i18n="fLoss" for="dLoss">Loss, %</label><input id="dLoss" type="number" inputmode="decimal" value="30"></div>
+          <div class="fld"><label data-i18n="fBalBefore" for="dBal">Balance before, $</label><input id="dBal" type="number" inputmode="decimal" value="1000"></div>
         </div>
         <div class="calc-out" id="ddOut"></div>
         <table class="dd-table" id="ddTable"></table>
       </div>
 
       <div class="card stack tool-panel" id="tool-comp" hidden>
-        <div class="section-title"><h2>Compounding reality check</h2><span class="count mono">no hype</span></div>
-        <p class="muted">How long does a target actually take at a steady monthly return? Run the numbers before you believe any screenshot.</p>
+        <div class="section-title"><h2 data-i18n="compTitle">Compounding reality check</h2><span data-i18n="compTag" class="count mono">no hype</span></div>
+        <p data-i18n="compIntro" class="muted">How long does a target actually take at a steady monthly return? Run the numbers before you believe any screenshot.</p>
         <div class="calc-grid">
-          <div class="fld"><label for="gStart">Start, $</label><input id="gStart" type="number" inputmode="decimal" value="1000"></div>
-          <div class="fld"><label for="gTarget">Target, $</label><input id="gTarget" type="number" inputmode="decimal" value="100000"></div>
-          <div class="fld full"><label for="gRate">Average monthly return, %</label><input id="gRate" type="number" inputmode="decimal" value="10" step="0.5"></div>
+          <div class="fld"><label data-i18n="fStart" for="gStart">Start, $</label><input id="gStart" type="number" inputmode="decimal" value="1000"></div>
+          <div class="fld"><label data-i18n="fTarget" for="gTarget">Target, $</label><input id="gTarget" type="number" inputmode="decimal" value="100000"></div>
+          <div class="fld full"><label data-i18n="fRate" for="gRate">Average monthly return, %</label><input id="gRate" type="number" inputmode="decimal" value="10" step="0.5"></div>
         </div>
         <div class="calc-out" id="compOut"></div>
         <p class="calc-msg" id="compMsg"></p>
       </div>
     </section>
 
-    <section class="screen" id="screen-profile" data-title="Profile" data-eyebrow="You" hidden>
+    <section class="screen" id="screen-profile" data-i18n-title="tabProfile" data-i18n-eyebrow="eyebrowYou" data-title="Profile" data-eyebrow="You" hidden>
       <div class="card row" style="gap:16px;">
         <div class="ring"><svg viewBox="0 0 76 76"><circle class="bg" cx="38" cy="38" r="31"/><circle class="fg" id="profileRing" cx="38" cy="38" r="31" stroke-dasharray="194.7" stroke-dashoffset="194.7" pathLength="194.7"/></svg><div class="num" id="profilePct">0%</div></div>
         <div class="stack" style="gap:6px;"><b style="font-size:14.5px;" id="profileName">Profile</b><span class="muted" id="profileFrac">0 lessons read</span><span class="faint mono" style="font-size:11px;" id="profileAccuracy">quizzes: no answers yet</span></div>
       </div>
       <div id="xpCardProfile"></div>
-      <div class="stack"><div class="section-title"><h2>Achievements</h2><span class="count faint" id="achCount">0/12</span></div><div class="ach-grid" id="achGrid"></div></div>
-      <div class="stack"><div class="section-title"><h2>Course progress</h2></div><div class="card stack" style="gap:0;" id="profileCourseList"></div></div>
+      <div class="stack"><div class="section-title"><h2 data-i18n="achievements">Achievements</h2><span class="count faint" id="achCount">0/12</span></div><div class="ach-grid" id="achGrid"></div></div>
+      <div class="stack"><div class="section-title"><h2 data-i18n="courseProgress">Course progress</h2></div><div class="card stack" style="gap:0;" id="profileCourseList"></div></div>
       <div id="clubCardProfile"></div>
-      <button class="btn ghost block" id="resetBtn" style="color:var(--ink-faint);">Reset all progress</button>
+      <button data-i18n="resetAll" class="btn ghost block" id="resetBtn" style="color:var(--ink-faint);">Reset all progress</button>
       <p class="faint mono" id="buildInfo" style="font-size:10.5px; text-align:center; margin-top:-4px;"></p>
     </section>
 
-    <section class="screen" id="screen-assistant" data-title="Jason AI" data-eyebrow="Assistant" hidden>
-      <p class="muted">I'm Jason AI — an AI assistant trained on the course and Jason's approach. Ask about a term from a lesson, how a tool works, or where to find something. I don't give buy/sell calls.</p>
+    <section class="screen" id="screen-assistant" data-i18n-title="tabAI" data-i18n-eyebrow="eyebrowAssistant" data-title="Jason AI" data-eyebrow="Assistant" hidden>
+      <p data-i18n="aiIntro" class="muted">I'm Jason AI — an AI assistant trained on the course and Jason's approach. Ask about a term from a lesson, how a tool works, or where to find something. I don't give buy/sell calls.</p>
       <div class="chat-log" id="chatLog"></div>
       <div class="chat-row">
-        <input id="chatInput" placeholder="Ask a question..." autocomplete="off">
+        <input id="chatInput" placeholder="Ask a question..." data-i18n-ph="chatPh" autocomplete="off">
         <button class="btn primary" id="chatSend" type="button" aria-label="Send">→</button>
       </div>
     </section>
   </main>
   <nav class="tabbar" id="tabbar">
-    <button class="tab" data-screen="start" aria-current="true"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>Home</button>
-    <button class="tab" data-screen="courses" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19a2 2 0 0 0 2 2h12M4 19a2 2 0 0 1 2-2h12"/></svg>Courses</button>
-    <button class="tab" data-screen="toolkit" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h0M16 11h0M8 15h2M12 15h0M16 15v3M8 18h2"/></svg>Tools</button>
-    <button class="tab" data-screen="assistant" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Jason AI</button>
-    <button class="tab" data-screen="profile" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>Profile</button>
+    <button class="tab" data-screen="start" aria-current="true"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg><span data-i18n="tabHome">Home</span></button>
+    <button class="tab" data-screen="courses" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19a2 2 0 0 0 2 2h12M4 19a2 2 0 0 1 2-2h12"/></svg><span data-i18n="tabCourses">Courses</span></button>
+    <button class="tab" data-screen="toolkit" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h0M16 11h0M8 15h2M12 15h0M16 15v3M8 18h2"/></svg><span data-i18n="tabTools">Tools</span></button>
+    <button class="tab" data-screen="assistant" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span data-i18n="tabAI">Jason AI</span></button>
+    <button class="tab" data-screen="profile" aria-current="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg><span data-i18n="tabProfile">Profile</span></button>
   </nav>
 
   <div class="lesson-overlay" id="lessonOverlay" hidden>
@@ -130,26 +131,27 @@
 
   <div class="lesson-overlay" id="quizOverlay" hidden>
     <div class="lesson-head"><button class="back-btn" id="quizBack" aria-label="Back"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="lesson-head-txt"><div class="k">Course quiz</div><div class="t" id="quizTitleTxt">Course</div></div></div>
+      <div class="lesson-head-txt"><div data-i18n="courseQuiz" class="k">Course quiz</div><div class="t" id="quizTitleTxt">Course</div></div></div>
     <div class="lesson-scroll" id="quizScroll"></div>
-    <div class="lesson-actions"><button class="btn primary block" id="quizFinishBtn" disabled>Answer all questions</button></div>
+    <div class="lesson-actions"><button data-i18n="answerAll" class="btn primary block" id="quizFinishBtn" disabled>Answer all questions</button></div>
   </div>
 
   <div class="gate-overlay" id="gateOverlay" hidden>
     <div class="gate-box">
       <div class="gate-ico">🔒</div>
-      <h2>For channel subscribers</h2>
-      <p class="muted">Every course, quiz and tool is free — you just need to be subscribed to Jason's channel, where the live trades and breakdowns go out.</p>
-      <button class="btn primary block" id="gateOpenChannel">Open the channel</button>
-      <button class="btn block" id="gateRecheck">I've subscribed</button>
+      <h2 data-i18n="gateTitle">For channel subscribers</h2>
+      <p data-i18n="gateText" class="muted">Every course, quiz and tool is free — you just need to be subscribed to Jason's channel, where the live trades and breakdowns go out.</p>
+      <button data-i18n="gateOpen" class="btn primary block" id="gateOpenChannel">Open the channel</button>
+      <button data-i18n="gateRecheck" class="btn block" id="gateRecheck">I've subscribed</button>
       <p class="faint" id="gateHint" style="font-size:12px; text-align:center; margin-top:2px;"></p>
     </div>
   </div>
 
+  <div class="lang-sheet" id="langSheet" hidden><div class="lang-box"><p class="eyebrow" data-i18n="language">Language</p><div id="langList"></div></div></div>
   <div class="toast" id="toast">Copied</div>
   <div class="ach-pop" id="achPop">
     <div class="ico" id="achPopIco">🏆</div>
-    <div class="lbl">Achievement unlocked</div>
+    <div data-i18n="achUnlocked" class="lbl">Achievement unlocked</div>
     <div class="nm" id="achPopName"></div>
     <div class="ds" id="achPopDesc"></div>
   </div>
@@ -157,6 +159,7 @@
 <!-- ?v= is the build id: Telegram caches mini-app files aggressively. Bump on every release. -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="config.js?v=__BUILD__"></script>
+<script src="i18n.js?v=__BUILD__"></script>
 <script src="tg.js?v=__BUILD__"></script>
 <script src="data1.js?v=__BUILD__"></script>
 <script src="data2.js?v=__BUILD__"></script>
