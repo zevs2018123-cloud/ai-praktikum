@@ -3,13 +3,13 @@ main = "worker.js"
 compatibility_date = "2026-09-01"
 
 [vars]
-APP_URL = "https://YOUR-GITHUB-USER.github.io/jason-academy/"
+APP_URL = "https://zevs2018123-cloud.github.io/ai-praktikum/jason/"
 CHANNEL_ID = ""          # e.g. "-1001234567890" — leave empty to disable the subscription lock
 CHANNEL_LINK = "https://t.me/+lKjn6jFBql41ZThi"
 
 [[kv_namespaces]]
 binding = "USERS"
-id = "PASTE_KV_ID_HERE"  # wrangler kv namespace create USERS
+id = "75acc06f2c954e708fb16a53d8471100"  # wrangler kv namespace create USERS
 
 [triggers]
 crons = ["0 * * * *"]    # hourly; the code itself limits nudges to daytime, once per 3 days

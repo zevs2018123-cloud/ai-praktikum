@@ -19,5 +19,5 @@ var CONFIG = {
 
   /* Backend (Cloudflare Worker from /worker). Empty = app runs fully offline:
      no subscription lock, no Jason AI chat (a friendly notice is shown instead). */
-  API_BASE: ''               // e.g. 'https://jason-academy-bot.<you>.workers.dev'
+  API_BASE: 'https://jason-academy-bot.zevs2018123.workers.dev'               // e.g. 'https://jason-academy-bot.<you>.workers.dev'
 };

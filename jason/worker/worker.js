@@ -11,7 +11,7 @@
      APP_URL            GitHub Pages URL of the mini app
      CHANNEL_ID         numeric channel id (-100…) — bot must be an admin there. Empty = no lock
      CHANNEL_LINK       invite link shown on the lock screen
-     ANTHROPIC_API_KEY  for Jason AI
+     ANTHROPIC_API_KEY  for Jason AI (optional — without it Workers AI binding `AI` is used)
      ADMIN_KEY          any long random string for /stats
    KV binding: USERS
 */
@@ -106,13 +106,21 @@ async function handleChat(req, env) {
   while (history.length && history[0].role !== 'user') history.shift();
   const messages = [...history, { role: 'user', content: msg }];
 
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 500, system: SYSTEM + (user.first_name ? `\nThe student's name is ${user.first_name}.` : ''), messages })
-  });
-  const data = await r.json().catch(() => null);
-  const reply = data && data.content && data.content[0] && data.content[0].text;
+  const system = SYSTEM + (user.first_name ? `\nThe student's name is ${user.first_name}.` : '');
+  let reply = null;
+  if (env.ANTHROPIC_API_KEY) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, max_tokens: 500, system, messages })
+    });
+    const data = await r.json().catch(() => null);
+    reply = data && data.content && data.content[0] && data.content[0].text;
+  } else if (env.AI) {
+    // free fallback: Cloudflare Workers AI
+    const out = await env.AI.run(env.AI_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', { messages: [{ role: 'system', content: system }, ...messages], max_tokens: 450 });
+    reply = out && out.response;
+  }
   return json({ reply: reply || "Couldn't answer that one — try rephrasing." });
 }
 
