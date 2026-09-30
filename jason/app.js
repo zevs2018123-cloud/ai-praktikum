@@ -3,6 +3,7 @@
   var C = window.CONFIG || {};
   var CLUB_LINK = C.CLUB_LINK || '';
   var API = (C.API_BASE || '').replace(/\/+$/, '');
+  (function(){ var pal = (location.search.match(/[?&]pal=(\w+)/) || [])[1] || C.THEME || 'royal'; document.documentElement.setAttribute('data-palette', pal); })();
 
   /* ---------- storage ----------
      localStorage keys are namespaced per Telegram account (see tg.js); CloudStorage
@@ -120,6 +121,7 @@
     return T('ctaQuiz');
   }
   function continueCourse(cid){
+    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
     storeSet('activeCourseId', cid);
     var read = readArr(cid);
@@ -197,7 +199,7 @@
       '<div class="course-meta"><div class="name">' + c.name + '</div>' +
       '<span class="faint mono course-sub" style="font-size:11px;">' + lessonsN(c.lessons.length) + ' · ' + pct + '%</span>' +
       '<div class="progress sm" style="margin-top:6px;"><i style="width:' + pct + '%"></i></div></div>' +
-      '<div class="course-actions"><button class="btn primary sm course-cta" type="button">' + ctaLabel(c) + '</button>' +
+      '<div class="course-actions"><button class="btn primary sm course-cta" type="button">' + (window.FUNNEL && FUNNEL.locked() ? '🔒 ' : '') + ctaLabel(c) + '</button>' +
       '<svg class="chev" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div></summary>' +
       '<div class="lesson-list"></div>';
     wrap.querySelector('.course-cta').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); continueCourse(c.id); });
@@ -256,6 +258,8 @@
       var head = document.createElement('div'); head.className = 'block-head';
       head.innerHTML = '<div class="num">' + b.num + '</div><h2>' + b.name + '</h2><span class="lvl">' + b.level + '</span>';
       blocksListEl.appendChild(head);
+      var intro = T('intro_' + b.id);
+      if(intro && intro !== 'intro_' + b.id){ var ib = document.createElement('div'); ib.className = 'jason-note'; ib.innerHTML = '<span class="who">Jason</span>' + intro; blocksListEl.appendChild(ib); }
       var list = coursesInBlock(b.id);
       list.forEach(function(c){ var card = renderCourseCard(c); if(openIds.indexOf(card.id) !== -1) card.open = true; blocksListEl.appendChild(card); });
       if(b.soon && b.soon.length){
@@ -483,6 +487,7 @@
   document.getElementById('lessonBack').addEventListener('click', function(){ closeLesson(); renderAll(); });
 
   function openLesson(cid, idx){
+    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
     if(idx >= c.lessons.length){ openQuiz(cid); return; }
     quizOverlay.hidden = true;
@@ -515,6 +520,7 @@
   document.getElementById('quizBack').addEventListener('click', function(){ closeQuiz(); renderAll(); });
 
   function openQuiz(cid){
+    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
     overlay.hidden = true;
     quizTitleTxt.textContent = c.name;
@@ -591,52 +597,46 @@
   }
   document.querySelectorAll('#toolSeg button').forEach(function(b){ b.addEventListener('click', function(){ if(window.TG) TG.haptic('select'); selectTool(b.dataset.tool); }); });
 
-  var INSTR = {
-    xau:{ entry:4000, stop:3992, tp:4016, dec:2 },
-    fx:{ entry:1.1000, stop:1.0980, tp:1.1040, dec:5 },
-    jpy:{ entry:150.00, stop:149.70, tp:150.60, dec:3 }
-  };
-  document.getElementById('cInstr').addEventListener('change', function(){
-    var d = INSTR[this.value];
-    document.getElementById('cEntry').value = d.entry; document.getElementById('cStop').value = d.stop; document.getElementById('cTp').value = d.tp;
-    calcSize(true);
-  });
+  var VOL = C.VOLUMES || { 250:0.01, 1000:0.03, 10000:0.3 };
+  function projectLot(bal){
+    var tiers = Object.keys(VOL).map(Number).sort(function(a,b){ return a-b; });
+    if(VOL[bal]) return VOL[bal];
+    var base = tiers[0]; tiers.forEach(function(t){ if(bal >= t) base = t; });
+    return Math.max(0.01, Math.floor(VOL[base] * bal / base * 100) / 100);
+  }
+  function syncTierField(){
+    var t = document.getElementById('cTier').value, bal = document.getElementById('cBal');
+    if(t !== 'custom'){ bal.value = t; bal.readOnly = true; } else { bal.readOnly = false; bal.focus(); }
+  }
+  document.getElementById('cTier').addEventListener('change', function(){ syncTierField(); calcSize(true); });
   function calcSize(user){
-    var instr = document.getElementById('cInstr').value;
-    var bal = num('cBal'), risk = num('cRisk'), entry = num('cEntry'), stop = num('cStop'), tp = num('cTp');
+    var bal = num('cBal'), dist = num('cStopD'), tpd = num('cTpD');
     var out = document.getElementById('sizeOut'), msg = document.getElementById('sizeMsg');
     msg.className = 'calc-msg';
-    if(!(bal > 0) || !(risk > 0) || !(entry > 0) || !(stop > 0) || entry === stop){
-      out.innerHTML = ''; msg.textContent = T('sizeFill'); return;
-    }
-    var dist = Math.abs(entry - stop);
-    var perLot; // $ lost per 1.00 lot if stop is hit
-    if(instr === 'xau') perLot = dist * 100;
-    else if(instr === 'fx') perLot = dist * 100000;
-    else perLot = dist * 100000 / entry;
-    var riskUsd = bal * risk / 100;
-    var lots = riskUsd / perLot;
-    var lotsR = Math.floor(lots * 100) / 100;
-    var realRisk = lotsR * perLot;
-    var distTxt = instr === 'xau' ? '$' + dist.toFixed(2) : (dist / (instr === 'jpy' ? 0.01 : 0.0001)).toFixed(1) + ' ' + T('pips');
-    var rr = null, reward = null, dir = entry > stop ? 1 : -1;
-    if(tp > 0 && (tp - entry) * dir > 0){ rr = Math.abs(tp - entry) / dist; reward = lotsR * perLot * rr; }
+    if(!(bal > 0) || !(dist > 0)){ out.innerHTML = ''; msg.textContent = T('sizeFill'); return; }
+    var lot = projectLot(bal);
+    var perDollar = lot * 100;              // $ per $1 gold move
+    var risk = dist * perDollar, riskPct = 100 * risk / bal;
+    var reward = tpd > 0 ? tpd * perDollar : null, rr = tpd > 0 ? tpd / dist : null;
     out.innerHTML =
-      '<div><div class="k">' + T('kLot') + '</div><div class="v acc">' + (lotsR >= 0.01 ? lotsR.toFixed(2) : '< 0.01') + '</div></div>' +
-      '<div><div class="k">' + T('kRisk') + '</div><div class="v bad">' + money(lotsR >= 0.01 ? realRisk : riskUsd) + '</div></div>' +
-      '<div><div class="k">' + T('kStopDist') + '</div><div class="v">' + distTxt + '</div></div>' +
+      '<div><div class="k">' + T('kProjLot') + '</div><div class="v acc">' + lot.toFixed(2) + '</div></div>' +
+      '<div><div class="k">' + T('kPerDollar') + '</div><div class="v">' + money(perDollar) + '</div></div>' +
+      '<div><div class="k">' + T('kRisk') + '</div><div class="v bad">' + money(risk) + ' <span style="font-size:12px;">(' + riskPct.toFixed(1) + '%)</span></div></div>' +
+      '<div><div class="k">' + T('kProfit') + '</div><div class="v ok">' + (reward ? '+' + money(reward) : '—') + '</div></div>' +
       '<div><div class="k">' + T('kRR') + '</div><div class="v ' + (rr ? (rr >= 2 ? 'ok' : rr >= 1 ? '' : 'bad') : '') + '">' + (rr ? '1 : ' + rr.toFixed(1) : '—') + '</div></div>';
-    var parts = [ dir > 0 ? T('sizeLong') : T('sizeShort') ];
-    if(lotsR < 0.01){ msg.className = 'calc-msg bad'; parts.push(T('sizeTooBig',{m:money(perLot*0.01), r:risk})); }
-    else {
-      if(reward) parts.push(T('sizeReward',{m:money(reward)}));
-      if(risk > 2){ msg.className = 'calc-msg bad'; parts.push(T('sizeOver2')); }
-      else if(rr && rr < 1) parts.push(T('sizeRRlow'));
-    }
+    var parts = [];
+    if(riskPct > 2){ msg.className = 'calc-msg bad'; parts.push(T('sizeWide', { p: riskPct.toFixed(1) })); }
+    else if(rr && rr < 1) parts.push(T('sizeRRlow'));
+    else parts.push(T('sizeOk', { p: riskPct.toFixed(1) }));
     msg.textContent = parts.join(' ');
     if(user) markToolUsed('size');
   }
-  ['cBal','cRisk','cEntry','cStop','cTp'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcSize(true); }); });
+  ['cBal','cStopD','cTpD'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcSize(true); }); });
+  function volumesFoot(){ var ks = Object.keys(VOL).map(Number).sort(function(a,b){ return a-b; }); return T('volFoot') + ' ' + ks.map(function(k){ return money(k).replace('.00','') + ' → ' + VOL[k]; }).join(' · '); }
+  function presetCalcFromGoal(){
+    var m = window.FUNNEL && FUNNEL.me(); if(!m || !m.tier || storeGet('calcTouched', false)) return;
+    var sel = document.getElementById('cTier'); sel.value = String(m.tier); syncTierField(); calcSize(false);
+  }
 
   function calcDD(user){
     var loss = num('dLoss'), bal = num('dBal');
@@ -739,7 +739,7 @@
       if(opts){ ['progressOnly','studied','recheck'].forEach(function(k){ if(opts[k]) payload[k] = true; }); }
       fetch(API + '/open', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) })
         .then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(j){ if(j && typeof j.access === 'boolean') applyAccess(j); })
+        .then(function(j){ if(j && typeof j.access === 'boolean') applyAccess(j); if(j && window.FUNNEL) FUNNEL.onServer(j); })
         .catch(function(){});
     }catch(e){}
   }
@@ -759,13 +759,13 @@
   var chatSend = document.getElementById('chatSend');
   var chatBusy = false;
   function renderChatLog(){
-    chatLog.innerHTML = chatHistory.map(function(m){ return '<div class="chat-msg ' + (m.role==='user'?'user':'bot') + '">' + esc(m.content) + '</div>'; }).join('');
+    chatLog.innerHTML = chatHistory.map(function(m){ if(m.role === 'card') return m.html; return '<div class="chat-msg ' + (m.role==='user'?'user':'bot') + '">' + esc(m.content) + '</div>'; }).join('');
     chatLog.scrollTop = chatLog.scrollHeight;
   }
-  function sendChatMessage(){
+  function sendChatMessage(chip, chipText){
     if(chatBusy) return;
-    var text = chatInput.value.trim(); if(!text) return;
-    chatInput.value = '';
+    var text = chip ? chipText : chatInput.value.trim(); if(!text) return;
+    if(!chip) chatInput.value = '';
     chatHistory.push({ role:'user', content:text }); renderChatLog();
     if(!API){
       chatHistory.push({ role:'assistant', content:T('aiOff') });
@@ -775,16 +775,24 @@
     var typingEl = document.createElement('div'); typingEl.className = 'chat-msg bot typing'; typingEl.textContent = T('typing');
     chatLog.appendChild(typingEl); chatLog.scrollTop = chatLog.scrollHeight;
     fetch(API + '/chat', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ message:text, history:chatHistory.slice(-9, -1), lang:LANG, id:(window.TG && TG.user && TG.user.id) || null, initData:(window.TG && TG.initData) || '', name:(window.TG && TG.user && TG.user.displayName) || null })
+      body:JSON.stringify({ message:text, chip:chip || null, history:chatHistory.filter(function(m){ return m.role !== 'card'; }).slice(-9, -1), lang:LANG, id:(window.TG && TG.user && TG.user.id) || null, initData:(window.TG && TG.initData) || '', name:(window.TG && TG.user && TG.user.displayName) || null })
     }).then(function(r){ return r.json(); }).then(function(data){
       chatBusy = false;
-      chatHistory.push({ role:'assistant', content:(data && data.reply) ? data.reply : T('aiErr') }); renderChatLog();
+      if(data && data.reply) chatHistory.push({ role:'assistant', content:data.reply });
+      else if(!(data && (data.article || data.handoff))) chatHistory.push({ role:'assistant', content:T('aiErr') });
+      if(window.FUNNEL) FUNNEL.onChat(data).forEach(function(h){ chatHistory.push({ role:'card', html:h }); });
+      renderChatLog();
     }).catch(function(){
       chatBusy = false;
       chatHistory.push({ role:'assistant', content:T('aiOffline') }); renderChatLog();
     });
   }
-  chatSend.addEventListener('click', sendChatMessage);
+  chatSend.addEventListener('click', function(){ sendChatMessage(); });
+  document.getElementById('chatChips').addEventListener('click', function(ev){
+    var c = ev.target.closest('[data-chip]'); if(!c) return;
+    if(!API){ chatHistory.push({ role:'user', content:c.textContent }); chatHistory.push({ role:'card', html:FUNNEL.articleCard(c.dataset.chip) }); renderChatLog(); return; }
+    sendChatMessage(c.dataset.chip, c.textContent);
+  });
   chatInput.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); sendChatMessage(); } });
   function seedChat(){
     var name = (window.TG && TG.user && TG.user.displayName) || '';
@@ -810,7 +818,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202609282141';
+  var BUILD = '202609302019';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -880,12 +888,15 @@
     ['clubCardProfile'].forEach(function(id){ document.getElementById(id).innerHTML = clubCardHtml('Private club'); });
     document.getElementById('brokerCardStart').innerHTML = brokerCardHtml();
     renderTip();
-    calcSize(false); calcDD(false); calcComp(false);
+    syncTierField(); calcSize(false); calcDD(false); calcComp(false);
+    document.getElementById('volFoot').textContent = volumesFoot();
     selectTool(storeGet('activeTool', 'size'));
     checkAchievements(true);
     bindGate();
     seedChat();
     renderAll();
+    if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
+      onFunnelRender:function(){ renderBlocks(); presetCalcFromGoal(); } });
     showScreen(storeGet('activeScreen', 'start'));
     pingOpen();
   }

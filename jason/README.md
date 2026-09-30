@@ -1,4 +1,4 @@
-# Jason Trading Academy — Telegram Mini App
+# Jason Trade Academy — Telegram Mini App
 
 English trading-education mini app for Jason's channel. Same engine as AI Практикум: courses → lessons → course quiz, XP/levels, 12 achievements, daily streak with freezes, subscription lock, AI assistant, club upsell. Plus a trading **Tools** tab (position size, drawdown, compounding calculators).
 
@@ -35,3 +35,14 @@ Lesson body blocks: `'text'`, `{h}`, `{step,t,d}`, `{list:[]}`, `{note}`, `{warn
 Stats: `https://…workers.dev/stats?key=<ADMIN_KEY>`.
 
 Notes: reminders go only to people who pressed /start in the bot, 10:00–20:00 their local time, max once per 3 days. Jason AI uses Claude Haiku, 40 messages/user/day, never gives buy/sell calls, and says it's an AI if asked.
+
+## v2 — funnel (onboarding → broker gate → goal → referrals)
+- **Onboarding** (6 questions + starting deposit $250/$1k/$10k + material goal & target) → saved in D1, posted to the managers' Telegram group.
+- **Broker gate**: courses unlock after the student sends a broker account number and a manager taps ✅ in the group (or in the admin panel). Set `REF_LINK` in `config.js` to turn it on.
+- **Goal widget** pinned on Home; progress = current balance ÷ target. The student logs deposits / withdrawals / balance.
+- **Referrals**: personal link `t.me/<bot>?start=ref_<id>` in Profile; prizes per tier in `config.js → PRIZES`; managers get a message when a tier is reached.
+- **Jason AI**: every question is tagged with a topic (admin → «Вопросы → идеи для видео»), matches 8 prepared problem guides, and hands off to `MANAGER` when someone is stuck on the platform (+ a catch-up message after 1 hour).
+- **Admin panel**: `/admin.html` (key = `ADMIN_KEY` from result.txt): funnel stats, access approvals, users & CSV, question topics, lesson videos (unlisted YouTube), referral prizes.
+- **Managers group**: add the bot to the group and send `/setsales` once.
+- **Palettes**: `config.js → THEME` = royal | emerald | violet (preview any with `?pal=emerald`).
+- **Calculator** uses `config.js → VOLUMES` (project lot per deposit).

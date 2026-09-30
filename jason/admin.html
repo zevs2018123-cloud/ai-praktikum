@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jason Trade · Админка</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#08080a; --panel:#131318; --panel2:#1b1b22; --border:#2a2a33; --ink:#f0eee8; --muted:#a3a0a8; --faint:#6e6b75; --acc:#4f7dff; --ok:#3ccf7c; --bad:#f06464; --warn:#e0b545; }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --bg:#f3f4f7; --panel:#ffffff; --panel2:#f5f6f9; --border:#e2e4ea; --ink:#15161a; --muted:#5a5d66; --faint:#8a8d96; --acc:#2556d9; --ok:#1f9a55; --bad:#cc3f3f; --warn:#a8790c; } }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 Inter, system-ui, sans-serif; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  header{ position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1{ font-size:16px; margin:0; }
+  nav{ display:flex; gap:4px; flex-wrap:wrap; }
+  nav button{ appearance:none; border:0; background:transparent; color:var(--muted); padding:7px 11px; border-radius:8px; font:600 13px Inter, system-ui, sans-serif; cursor:pointer; }
+  nav button[aria-pressed="true"]{ background:var(--panel2); color:var(--ink); }
+  main{ max-width:1200px; margin:0 auto; padding:16px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+  .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .kpi .v{ font-size:24px; font-weight:700; }
+  .kpi .k{ font-size:12px; color:var(--muted); }
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:14px; }
+  .card h2{ font-size:14px; margin:0 0 10px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; color:var(--faint); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--border); }
+  td{ padding:8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr.click{ cursor:pointer; } tr.click:hover td{ background:var(--panel2); }
+  .pill{ display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:var(--panel2); color:var(--muted); }
+  .pill.approved{ background:rgba(60,207,124,.15); color:var(--ok); } .pill.pending{ background:rgba(224,181,69,.15); color:var(--warn); } .pill.rejected{ background:rgba(240,100,100,.15); color:var(--bad); }
+  .btn{ appearance:none; border:1px solid var(--border); background:var(--panel2); color:var(--ink); padding:7px 12px; border-radius:8px; font:600 12.5px Inter, system-ui, sans-serif; cursor:pointer; }
+  .btn.pri{ background:var(--acc); border-color:var(--acc); color:#fff; } .btn.ok{ background:var(--ok); border-color:var(--ok); color:#06150d; } .btn.bad{ background:transparent; border-color:var(--bad); color:var(--bad); }
+  input, select{ background:var(--panel2); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font:13px Inter, system-ui, sans-serif; }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .muted{ color:var(--muted); } .faint{ color:var(--faint); font-size:12px; }
+  .bar{ height:8px; border-radius:99px; background:var(--acc); }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; justify-content:center; align-items:flex-start; padding:30px 12px; overflow-y:auto; z-index:20; }
+  .modal[hidden]{ display:none; }
+  .modal .box{ background:var(--panel); border:1px solid var(--border); border-radius:14px; max-width:820px; width:100%; padding:18px; }
+  .msg{ border-bottom:1px solid var(--border); padding:8px 0; } .msg .q{ font-weight:600; } .msg .a{ color:var(--muted); font-size:12.5px; white-space:pre-wrap; }
+  .login{ max-width:360px; margin:80px auto; }
+  .vid-row td input{ width:150px; }
+  .overflow{ overflow-x:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Jason Trade · платформа</h1>
+  <nav id="nav" hidden>
+    <button data-tab="dash" aria-pressed="true">Сводка</button>
+    <button data-tab="access">Доступы</button>
+    <button data-tab="users">Пользователи</button>
+    <button data-tab="topics">Вопросы → идеи для видео</button>
+    <button data-tab="videos">Видео в уроках</button>
+    <button data-tab="refs">Рефералы</button>
+    <button data-tab="settings">Настройки</button>
+  </nav>
+</header>
+<main id="main"></main>
+<div class="modal" id="modal" hidden><div class="box" id="modalBox"></div></div>
+
+<script src="data1.js"></script>
+<script src="data2.js"></script>
+<script src="data3.js"></script>
+<script>
+var API = 'https://jason-academy-bot.zevs2018123.workers.dev';
+var KEY = null; try{ KEY = localStorage.getItem('jasonAdminKey'); }catch(e){}
+var main = document.getElementById('main'), cache = {};
+var RU = {
+  exp:{ none:'Нет опыта', demo:'Только демо', lt1:'< 1 года', gt1:'> 1 года' },
+  markets:{ forex:'Форекс', gold:'Золото', crypto:'Крипта', stocks:'Акции', none:'Ничем' },
+  problem:{ knowledge:'Знания', losses:'Убытки', discipline:'Дисциплина', time:'Время', capital:'Капитал' },
+  time:{ lt30:'< 30 мин', h1:'~1 час', h2:'2+ ч' }, gate:{ none:'—', pending:'на проверке', approved:'подтверждён', rejected:'отклонён' }
+};
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function money(n){ return n == null ? '—' : '$' + Math.round(n).toLocaleString('en-US'); }
+function dt(t){ return t ? new Date(t).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'; }
+function api(path, body){
+  return fetch(API + '/admin/' + path, { method: body ? 'POST' : 'GET', headers:{ 'x-admin-key': KEY, 'Content-Type':'application/json' }, body: body ? JSON.stringify(body) : undefined })
+    .then(function(r){ if(r.status === 401){ logout(); throw new Error('401'); } return r.json(); });
+}
+function logout(){ try{ localStorage.removeItem('jasonAdminKey'); }catch(e){} KEY = null; renderLogin('Неверный ключ'); }
+function balanceOf(ledger){ var bal = null, dep = 0; (ledger || []).forEach(function(e){ if(e.type === 'balance') bal = e.amount; else if(e.type === 'deposit'){ dep += e.amount; if(bal !== null) bal += e.amount; } else { dep -= e.amount; if(bal !== null) bal -= e.amount; } }); return bal !== null ? bal : dep; }
+
+function renderLogin(err){
+  document.getElementById('nav').hidden = true;
+  main.innerHTML = '<div class="card login"><h2>Вход в админку</h2><p class="faint">Ключ ADMIN_KEY — в файле result.txt после деплоя.</p><div class="row"><input id="k" type="password" placeholder="ADMIN_KEY" style="flex:1"><button class="btn pri" id="go">Войти</button></div>' + (err ? '<p style="color:var(--bad)">' + err + '</p>' : '') + '</div>';
+  document.getElementById('go').onclick = function(){ KEY = document.getElementById('k').value.trim(); try{ localStorage.setItem('jasonAdminKey', KEY); }catch(e){} start(); };
+}
+
+var tab = 'dash';
+document.getElementById('nav').addEventListener('click', function(e){ var b = e.target.closest('[data-tab]'); if(!b) return; tab = b.dataset.tab; document.querySelectorAll('#nav button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); }); render(); });
+function start(){ api('stats').then(function(){ document.getElementById('nav').hidden = false; render(); }).catch(function(){}); }
+
+function render(){ ({ dash:renderDash, access:renderAccess, users:renderUsers, topics:renderTopics, videos:renderVideos, refs:renderRefs, settings:renderSettings })[tab](); }
+
+function renderDash(){
+  main.innerHTML = '<p class="muted">Загрузка…</p>';
+  api('stats').then(function(s){
+    var k = function(v, l){ return '<div class="kpi"><div class="v">' + v + '</div><div class="k">' + l + '</div></div>'; };
+    var conv = s.onboarded ? Math.round(100 * s.approved / s.onboarded) : 0;
+    main.innerHTML = '<div class="grid">' + k(s.users, 'пользователей') + k(s.active7, 'активны за 7 дней') + k(s.studied7, 'учились за 7 дней') + k(s.onboarded, 'прошли анкету') +
+      k(s.pending, 'ждут подтверждения') + k(s.approved, 'доступ открыт') + k(conv + '%', 'анкета → доступ') + k(s.referred, 'пришли по рефке') + k(s.messages7, 'вопросов ИИ за 7 дней') + k(s.handoffs7, 'передано менеджеру') + '</div>' +
+      '<div class="card"><h2>Воронка</h2>' + funnelRow('Зашли в бота', s.users, s.users) + funnelRow('Прошли анкету', s.onboarded, s.users) + funnelRow('Отправили счёт', s.pending + s.approved, s.users) + funnelRow('Доступ открыт', s.approved, s.users) + '</div>' +
+      '<div class="card"><h2>Стартовые депозиты</h2>' + (s.byTier || []).map(function(t){ return funnelRow(money(t.tier), t.n, s.onboarded || 1); }).join('') + '</div>' +
+      '<div class="card"><h2>Языки</h2>' + (s.byLang || []).map(function(t){ return funnelRow(String(t.lang).toUpperCase(), t.n, s.users || 1); }).join('') + '</div>' +
+      (!s.salesChat ? '<div class="card" style="border-color:var(--warn)"><b>Чат менеджеров не подключён.</b> <span class="muted">Добавьте бота в группу менеджеров и напишите там /setsales — туда будут приходить анкеты и запросы доступа.</span></div>' : '') +
+      (!s.manager ? '<div class="card" style="border-color:var(--warn)"><b>Не задан MANAGER.</b> <span class="muted">Без него ИИ не сможет передать диалог менеджеру. Укажите юзернейм в deploy.ps1 и перезапустите деплой.</span></div>' : '');
+  });
+}
+function funnelRow(l, n, total){ var p = total ? Math.round(100 * n / total) : 0; return '<div class="row" style="margin:6px 0"><span style="width:170px">' + l + '</span><div style="flex:1;background:var(--panel2);border-radius:99px"><div class="bar" style="width:' + p + '%"></div></div><span class="mono" style="width:90px;text-align:right">' + n + ' · ' + p + '%</span></div>'; }
+
+function loadUsers(){ return api('users').then(function(j){ cache.users = j.users; return j.users; }); }
+function userRow(u, actions){
+  var ob = u.onboard ? JSON.parse(u.onboard) : null;
+  return '<tr class="click" data-uid="' + u.id + '"><td><b>' + esc(u.name || '—') + '</b><br><span class="faint">' + (u.username ? '@' + esc(u.username) : 'id ' + u.id) + ' · ' + esc((u.lang || '').toUpperCase()) + '</span></td>' +
+    '<td>' + (ob ? esc(RU.exp[ob.exp] || '—') + '<br><span class="faint">' + esc(RU.problem[ob.problem] || '') + '</span>' : '<span class="faint">нет анкеты</span>') + '</td>' +
+    '<td>' + (u.tier ? money(u.tier) : '—') + '</td><td>' + (u.goal_target ? money(u.goal_target) : '—') + '<br><span class="faint">' + esc(u.goal_text || '') + '</span></td>' +
+    '<td><span class="pill ' + (u.gate || 'none') + '">' + RU.gate[u.gate || 'none'] + '</span>' + (u.broker_id ? '<br><span class="mono faint">' + esc(u.broker_id) + '</span>' : '') + '</td>' +
+    '<td class="mono">' + (u.invited_ok || 0) + '/' + (u.invited || 0) + '</td><td class="faint">' + dt(u.last_seen) + '</td>' + (actions ? '<td>' + actions + '</td>' : '') + '</tr>';
+}
+var HEAD = '<tr><th>Пользователь</th><th>Опыт / проблема</th><th>Депозит</th><th>Цель</th><th>Доступ</th><th>Рефы</th><th>Был</th>';
+
+function renderAccess(){
+  main.innerHTML = '<p class="muted">Загрузка…</p>';
+  loadUsers().then(function(us){
+    var pend = us.filter(function(u){ return u.gate === 'pending'; });
+    var waiting = us.filter(function(u){ return u.onboarded_at && (!u.gate || u.gate === 'none'); });
+    main.innerHTML = '<div class="card"><h2>Ждут подтверждения (' + pend.length + ')</h2><p class="faint">Проверьте номер счёта в партнёрском кабинете брокера: открыт ли он по вашей ссылке. Кнопки дублируют кнопки в чате менеджеров.</p><div class="overflow"><table>' + HEAD + '<th></th></tr>' +
+      pend.map(function(u){ return userRow(u, '<button class="btn ok" data-gate="approved" data-id="' + u.id + '">Подтвердить</button> <button class="btn bad" data-gate="rejected" data-id="' + u.id + '">Отклонить</button>'); }).join('') + '</table></div></div>' +
+      '<div class="card"><h2>Прошли анкету, но не прислали счёт (' + waiting.length + ')</h2><p class="faint">Тёплые лиды — им стоит написать лично.</p><div class="overflow"><table>' + HEAD + '</tr>' + waiting.map(function(u){ return userRow(u); }).join('') + '</table></div></div>';
+  });
+}
+function renderUsers(){
+  main.innerHTML = '<div class="row"><input id="q" placeholder="Поиск: имя, @юзернейм, id, счёт" style="flex:1;min-width:220px"><select id="f"><option value="">Все</option><option value="onb">С анкетой</option><option value="pending">На проверке</option><option value="approved">С доступом</option><option value="ref">Пришли по рефке</option></select><button class="btn" id="csv">Экспорт CSV</button></div><div class="card overflow"><table id="ut"></table></div>';
+  loadUsers().then(draw);
+  function draw(){
+    var q = document.getElementById('q').value.toLowerCase(), f = document.getElementById('f').value;
+    var list = cache.users.filter(function(u){
+      if(f === 'onb' && !u.onboarded_at) return false; if(f === 'pending' && u.gate !== 'pending') return false; if(f === 'approved' && u.gate !== 'approved') return false; if(f === 'ref' && !u.ref_by) return false;
+      if(!q) return true; return [u.name, u.username, u.id, u.broker_id].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    document.getElementById('ut').innerHTML = HEAD + '</tr>' + list.map(function(u){ return userRow(u); }).join('');
+  }
+  document.getElementById('q').oninput = draw; document.getElementById('f').onchange = draw;
+  document.getElementById('csv').onclick = function(){
+    var rows = [['id','name','username','lang','experience','markets','problem','time','deposit','goal_target','goal_text','gate','broker_id','ref_by','invited','first_seen','last_seen']];
+    cache.users.forEach(function(u){ var ob = u.onboard ? JSON.parse(u.onboard) : {}; rows.push([u.id,u.name,u.username,u.lang,RU.exp[ob.exp]||'',(ob.markets||[]).join('/'),RU.problem[ob.problem]||'',RU.time[ob.time]||'',u.tier,u.goal_target,u.goal_text,u.gate,u.broker_id,u.ref_by,u.invited,new Date(u.first_seen).toISOString(),new Date(u.last_seen).toISOString()]); });
+    download('users.csv', rows);
+  };
+}
+function download(name, rows){
+  var csv = '﻿' + rows.map(function(r){ return r.map(function(c){ c = c == null ? '' : String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' })); a.download = name; a.click();
+}
+
+function openUser(id){
+  var m = document.getElementById('modal'), box = document.getElementById('modalBox');
+  box.innerHTML = '<p class="muted">Загрузка…</p>'; m.hidden = false;
+  api('user?id=' + id).then(function(j){
+    var u = j.user, ob = u.onboard ? JSON.parse(u.onboard) : null, bal = balanceOf(j.ledger);
+    var pr = u.progress ? JSON.parse(u.progress) : {};
+    box.innerHTML = '<div class="row" style="justify-content:space-between"><h2 style="margin:0">' + esc(u.name || '—') + ' ' + (u.username ? '<a href="https://t.me/' + esc(u.username) + '" target="_blank" style="color:var(--acc)">@' + esc(u.username) + '</a>' : '') + '</h2><button class="btn" data-close>Закрыть</button></div>' +
+      '<p class="faint">id ' + u.id + ' · ' + esc((u.lang || '').toUpperCase()) + ' · с ' + dt(u.first_seen) + ' · открытий ' + (u.opens || 0) + ' · уроков ' + (pr.lessons || 0) + '/' + (pr.totalLessons || '—') + ' · курсов ' + (pr.coursesDone || 0) + '</p>' +
+      '<div class="card"><h2>Анкета</h2>' + (ob ? '<p>Опыт: <b>' + esc(RU.exp[ob.exp]) + '</b> · Торговал: <b>' + (ob.markets || []).map(function(x){ return RU.markets[x]; }).join(', ') + '</b> · Проблема: <b>' + esc(RU.problem[ob.problem]) + '</b> · Время: <b>' + esc(RU.time[ob.time]) + '</b></p>' : '<p class="faint">не заполнена</p>') +
+      '<p>Стартовый депозит: <b>' + money(u.tier) + '</b> · Цель: <b>' + money(u.goal_target) + '</b> ' + esc(u.goal_text || '') + '</p></div>' +
+      '<div class="card"><h2>Доступ к курсам</h2><p><span class="pill ' + (u.gate || 'none') + '">' + RU.gate[u.gate || 'none'] + '</span> Счёт: <span class="mono">' + esc(u.broker_id || '—') + '</span></p><div class="row"><button class="btn ok" data-gate="approved" data-id="' + u.id + '">Подтвердить</button><button class="btn bad" data-gate="rejected" data-id="' + u.id + '">Отклонить</button><button class="btn" data-gate="none" data-id="' + u.id + '">Сбросить</button></div></div>' +
+      '<div class="card"><h2>Счёт (вносит сам)</h2><p>Баланс: <b>' + money(bal) + '</b> · прогресс цели: <b>' + (u.goal_target ? Math.round(100 * bal / u.goal_target) : 0) + '%</b></p><table><tr><th>Тип</th><th>Сумма</th><th>Когда</th></tr>' + j.ledger.map(function(e){ return '<tr><td>' + ({ deposit:'пополнение', withdrawal:'вывод', balance:'баланс' })[e.type] + '</td><td class="mono">' + money(e.amount) + '</td><td class="faint">' + dt(e.at) + '</td></tr>'; }).join('') + '</table></div>' +
+      '<div class="card"><h2>Рефералы (' + j.referrals.length + ')</h2>' + (j.referrals.map(function(r){ return '<div>' + esc(r.name || '') + ' ' + (r.username ? '@' + esc(r.username) : '') + ' <span class="pill ' + (r.gate || 'none') + '">' + RU.gate[r.gate || 'none'] + '</span></div>'; }).join('') || '<p class="faint">нет</p>') + '</div>' +
+      '<div class="card"><h2>Вопросы к ИИ (' + j.messages.length + ')</h2>' + (j.messages.map(function(x){ return '<div class="msg"><div class="q">' + esc(x.text) + '</div><div class="faint">' + dt(x.at) + ' · ' + esc(x.topic || '') + (x.handoff ? ' · <b style="color:var(--warn)">передан менеджеру</b>' : '') + '</div><div class="a">' + esc(x.reply) + '</div></div>'; }).join('') || '<p class="faint">нет</p>') + '</div>';
+  });
+}
+document.addEventListener('click', function(e){
+  var g = e.target.closest('[data-gate]');
+  if(g){ e.stopPropagation(); g.disabled = true; api('gate', { id:Number(g.dataset.id), status:g.dataset.gate }).then(function(){ document.getElementById('modal').hidden = true; render(); }); return; }
+  var tr = e.target.closest('[data-uid]'); if(tr){ openUser(tr.dataset.uid); return; }
+  if(e.target.closest('[data-close]') || e.target.id === 'modal') document.getElementById('modal').hidden = true;
+  var t = e.target.closest('[data-topic]'); if(t) openTopic(t.dataset.topic);
+});
+
+function renderTopics(){
+  main.innerHTML = '<div class="row"><select id="days"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="3650">всё время</option></select><input id="mq" placeholder="Поиск по вопросам" style="flex:1;min-width:200px"><button class="btn" id="mgo">Найти</button><button class="btn" id="hand">Только переданные менеджеру</button><button class="btn" id="tcsv">Экспорт CSV</button></div><div id="tw"></div>';
+  function load(){
+    api('topics?days=' + document.getElementById('days').value).then(function(j){
+      cache.topics = j.topics; var max = j.topics.length ? j.topics[0].n : 1;
+      document.getElementById('tw').innerHTML = '<div class="card"><h2>Частые темы — идеи для роликов</h2><p class="faint">Темы размечает ИИ по каждому вопросу. Чем выше тема, тем больше людей о ней спрашивают. Нажмите на тему, чтобы увидеть сами вопросы.</p><table><tr><th>Тема</th><th>Вопросов</th><th>Людей</th><th>К менеджеру</th><th>Последний</th><th></th></tr>' +
+        j.topics.map(function(t){ return '<tr class="click" data-topic="' + esc(t.topic) + '"><td><b>' + esc(t.topic) + '</b></td><td class="mono">' + t.n + '</td><td class="mono">' + t.users + '</td><td class="mono">' + (t.handoffs || 0) + '</td><td class="faint">' + dt(t.last) + '</td><td style="width:30%"><div class="bar" style="width:' + Math.round(100 * t.n / max) + '%"></div></td></tr>'; }).join('') + '</table></div>' +
+        '<div class="card"><h2>Какие готовые статьи выдавались</h2>' + (j.articles.map(function(a){ return '<div>' + esc(a.article) + ' — <b>' + a.n + '</b></div>'; }).join('') || '<p class="faint">пока нет</p>') + '</div>';
+    });
+  }
+  document.getElementById('days').onchange = load; load();
+  document.getElementById('mgo').onclick = function(){ openMessages('q=' + encodeURIComponent(document.getElementById('mq').value), 'Поиск'); };
+  document.getElementById('hand').onclick = function(){ openMessages('handoff=1', 'Переданы менеджеру'); };
+  document.getElementById('tcsv').onclick = function(){ api('messages').then(function(j){ download('questions.csv', [['date','topic','article','handoff','lang','user','question','answer']].concat(j.messages.map(function(m){ return [new Date(m.at).toISOString(), m.topic, m.article, m.handoff, m.lang, m.username || m.name, m.text, m.reply]; }))); }); };
+}
+function openTopic(t){ openMessages('topic=' + encodeURIComponent(t), 'Тема: ' + t); }
+function openMessages(qs, title){
+  var m = document.getElementById('modal'), box = document.getElementById('modalBox'); m.hidden = false; box.innerHTML = '<p class="muted">Загрузка…</p>';
+  api('messages?' + qs).then(function(j){
+    box.innerHTML = '<div class="row" style="justify-content:space-between"><h2 style="margin:0">' + esc(title) + ' (' + j.messages.length + ')</h2><button class="btn" data-close>Закрыть</button></div>' +
+      j.messages.map(function(x){ return '<div class="msg"><div class="q">' + esc(x.text) + '</div><div class="faint">' + dt(x.at) + ' · ' + esc(x.username ? '@' + x.username : x.name || '') + ' · ' + esc((x.lang || '').toUpperCase()) + (x.handoff ? ' · <b style="color:var(--warn)">к менеджеру</b>' : '') + '</div><div class="a">' + esc(x.reply) + '</div></div>'; }).join('');
+  });
+}
+
+function renderVideos(){
+  main.innerHTML = '<p class="muted">Загрузка…</p>';
+  api('videos').then(function(j){
+    var v = j.videos || {};
+    main.innerHTML = '<div class="card"><h2>YouTube-видео в уроках</h2><p class="faint">Вставьте ссылку или ID ролика. Видео должно быть «доступ по ссылке» (unlisted) — приватные внутри приложения не проигрываются. Появятся у учеников при следующем открытии.</p><table>' +
+      COURSES.map(function(c){ return '<tr><th colspan="2">' + esc(c.name) + '</th></tr>' + c.lessons.map(function(l, i){ var k = c.id + ':' + i; return '<tr class="vid-row"><td>' + (i + 1) + '. ' + esc(l.title) + '</td><td><input data-vk="' + k + '" value="' + esc(v[k] || '') + '" placeholder="youtu.be/…"></td></tr>'; }).join(''); }).join('') +
+      '</table><div class="row" style="margin-top:12px"><button class="btn pri" id="vsave">Сохранить</button><span id="vmsg" class="faint"></span></div></div>';
+    document.getElementById('vsave').onclick = function(){
+      var out = {};
+      document.querySelectorAll('[data-vk]').forEach(function(inp){ var s = inp.value.trim(); if(!s) return; var m = s.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/); out[inp.dataset.vk] = m ? m[1] : s; });
+      api('videos', { videos: out }).then(function(){ document.getElementById('vmsg').textContent = 'Сохранено: ' + Object.keys(out).length + ' видео'; });
+    };
+  });
+}
+
+function renderRefs(){
+  main.innerHTML = '<p class="muted">Загрузка…</p>';
+  Promise.all([loadUsers(), api('rewards')]).then(function(r){
+    var us = r[0], given = {}; r[1].rewards.forEach(function(x){ given[x.user_id + ':' + x.tier] = x.at; });
+    var tiers = [1, 3, 5, 10];
+    var list = us.filter(function(u){ return u.invited > 0; }).sort(function(a, b){ return b.invited_ok - a.invited_ok; });
+    main.innerHTML = '<div class="card"><h2>Рефералы и призы</h2><p class="faint">Засчитываются друзья с подтверждённым доступом. Отметьте приз, когда выдали его вручную. Тексты призов — в config.js (PRIZES).</p><table><tr><th>Кто пригласил</th><th>Подтверждено / пришло</th>' + tiers.map(function(t){ return '<th>' + t + '</th>'; }).join('') + '</tr>' +
+      list.map(function(u){ return '<tr><td><b>' + esc(u.name || '') + '</b> <span class="faint">' + (u.username ? '@' + esc(u.username) : u.id) + '</span></td><td class="mono">' + u.invited_ok + ' / ' + u.invited + '</td>' +
+        tiers.map(function(t){ var reached = u.invited_ok >= t, done = given[u.id + ':' + t]; return '<td>' + (!reached ? '<span class="faint">—</span>' : done ? '<button class="btn" data-rw="' + u.id + ':' + t + ':undo">✓ выдан</button>' : '<button class="btn ok" data-rw="' + u.id + ':' + t + '">Выдать</button>') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' + (list.length ? '' : '<p class="faint">Пока никто никого не пригласил.</p>') + '</div>';
+  });
+}
+document.addEventListener('click', function(e){ var b = e.target.closest('[data-rw]'); if(!b) return; var p = b.dataset.rw.split(':'); api('reward', { id:Number(p[0]), tier:Number(p[1]), undo: p[2] === 'undo' }).then(renderRefs); });
+
+function renderSettings(){
+  api('stats').then(function(s){
+    main.innerHTML = '<div class="card"><h2>Чат менеджеров</h2><p>' + (s.salesChat ? '✅ Подключён. Туда приходят анкеты, запросы доступа, обращения к менеджеру и призы.' : '❌ Не подключён. Добавьте бота в группу и напишите <span class="mono">/setsales</span>.') + '</p>' + (s.salesChat ? '<button class="btn bad" id="sr">Отвязать чат</button>' : '') + '</div>' +
+      '<div class="card"><h2>Менеджер для передачи диалога</h2><p>' + (s.manager ? '@' + esc(s.manager) : 'не задан') + '</p><p class="faint">Меняется в deploy.ps1 (переменная $MANAGER) с повторным запуском DEPLOY.bat.</p></div>' +
+      '<div class="card"><h2>Выход</h2><button class="btn" onclick="logout()">Выйти из админки</button></div>';
+    var sr = document.getElementById('sr'); if(sr) sr.onclick = function(){ if(confirm('Отвязать чат менеджеров?')) api('sales-reset', {}).then(renderSettings); };
+  });
+}
+
+if(KEY) start(); else renderLogin();
+</script>
+</body>
+</html>

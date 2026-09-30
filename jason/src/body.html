@@ -9,6 +9,7 @@
   </div>
   <main class="content">
     <section class="screen" id="screen-start" data-i18n-title="tabHome" data-i18n-eyebrow="eyebrowAcademy" data-title="Home" data-eyebrow="Academy">
+      <div id="goalCardStart"></div>
       <div class="hero">
         <svg class="chart" viewBox="0 0 130 110" fill="none" stroke-linecap="round">
           <g stroke="var(--bad)" stroke-width="1.4"><path d="M14 44v30"/><rect x="10" y="50" width="8" height="16" rx="1.2" fill="var(--bad)" stroke="none"/><path d="M50 50v28"/><rect x="46" y="56" width="8" height="14" rx="1.2" fill="var(--bad)" stroke="none"/></g>
@@ -20,6 +21,7 @@
         <p data-i18n="heroText">Short lessons, a quiz after every course, and tools you'll actually use on a live chart.</p>
         <button data-i18n="pickCourse" class="btn primary" data-goto="courses">Pick a course</button>
       </div>
+      <div id="lockBannerStart"></div>
       <div id="streakCard"></div>
       <div id="xpCardStart"></div>
       <div class="stack"><div class="section-title"><h2 data-i18n="yourProgress">Your progress</h2></div><div id="startActiveBanner"></div></div>
@@ -35,6 +37,7 @@
     </section>
 
     <section class="screen" id="screen-courses" data-i18n-title="tabCourses" data-i18n-eyebrow="eyebrowLearn" data-title="Courses" data-eyebrow="Learn" hidden>
+      <div id="lockBannerCourses"></div>
       <div id="coursesActiveBanner"></div>
       <p data-i18n="coursesIntro" class="muted">Each lesson is a short read. The course quiz is a separate button — all its questions on one page.</p>
       <div class="stack" id="blocksList"></div>
@@ -48,24 +51,18 @@
       </div>
 
       <div class="card stack tool-panel" id="tool-size">
-        <div class="section-title"><h2 data-i18n="sizeTitle">Position size calculator</h2><span data-i18n="sizeTag" class="count mono">risk-first</span></div>
-        <p data-i18n="sizeIntro" class="muted">Decide how much you're willing to lose first. The calculator turns that into a lot size.</p>
+        <div class="section-title"><h2 data-i18n="sizeTitle">Position size calculator</h2><span class="count mono">XAUUSD</span></div>
+        <p data-i18n="sizeIntro2" class="muted">Lot sizes follow the project's volumes for your deposit. Set how far your stop and target are — see exactly what's at stake.</p>
         <div class="calc-grid">
-          <div class="fld full"><label data-i18n="fInstr" for="cInstr">Instrument</label>
-            <select id="cInstr">
-              <option data-i18n="optXau" value="xau">XAUUSD — gold (100 oz per lot)</option>
-              <option data-i18n="optFx" value="fx">EURUSD / GBPUSD / AUDUSD (USD-quoted)</option>
-              <option data-i18n="optJpy" value="jpy">USDJPY (JPY-quoted)</option>
-            </select></div>
-          <div class="fld"><label data-i18n="fBal" for="cBal">Account balance, $</label><input id="cBal" type="number" inputmode="decimal" value="1000"></div>
-          <div class="fld"><label data-i18n="fRisk" for="cRisk">Risk per trade, %</label><input id="cRisk" type="number" inputmode="decimal" value="1" step="0.1"></div>
-          <div class="fld"><label data-i18n="fEntry" for="cEntry">Entry price</label><input id="cEntry" type="number" inputmode="decimal" value="4000" step="any"></div>
-          <div class="fld"><label data-i18n="fStop" for="cStop">Stop loss</label><input id="cStop" type="number" inputmode="decimal" value="3992" step="any"></div>
-          <div class="fld full"><label data-i18n="fTp" for="cTp">Take profit (optional)</label><input id="cTp" type="number" inputmode="decimal" value="4016" step="any"></div>
+          <div class="fld"><label data-i18n="fDeposit" for="cTier">Your deposit</label>
+            <select id="cTier"><option value="250">$250</option><option value="1000" selected>$1,000</option><option value="10000">$10,000</option><option data-i18n="optCustom" value="custom">Other amount</option></select></div>
+          <div class="fld"><label data-i18n="fBal" for="cBal">Account balance, $</label><input id="cBal" type="number" inputmode="decimal" value="1000" readonly></div>
+          <div class="fld"><label data-i18n="fStopD" for="cStopD">Stop distance, $</label><input id="cStopD" type="number" inputmode="decimal" value="5" step="0.5"></div>
+          <div class="fld"><label data-i18n="fTpD" for="cTpD">Target distance, $</label><input id="cTpD" type="number" inputmode="decimal" value="10" step="0.5"></div>
         </div>
         <div class="calc-out" id="sizeOut"></div>
         <p class="calc-msg" id="sizeMsg"></p>
-        <p data-i18n="sizeFoot" class="faint" style="font-size:11px;">Contract sizes differ between brokers — check your instrument's spec before trading. USDJPY value uses entry price for the JPY→USD conversion.</p>
+        <p class="faint" id="volFoot" style="font-size:11px;"></p>
       </div>
 
       <div class="card stack tool-panel" id="tool-dd" hidden>
@@ -97,7 +94,9 @@
         <div class="ring"><svg viewBox="0 0 76 76"><circle class="bg" cx="38" cy="38" r="31"/><circle class="fg" id="profileRing" cx="38" cy="38" r="31" stroke-dasharray="194.7" stroke-dashoffset="194.7" pathLength="194.7"/></svg><div class="num" id="profilePct">0%</div></div>
         <div class="stack" style="gap:6px;"><b style="font-size:14.5px;" id="profileName">Profile</b><span class="muted" id="profileFrac">0 lessons read</span><span class="faint mono" style="font-size:11px;" id="profileAccuracy">quizzes: no answers yet</span></div>
       </div>
+      <div id="clubBtnProfile"></div>
       <div id="xpCardProfile"></div>
+      <div id="refCardProfile"></div>
       <div class="stack"><div class="section-title"><h2 data-i18n="achievements">Achievements</h2><span class="count faint" id="achCount">0/12</span></div><div class="ach-grid" id="achGrid"></div></div>
       <div class="stack"><div class="section-title"><h2 data-i18n="courseProgress">Course progress</h2></div><div class="card stack" style="gap:0;" id="profileCourseList"></div></div>
       <div id="clubCardProfile"></div>
@@ -108,6 +107,7 @@
     <section class="screen" id="screen-assistant" data-i18n-title="tabAI" data-i18n-eyebrow="eyebrowAssistant" data-title="Jason AI" data-eyebrow="Assistant" hidden>
       <p data-i18n="aiIntro" class="muted">I'm Jason AI — an AI assistant trained on the course and Jason's approach. Ask about a term from a lesson, how a tool works, or where to find something. I don't give buy/sell calls.</p>
       <div class="chat-log" id="chatLog"></div>
+      <div class="chat-chips" id="chatChips"></div>
       <div class="chat-row">
         <input id="chatInput" placeholder="Ask a question..." data-i18n-ph="chatPh" autocomplete="off">
         <button class="btn primary" id="chatSend" type="button" aria-label="Send">→</button>
@@ -147,6 +147,17 @@
     </div>
   </div>
 
+  <div class="onb-overlay" id="onbOverlay" hidden><div class="onb-box" id="onbBox"></div></div>
+  <div class="lang-sheet" id="funnelGate" hidden><div class="lang-box gate-sheet" id="funnelGateBox"></div></div>
+  <div class="lang-sheet" id="ledgerSheet" hidden><div class="lang-box">
+    <button class="sheet-x" type="button" data-close aria-label="close">×</button>
+    <p class="eyebrow" data-i18n="ledgerTitle">Deposits &amp; balance</p>
+    <div class="calc-out" id="ledgerSum"></div>
+    <div class="seg" id="ledgerSeg"><button type="button" data-type="deposit" data-i18n="lt_deposit">Deposit</button><button type="button" data-type="withdrawal" data-i18n="lt_withdrawal">Withdrawal</button><button type="button" data-type="balance" data-i18n="lt_balance">Balance</button></div>
+    <div class="row" style="gap:8px;"><input id="ledgerAmt" class="g-input" type="number" inputmode="decimal" placeholder="$"><button class="btn primary" id="ledgerAdd" type="button" data-i18n="ledgerAdd">Add</button></div>
+    <p class="faint" style="font-size:11px;" data-i18n="ledgerHint">Balance = your current account balance from the broker. Deposits and withdrawals after it are added automatically.</p>
+    <div id="ledgerList" class="led-list"></div>
+  </div></div>
   <div class="lang-sheet" id="langSheet" hidden><div class="lang-box"><p class="eyebrow" data-i18n="language">Language</p><div id="langList"></div></div></div>
   <div class="toast" id="toast">Copied</div>
   <div class="ach-pop" id="achPop">
@@ -164,6 +175,7 @@
 <script src="data1.js?v=__BUILD__"></script>
 <script src="data2.js?v=__BUILD__"></script>
 <script src="data3.js?v=__BUILD__"></script>
+<script src="funnel.js?v=__BUILD__"></script>
 <script src="app.js?v=__BUILD__"></script>
 </body>
 </html>
