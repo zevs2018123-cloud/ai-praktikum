@@ -446,7 +446,16 @@ async function cron(env) {
 
 /* ---------------- admin ---------------- */
 async function admin(req, env, url) {
-  if (!env.ADMIN_KEY || req.headers.get('x-admin-key') !== env.ADMIN_KEY) return json({ error: 'unauthorized' }, 401);
+  // brute-force guard: max 10 wrong keys per IP per 15 minutes
+  const ip = req.headers.get('cf-connecting-ip') || 'local';
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS admin_fails (ip TEXT, at INTEGER)').run();
+  const since = Date.now() - 15 * 60e3;
+  const fails = (await env.DB.prepare('SELECT COUNT(*) AS n FROM admin_fails WHERE ip = ? AND at > ?').bind(ip, since).first())?.n || 0;
+  if (fails >= 10) return json({ error: 'too many attempts, wait 15 minutes' }, 429);
+  if (!env.ADMIN_KEY || req.headers.get('x-admin-key') !== env.ADMIN_KEY) {
+    await env.DB.prepare('INSERT INTO admin_fails (ip, at) VALUES (?, ?)').bind(ip, Date.now()).run();
+    return json({ error: 'unauthorized' }, 401);
+  }
   const p = url.pathname.replace('/admin/', '');
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const all = async (q, ...b) => (await env.DB.prepare(q).bind(...b).all()).results || [];
