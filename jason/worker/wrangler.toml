@@ -6,6 +6,7 @@ compatibility_date = "2026-09-01"
 APP_URL = "https://zevs2018123-cloud.github.io/ai-praktikum/jason/"
 CHANNEL_ID = ""          # e.g. "-1001234567890" — leave empty to disable the subscription lock
 CHANNEL_LINK = "https://t.me/+lKjn6jFBql41ZThi"
+PIXEL_ID = ""             # Meta pixel id; also: npx wrangler secret put CAPI_TOKEN
 
 [[kv_namespaces]]
 binding = "USERS"

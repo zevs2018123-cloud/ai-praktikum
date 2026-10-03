@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Jason Trade Academy</title>
+
+<script>
+/* ====== НАСТРОЙКИ ====== */
+const CONFIG = {
+  PIXEL_ID: 'YOUR_PIXEL_ID',
+  BOT_USERNAME: 'JasonProTreid_bot',
+  TRACK_ENDPOINT: 'https://jason-academy-bot.zevs2018123.workers.dev/track',
+  MODE: 'start',      // 'start' — чат бота (?start=)  |  'app' — сразу Mini App без Start (?startapp=)
+  MAX_WAIT: 600       // мс: максимум ждём загрузку пикселя, потом уходим в любом случае
+};
+/* ======================= */
+</script>
+
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+if (/^\d+$/.test(CONFIG.PIXEL_ID)) { fbq('init', CONFIG.PIXEL_ID); fbq('track', 'PageView'); }
+</script>
+
+<style>
+  html,body{margin:0;height:100%;background:#08080A}
+  body{display:flex;align-items:center;justify-content:center;font:15px/1.5 system-ui,sans-serif;color:#A6A193;text-align:center;padding:0 16px}
+  .spin{width:28px;height:28px;margin:0 auto;border:3px solid rgba(79,125,255,.25);border-top-color:#4F7DFF;border-radius:50%;animation:r .8s linear infinite}
+  @keyframes r{to{transform:rotate(360deg)}}
+  #fb{display:none;margin-top:20px}
+  #fb a{display:inline-block;padding:14px 28px;border-radius:12px;background:#4F7DFF;color:#fff;font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<div>
+  <div class="spin"></div>
+  <div id="fb"><a id="go" href="#">Open in Telegram</a></div>
+</div>
+
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const getCookie = n => { const m = document.cookie.match('(?:^|; )'+n+'=([^;]*)'); return m ? decodeURIComponent(m[1]) : null; };
+
+  const fbclid = qs.get('fbclid');
+  if (fbclid && !getCookie('_fbc'))
+    document.cookie = '_fbc=' + encodeURIComponent('fb.1.' + Date.now() + '.' + fbclid) + ';max-age=7776000;path=/;SameSite=Lax';
+
+  let cid = sessionStorage.getItem('cid');
+  if (!cid) { cid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('cid', cid); }
+
+  const p = 'fb_' + cid, u = CONFIG.BOT_USERNAME;
+  const webLink = CONFIG.MODE === 'app'
+    ? 'https://t.me/' + u + '?startapp=' + p
+    : 'https://t.me/' + u + '?start=' + p;
+  const appLink = CONFIG.MODE === 'app'
+    ? 'tg://resolve?domain=' + u + '&startapp=' + p
+    : 'tg://resolve?domain=' + u + '&start=' + p;
+  document.getElementById('go').href = webLink;
+
+  if (/^\d+$/.test(CONFIG.PIXEL_ID)) fbq('track', 'ViewContent', {}, { eventID: cid });
+
+  let done = false;
+  function go(){
+    if (done) return; done = true;
+
+    if (CONFIG.TRACK_ENDPOINT) {
+      const utm = {};
+      ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => { if (qs.get(k)) utm[k] = qs.get(k); });
+      const data = JSON.stringify({ cid, fbc: getCookie('_fbc'), fbp: getCookie('_fbp'), url: location.href, ua: navigator.userAgent, utm });
+      try { navigator.sendBeacon(CONFIG.TRACK_ENDPOINT, data); }
+      catch(_) { fetch(CONFIG.TRACK_ENDPOINT, { method:'POST', body:data, keepalive:true }); }
+    }
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    location.href = isMobile ? appLink : webLink;
+    setTimeout(function(){
+      if (!document.hidden) { document.getElementById('fb').style.display = 'block'; location.href = webLink; }
+    }, 1500);
+  }
+
+  // уходим, как только пиксель загрузился и поставил _fbp (обычно 150–400 мс), но не позже MAX_WAIT
+  const t0 = Date.now();
+  (function wait(){
+    const loaded = typeof fbq.callMethod === 'function' && getCookie('_fbp');
+    if (loaded) return setTimeout(go, 120); // даём уйти запросу пикселя
+    if (Date.now() - t0 >= CONFIG.MAX_WAIT) return go();
+    setTimeout(wait, 50);
+  })();
+})();
+</script>
+</body>
+</html>
