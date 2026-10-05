@@ -32,8 +32,8 @@ var I18N = { en: { ui: {
   achievements:'Achievements', courseProgress:'Course progress', resetAll:'Reset all progress', resetSure:'Sure? Tap again to reset', resetDone:'Progress reset',
   profile:'Profile', aiIntro:"I'm Jason AI — an AI assistant trained on the course and Jason's approach. Ask about a term from a lesson, how a tool works, or where to find something. I don't give buy/sell calls.",
   chatPh:'Ask a question...', course:'Course', lesson:'Lesson', courseQuiz:'Course quiz', answerAll:'Answer all questions',
-  gateTitle:'For channel subscribers', gateText:"Every course, quiz and tool is free — you just need to be subscribed to Jason's channel, where the live trades and breakdowns go out.",
-  gateOpen:'Open the channel', gateRecheck:"I've subscribed", gateChecking:'Checking…', gateNotYet:"Can't see your subscription yet. If you just joined, wait a few seconds and tap again.",
+  gateTitle:'Subscribe to get access', gateText:"Hey! 👋 Subscribe to my private channel — and I'll give you access to my academy. All courses, quizzes and tools are free.",
+  gateOpen:'Subscribe to the channel', gateRecheck:"I've subscribed", gateChecking:'Checking…', gateNotYet:"Can't see your subscription yet. If you just joined, wait a few seconds and tap again.",
   achUnlocked:'Achievement unlocked', language:'Language',
   /* dynamic */
   ctaDone:'Done ↻', ctaStart:'Start', ctaContinue:'Continue', ctaQuiz:'Take quiz',

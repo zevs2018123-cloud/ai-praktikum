@@ -67,11 +67,20 @@ const T = {
   },
   clubBtn: { en:'🔓 Join the private channel', ru:'🔓 Вступить в закрытый канал', fr:'🔓 Rejoindre le canal privé', de:'🔓 Privatem Kanal beitreten' },
   clubWelcome: {
-    en: "✅ You're in! Welcome to Jason's private channel. Next step — the free academy: tap below.",
-    ru: '✅ Ты в канале! Добро пожаловать к Джейсону. Следующий шаг — бесплатная академия, жми ниже.',
-    fr: '✅ Tu es dedans ! Bienvenue dans le canal privé de Jason. Étape suivante — l’académie gratuite : appuie ci-dessous.',
-    de: '✅ Du bist drin! Willkommen in Jasons privatem Kanal. Nächster Schritt — die kostenlose Akademie: tipp unten.'
+    en: "✅ You're in! As promised — here's your access to my academy. Tap below 👇",
+    ru: '✅ Ты в канале! Как и обещал — вот доступ к моей академии. Жми ниже 👇',
+    fr: '✅ Tu es dedans ! Comme promis — voici ton accès à mon académie. Appuie ci-dessous 👇',
+    de: '✅ Du bist drin! Wie versprochen — hier ist dein Zugang zu meiner Akademie. Tipp unten 👇'
   },
+  subGate: {
+    en: "Hey! 👋 I'm Jason.\n\nSubscribe to my private channel — and I'll give you access to my trading academy: 10 courses, quizzes and calculators, all free.\n\n1️⃣ Tap «Subscribe»\n2️⃣ Come back and tap «I've subscribed»",
+    ru: "Привет! 👋 Я Джейсон.\n\nПодпишись на мой закрытый канал — и я дам тебе доступ к своей академии трейдинга: 10 курсов, квизы и калькуляторы, всё бесплатно.\n\n1️⃣ Жми «Подписаться»\n2️⃣ Вернись и нажми «Я подписался»",
+    fr: "Salut ! 👋 C'est Jason.\n\nAbonne-toi à mon canal privé — et je te donne accès à mon académie de trading : 10 cours, quiz et calculateurs, tout gratuit.\n\n1️⃣ Appuie sur « S'abonner »\n2️⃣ Reviens et appuie sur « Je suis abonné »",
+    de: "Hey! 👋 Ich bin Jason.\n\nAbonniere meinen privaten Kanal — und ich gebe dir Zugang zu meiner Trading-Akademie: 10 Kurse, Quizze und Rechner, alles kostenlos.\n\n1️⃣ Tippe auf «Abonnieren»\n2️⃣ Komm zurück und tippe auf «Ich habe abonniert»"
+  },
+  subBtn: { en:'📢 Subscribe', ru:'📢 Подписаться', fr:"📢 S'abonner", de:'📢 Abonnieren' },
+  checkBtn: { en:"✅ I've subscribed", ru:'✅ Я подписался', fr:'✅ Je suis abonné', de:'✅ Ich habe abonniert' },
+  notYet: { en:"I don't see your subscription yet — join the channel first, then tap again.", ru:'Пока не вижу подписку — сначала вступи в канал, потом нажми ещё раз.', fr:"Je ne vois pas encore ton abonnement — rejoins d'abord le canal, puis réessaie.", de:'Ich sehe dein Abo noch nicht — tritt zuerst dem Kanal bei und tippe dann nochmal.' },
   openBtn: { en:'Open the Academy', ru:'Открыть Академию', fr:'Ouvrir l’Académie', de:'Akademie öffnen' },
   contBtn: { en:'Continue learning', ru:'Продолжить обучение', fr:'Continuer', de:'Weiterlernen' },
   mgrBtn: { en:'Message the manager', ru:'Написать менеджеру', fr:'Écrire au manager', de:'Manager schreiben' },
@@ -172,7 +181,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -219,9 +228,10 @@ const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: 
 const mgrButton = (env, lang) => env.MANAGER ? { inline_keyboard: [[{ text: tt('mgrBtn', lang), url: `https://t.me/${env.MANAGER}` }]] } : undefined;
 
 async function isSubscribed(env, userId) {
-  if (!env.CHANNEL_ID) return true;
-  const r = await tg(env, 'getChatMember', { chat_id: env.CHANNEL_ID, user_id: userId });
-  if (!r.ok) return true;
+  const chat = (await setting(env, 'club_chat')) || env.CHANNEL_ID;
+  if (!chat) return true;
+  const r = await tg(env, 'getChatMember', { chat_id: chat, user_id: userId });
+  if (!r.ok) return true; // fail open if Telegram can't answer
   return ['creator', 'administrator', 'member', 'restricted'].includes(r.result.status);
 }
 
@@ -245,10 +255,11 @@ async function handleOpen(req, env) {
   if (typeof body.tz === 'number') set('tz', body.tz);
   if (body.lang) set('lang', pickLang(body.lang));
   let sub = u.sub;
-  if (body.recheck || u.sub == null || !u.sub_at || now - u.sub_at > 600e3) { sub = (await isSubscribed(env, u.id)) ? 1 : 0; set('sub', sub); set('sub_at', now); }
+  if (body.recheck || u.sub !== 1 || !u.sub_at || now - u.sub_at > 600e3) { sub = (await isSubscribed(env, u.id)) ? 1 : 0; set('sub', sub); set('sub_at', now); }
   if (sets.length) await env.DB.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, u.id).run();
   const videos = JSON.parse((await setting(env, 'videos')) || '{}');
-  return json({ access: sub !== 0, channel: env.CHANNEL_LINK || null, me: await profile(env, { ...u, sub }), videos, manager: env.MANAGER || null });
+  const channel = sub === 0 ? ((await clubInvite(env, u.id)) || env.CHANNEL_LINK || null) : (env.CHANNEL_LINK || null);
+  return json({ access: sub !== 0, channel, me: await profile(env, { ...u, sub }), videos, manager: env.MANAGER || null });
 }
 
 async function handleOnboard(req, env) {
@@ -391,8 +402,17 @@ async function handleChat(req, env) {
 async function clubInvite(env, userId) {
   const chat = await setting(env, 'club_chat');
   if (!chat) return null;
+  const u = await getUser(env, userId);
+  if (u && u.invite && u.invite_exp > Date.now() + 4 * HOUR) return u.invite;
   const r = await tg(env, 'createChatInviteLink', { chat_id: chat, name: ('u' + userId).slice(0, 32), member_limit: 1, expire_date: Math.floor(Date.now() / 1000) + 86400 });
-  return r.ok ? r.result.invite_link : null;
+  if (!r.ok) return null;
+  await env.DB.prepare('UPDATE users SET invite = ?, invite_exp = ? WHERE id = ?').bind(r.result.invite_link, Date.now() + DAY, userId).run();
+  return r.result.invite_link;
+}
+async function sendSubGate(env, chatId, userId, lang) {
+  const link = (await clubInvite(env, userId)) || env.CHANNEL_LINK;
+  const row = link ? [[{ text: tt('subBtn', lang), url: link }]] : [];
+  return tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }]] } });
 }
 
 async function handleWebhook(req, env) {
@@ -428,7 +448,7 @@ async function handleWebhook(req, env) {
     if (String(cm.chat.id) === (await setting(env, 'club_chat')) && ['member', 'administrator', 'creator'].includes(cm.new_chat_member.status) && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
       await upsertUser(env, cm.new_chat_member.user);
       const u = await getUser(env, cm.new_chat_member.user.id);
-      await env.DB.prepare('UPDATE users SET club_joined = ? WHERE id = ?').bind(Date.now(), cm.new_chat_member.user.id).run();
+      await env.DB.prepare('UPDATE users SET club_joined = ?, sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), Date.now(), cm.new_chat_member.user.id).run();
       if (u && u.chat_ok) { const lang = pickLang(u.lang); await tg(env, 'sendMessage', { chat_id: u.id, text: tt('clubWelcome', lang), reply_markup: openButton(env, tt('openBtn', lang)) }); }
     }
     return new Response('ok');
@@ -445,6 +465,18 @@ async function handleWebhook(req, env) {
   if (upd.callback_query) {
     const cq = upd.callback_query;
     const salesChat = await setting(env, 'sales_chat');
+    if (cq.data === 'subchk') {
+      const u = await upsertUser(env, cq.from), lang = pickLang(u.lang || cq.from.language_code);
+      if (await isSubscribed(env, cq.from.id)) {
+        await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ?, club_joined = COALESCE(club_joined, ?) WHERE id = ?').bind(Date.now(), Date.now(), u.id).run();
+        await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id });
+        if (cq.message) await tg(env, 'editMessageReplyMarkup', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+        await tg(env, 'sendMessage', { chat_id: cq.from.id, text: tt('clubWelcome', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
+      } else {
+        await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: tt('notYet', lang), show_alert: true });
+      }
+      return new Response('ok');
+    }
     const m = /^gate:(approved|rejected):(\d+)$/.exec(cq.data || '');
     if (m && String(cq.message?.chat?.id) === String(salesChat)) {
       const res = await setGate(env, Number(m[2]), m[1], cq.from.username || cq.from.first_name);
@@ -493,12 +525,12 @@ async function handleWebhook(req, env) {
     if (srcM && !existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind(srcM[1], u.id).run();
     await env.DB.prepare('UPDATE users SET chat_ok = 1 WHERE id = ?').bind(u.id).run();
     const lang = pickLang(u.lang || m.from.language_code);
-    const fresh = await getUser(env, u.id);
-    const link = fresh.club_joined ? null : await clubInvite(env, u.id);
-    if (link) {
-      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('clubInvite', lang), reply_markup: { inline_keyboard: [[{ text: tt('clubBtn', lang), url: link }]] } });
+    if (!(await isSubscribed(env, u.id))) {
+      await env.DB.prepare('UPDATE users SET sub = 0, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
+      await sendSubGate(env, m.chat.id, u.id, lang);
+    } else {
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
     }
-    await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
   }
   return new Response('ok');
 }
@@ -632,7 +664,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.3', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.4', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
