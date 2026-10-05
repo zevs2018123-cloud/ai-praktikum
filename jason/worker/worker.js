@@ -6,16 +6,13 @@
      POST /ledger    add / delete a deposit, withdrawal or balance entry
      POST /chat      Jason AI (topic logging, FAQ articles, hand-off to a manager)
    Bot:
-     POST /webhook   /start [ref_ID | fb_CID], /setsales in a group, Approve/Reject buttons
-   Ads:
-     POST /track     click from the ad landing (jason/go/) → fb_clicks; funnel steps go to Meta Conversions API
+     POST /webhook   /start [ref_ID], /setsales in a group, Approve/Reject buttons
    Admin (header x-admin-key: ADMIN_KEY):
      GET  /admin/stats, /admin/users, /admin/user?id=, /admin/topics?days=, /admin/messages?topic=&q=
      POST /admin/gate {id,status}, /admin/videos {videos}, /admin/reward {id,tier}, /admin/sales-reset
    Cron (hourly): study reminders, hand-off catch-ups, onboarding catch-ups.
 
    Bindings: DB (D1), AI (Workers AI, optional)
-   Meta CAPI (optional): PIXEL_ID (var), CAPI_TOKEN (secret), TEST_EVENT_CODE (var, only while testing)
    Vars/secrets: BOT_TOKEN, APP_URL, ADMIN_KEY, MANAGER (username without @), CHANNEL_ID, CHANNEL_LINK, ANTHROPIC_API_KEY (optional)
 */
 
@@ -61,6 +58,19 @@ const T = {
     ru: "Добро пожаловать в Jason Trade Academy 📈\n\n10 коротких курсов — от первого графика до торговли золотом — с квизами, сериями и калькулятором размера позиции.\n\nРиск прежде всего. Жми ниже, чтобы начать.",
     fr: "Bienvenue à la Jason Trade Academy 📈\n\n10 cours courts — de ton premier graphique au trading de l’or — avec quiz, séries et calculateur de taille de position.\n\nLe risque d’abord. Appuie ci-dessous pour commencer.",
     de: "Willkommen in der Jason Trade Academy 📈\n\n10 kurze Kurse — vom ersten Chart bis zum Goldhandel — mit Quizzen, Serien und Positionsgrößen-Rechner.\n\nRisiko zuerst. Tippe unten, um zu starten."
+  },
+  clubInvite: {
+    en: "🔐 Here's your personal pass to Jason's private channel — tap the button to join. The link works once and expires in 24 hours.",
+    ru: '🔐 Твой личный пропуск в закрытый канал Джейсона — жми кнопку, чтобы вступить. Ссылка одноразовая и действует 24 часа.',
+    fr: '🔐 Voici ton accès personnel au canal privé de Jason — appuie sur le bouton pour rejoindre. Le lien est à usage unique et expire dans 24 h.',
+    de: '🔐 Dein persönlicher Zugang zu Jasons privatem Kanal — tipp auf den Button, um beizutreten. Der Link gilt einmal und läuft in 24 Stunden ab.'
+  },
+  clubBtn: { en:'🔓 Join the private channel', ru:'🔓 Вступить в закрытый канал', fr:'🔓 Rejoindre le canal privé', de:'🔓 Privatem Kanal beitreten' },
+  clubWelcome: {
+    en: "✅ You're in! Welcome to Jason's private channel. Next step — the free academy: tap below.",
+    ru: '✅ Ты в канале! Добро пожаловать к Джейсону. Следующий шаг — бесплатная академия, жми ниже.',
+    fr: '✅ Tu es dedans ! Bienvenue dans le canal privé de Jason. Étape suivante — l’académie gratuite : appuie ci-dessous.',
+    de: '✅ Du bist drin! Willkommen in Jasons privatem Kanal. Nächster Schritt — die kostenlose Akademie: tipp unten.'
   },
   openBtn: { en:'Open the Academy', ru:'Открыть Академию', fr:'Ouvrir l’Académie', de:'Akademie öffnen' },
   contBtn: { en:'Continue learning', ru:'Продолжить обучение', fr:'Continuer', de:'Weiterlernen' },
@@ -156,14 +166,13 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS rewards (user_id INTEGER, tier INTEGER, at INTEGER, PRIMARY KEY (user_id, tier))`,
   `CREATE INDEX IF NOT EXISTS idx_msg_topic ON messages(topic)`,
   `CREATE INDEX IF NOT EXISTS idx_users_ref ON users(ref_by)`,
-  `CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id)`,
-  `CREATE TABLE IF NOT EXISTS fb_clicks (cid TEXT PRIMARY KEY, fbc TEXT, fbp TEXT, ip TEXT, ua TEXT, url TEXT, utm TEXT, ts INTEGER, tg_id INTEGER)`,
-  `CREATE INDEX IF NOT EXISTS idx_fb_clicks_tg ON fb_clicks(tg_id, ts)`
+  `CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id)`
 ];
 let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
+  for (const col of ['club_joined INTEGER', 'src TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -224,58 +233,6 @@ async function authed(req, env) {
   return { body, tgUser, u };
 }
 
-/* ---------------- Meta Conversions API ----------------
-   Funnel: landing → ViewContent, /start → CompleteRegistration, questionnaire → Lead,
-   broker account sent → SubmitApplication, manager approved → Purchase (value = starting deposit). */
-async function sha256(v) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(v).trim().toLowerCase()));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-const cleanCid = v => String(v || '').replace(/[^a-z0-9]/gi, '').slice(0, 32);
-
-async function sendCapi(env, cid, eventName, { tgId, custom, eventId } = {}) {
-  if (!env.PIXEL_ID || !env.CAPI_TOKEN) return null;
-  try {
-    const c = await env.DB.prepare('SELECT fbc, fbp, ip, ua, url FROM fb_clicks WHERE cid = ?').bind(cid).first();
-    if (!c) return null;
-    const user_data = {};
-    if (c.fbc) user_data.fbc = c.fbc;
-    if (c.fbp) user_data.fbp = c.fbp;
-    if (c.ip) user_data.client_ip_address = c.ip;
-    if (c.ua) user_data.client_user_agent = c.ua;
-    if (tgId) user_data.external_id = [await sha256(tgId)];
-    const event = { event_name: eventName, event_time: Math.floor(Date.now() / 1000), event_id: eventId || `${cid}_${eventName}`,
-      action_source: 'website', event_source_url: c.url, user_data };
-    if (custom) event.custom_data = custom;
-    const body = { data: [event] };
-    if (env.TEST_EVENT_CODE) body.test_event_code = env.TEST_EVENT_CODE;
-    const r = await fetch(`https://graph.facebook.com/v21.0/${env.PIXEL_ID}/events?access_token=${env.CAPI_TOKEN}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const res = await r.json().catch(() => null);
-    if (!r.ok) console.log('CAPI error', eventName, JSON.stringify(res));
-    return res;
-  } catch (e) { console.log('CAPI failed', eventName, String(e && e.message || e)); return null; }
-}
-
-// funnel step for a Telegram user who came from an ad (no-op otherwise)
-async function capiByUser(env, tgId, eventName, custom) {
-  if (!env.PIXEL_ID || !env.CAPI_TOKEN) return null;
-  const row = await env.DB.prepare('SELECT cid FROM fb_clicks WHERE tg_id = ? ORDER BY ts DESC LIMIT 1').bind(tgId).first();
-  return row ? sendCapi(env, row.cid, eventName, { tgId, custom }) : null;
-}
-
-async function handleTrack(req, env, ctx) {
-  let d; try { d = JSON.parse(await req.text()); } catch { return json({ error: 'bad json' }, 400); } // sendBeacon = text/plain
-  const cid = cleanCid(d.cid);
-  if (!cid) return json({ error: 'no cid' }, 400);
-  await env.DB.prepare('INSERT OR IGNORE INTO fb_clicks (cid, fbc, fbp, ip, ua, url, utm, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(
-    cid, d.fbc ? String(d.fbc).slice(0, 300) : null, d.fbp ? String(d.fbp).slice(0, 100) : null,
-    req.headers.get('CF-Connecting-IP') || null, String(d.ua || req.headers.get('User-Agent') || '').slice(0, 400) || null,
-    d.url ? String(d.url).slice(0, 1000) : null, JSON.stringify(d.utm || {}).slice(0, 500), Math.floor(Date.now() / 1000)).run();
-  ctx.waitUntil(sendCapi(env, cid, 'ViewContent', { eventId: cid })); // dedup with the browser pixel
-  return json({ ok: true });
-}
-
 /* ---------------- app routes ---------------- */
 async function handleOpen(req, env) {
   const { body, u, error } = await authed(req, env); if (error) return error;
@@ -315,7 +272,6 @@ async function handleOnboard(req, env) {
     `Цель: ${target ? money(target) : '—'}${goalText ? ' — ' + esc(goalText) : ''}`,
     ref ? `Пригласил: ${esc(ref.name || '')}${ref.username ? ' @' + esc(ref.username) : ''}` : ''
   ].filter(Boolean).join('\n'));
-  if (first) await capiByUser(env, u.id, 'Lead');
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
@@ -327,7 +283,6 @@ async function handleBroker(req, env) {
   await env.DB.prepare(`UPDATE users SET broker_id = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc, Date.now(), u.id).run();
   await toSales(env, ['🔐 <b>Запрос доступа к курсам</b>', userLine(u), `Счёт у брокера: <code>${esc(acc)}</code>`, 'Проверь в партнёрском кабинете, что счёт открыт по нашей ссылке.'].join('\n'),
     { reply_markup: { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }]] } });
-  if (u.gate !== 'pending') await capiByUser(env, u.id, 'SubmitApplication');
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
@@ -351,7 +306,6 @@ async function setGate(env, id, status, by) {
   const lang = pickLang(u.lang);
   if (status === 'approved' && u.gate !== 'approved') {
     await tg(env, 'sendMessage', { chat_id: id, text: tt('approved', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
-    await capiByUser(env, id, 'Purchase', { value: u.tier || 250, currency: 'USD' });
     if (u.ref_by) {
       const r = await getUser(env, u.ref_by);
       const st = await refStats(env, u.ref_by);
@@ -434,8 +388,51 @@ async function handleChat(req, env) {
 }
 
 /* ---------------- bot webhook ---------------- */
+async function clubInvite(env, userId) {
+  const chat = await setting(env, 'club_chat');
+  if (!chat) return null;
+  const r = await tg(env, 'createChatInviteLink', { chat_id: chat, name: ('u' + userId).slice(0, 32), member_limit: 1, expire_date: Math.floor(Date.now() / 1000) + 86400 });
+  return r.ok ? r.result.invite_link : null;
+}
+
 async function handleWebhook(req, env) {
   const upd = await req.json().catch(() => ({}));
+  // bot was made admin of a channel/group → remember it as the private club (unless it's the managers' chat)
+  if (upd.my_chat_member) {
+    const mc = upd.my_chat_member, st = mc.new_chat_member && mc.new_chat_member.status;
+    const salesChat = await setting(env, 'sales_chat');
+    if (String(mc.chat.id) !== String(salesChat) && mc.chat.type === 'channel') {
+      if (st === 'administrator') {
+        await setting(env, 'club_chat', String(mc.chat.id)); await setting(env, 'club_title', mc.chat.title || '');
+        const canInvite = mc.new_chat_member.can_invite_users !== false;
+        await toSales(env, `📢 Бот назначен админом канала «${esc(mc.chat.title || '')}» (<code>${mc.chat.id}</code>). Теперь каждый, кто нажмёт Start, получит личную одноразовую ссылку в этот канал.` + (canInvite ? '' : '\n⚠️ У бота нет права «Пригласительные ссылки» — включите его в настройках админа.'));
+      } else if (['left', 'kicked', 'member'].includes(st) && (await setting(env, 'club_chat')) === String(mc.chat.id)) {
+        await setting(env, 'club_chat', null);
+        await toSales(env, `⚠️ Бота убрали из админов канала «${esc(mc.chat.title || '')}» — автодобавление в канал выключено.`);
+      }
+    }
+    return new Response('ok');
+  }
+  // someone joined the club channel → mark it
+  if (upd.chat_member) {
+    const cm = upd.chat_member;
+    if (String(cm.chat.id) === (await setting(env, 'club_chat')) && ['member', 'administrator', 'creator'].includes(cm.new_chat_member.status) && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
+      await upsertUser(env, cm.new_chat_member.user);
+      const u = await getUser(env, cm.new_chat_member.user.id);
+      await env.DB.prepare('UPDATE users SET club_joined = ? WHERE id = ?').bind(Date.now(), cm.new_chat_member.user.id).run();
+      if (u && u.chat_ok) { const lang = pickLang(u.lang); await tg(env, 'sendMessage', { chat_id: u.id, text: tt('clubWelcome', lang), reply_markup: openButton(env, tt('openBtn', lang)) }); }
+    }
+    return new Response('ok');
+  }
+  // join requests to the club (e.g. a "request to join" link on the landing) → approve instantly
+  if (upd.chat_join_request) {
+    const jr = upd.chat_join_request;
+    if (String(jr.chat.id) === (await setting(env, 'club_chat'))) {
+      await upsertUser(env, jr.from);
+      await tg(env, 'approveChatJoinRequest', { chat_id: jr.chat.id, user_id: jr.from.id });
+    }
+    return new Response('ok');
+  }
   if (upd.callback_query) {
     const cq = upd.callback_query;
     const salesChat = await setting(env, 'sales_chat');
@@ -468,14 +465,15 @@ async function handleWebhook(req, env) {
     if (refM && !existed && Number(refM[1]) !== m.from.id && await getUser(env, Number(refM[1]))) {
       await env.DB.prepare('UPDATE users SET ref_by = ? WHERE id = ?').bind(Number(refM[1]), u.id).run();
     }
+    const srcM = /src_([\w-]{1,32})/.exec(text);
+    if (srcM && !existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind(srcM[1], u.id).run();
     await env.DB.prepare('UPDATE users SET chat_ok = 1 WHERE id = ?').bind(u.id).run();
-    const fbM = /fb_([a-z0-9]{4,32})/i.exec(text);
-    if (fbM) {
-      const cid = cleanCid(fbM[1]);
-      const r = await env.DB.prepare('UPDATE fb_clicks SET tg_id = ? WHERE cid = ? AND tg_id IS NULL').bind(m.from.id, cid).run();
-      if (r.meta && r.meta.changes) await sendCapi(env, cid, 'CompleteRegistration', { tgId: m.from.id });
-    }
     const lang = pickLang(u.lang || m.from.language_code);
+    const fresh = await getUser(env, u.id);
+    const link = fresh.club_joined ? null : await clubInvite(env, u.id);
+    if (link) {
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('clubInvite', lang), reply_markup: { inline_keyboard: [[{ text: tt('clubBtn', lang), url: link }]] } });
+    }
     await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
   }
   return new Response('ok');
@@ -541,6 +539,9 @@ async function admin(req, env, url) {
       byLang: await all('SELECT lang, COUNT(*) n FROM users GROUP BY lang'),
       byTier: await all('SELECT tier, COUNT(*) n FROM users WHERE tier IS NOT NULL GROUP BY tier'),
       salesChat: !!(await setting(env, 'sales_chat')),
+      club: (await setting(env, 'club_title')) && (await setting(env, 'club_chat')) ? await setting(env, 'club_title') : null,
+      clubJoined: (await one('SELECT COUNT(*) n FROM users WHERE club_joined IS NOT NULL')).n,
+      bySrc: await all("SELECT COALESCE(src, '—') AS src, COUNT(*) n, SUM(CASE WHEN club_joined IS NOT NULL THEN 1 ELSE 0 END) club, SUM(CASE WHEN onboarded_at IS NOT NULL THEN 1 ELSE 0 END) onb, SUM(CASE WHEN gate = 'approved' THEN 1 ELSE 0 END) ok FROM users GROUP BY src ORDER BY n DESC"),
       manager: env.MANAGER || null
     });
   }
@@ -580,13 +581,17 @@ async function admin(req, env, url) {
     else await env.DB.prepare('INSERT OR IGNORE INTO rewards (user_id, tier, at) VALUES (?, ?, ?)').bind(Number(body.id), Number(body.tier), Date.now()).run();
     return json({ ok: true });
   }
+  if (p === 'setup-webhook') {
+    const r = await tg(env, 'setWebhook', { url: url.origin + '/webhook', allowed_updates: ['message', 'callback_query', 'my_chat_member', 'chat_member', 'chat_join_request'] });
+    return json({ ok: !!r.ok, r });
+  }
   if (p === 'sales-reset') { await setting(env, 'sales_chat', null); return json({ ok: true }); }
   if (p === 'rewards') return json({ rewards: await all('SELECT * FROM rewards') });
   return json({ error: 'unknown' }, 404);
 }
 
 export default {
-  async fetch(req, env, ctx) {
+  async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url);
     try {
@@ -598,7 +603,6 @@ export default {
         if (url.pathname === '/ledger') return await handleLedger(req, env);
         if (url.pathname === '/chat') return await handleChat(req, env);
         if (url.pathname === '/webhook') return await handleWebhook(req, env);
-        if (url.pathname === '/track') return await handleTrack(req, env, ctx);
       }
       if (url.pathname.startsWith('/admin/')) return await admin(req, env, url);
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
