@@ -413,6 +413,15 @@ async function handleWebhook(req, env) {
     }
     return new Response('ok');
   }
+  // any post in a channel where the bot is admin connects it as the club (if none connected yet)
+  if (upd.channel_post) {
+    const ch = upd.channel_post.chat;
+    const cur = await setting(env, 'club_chat');
+    if (!cur || cur === String(ch.id)) {
+      if (!cur) { await setting(env, 'club_chat', String(ch.id)); await setting(env, 'club_title', ch.title || ''); await toSales(env, `📢 Подключён закрытый канал «${esc(ch.title || '')}» (<code>${ch.id}</code>) — по первому посту.`); }
+    }
+    return new Response('ok');
+  }
   // someone joined the club channel → mark it
   if (upd.chat_member) {
     const cm = upd.chat_member;
@@ -620,6 +629,12 @@ export default {
         if (url.pathname === '/webhook') return await handleWebhook(req, env);
       }
       if (url.pathname.startsWith('/admin/')) return await admin(req, env, url);
+      if (url.pathname === '/status') {
+        const wi = await tg(env, 'getWebhookInfo', {});
+        const w = wi.result || {};
+        return json({ version: 'v2.3', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), salesChat: !!(await setting(env, 'sales_chat')),
+          webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
+      }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
     return new Response('Jason Academy API v2', { status: 200, headers: CORS });
   },
