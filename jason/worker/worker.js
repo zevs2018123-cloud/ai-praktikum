@@ -448,6 +448,21 @@ async function handleWebhook(req, env) {
     return new Response('ok');
   }
   const m = upd.message;
+  // fallback: forward any post from the private channel to the bot → it becomes the club channel
+  const fwd = m && m.chat && m.chat.type === 'private' && ((m.forward_origin && m.forward_origin.type === 'channel' && m.forward_origin.chat) || m.forward_from_chat);
+  if (fwd) {
+    const botId = Number(String(env.BOT_TOKEN).split(':')[0]);
+    const r = await tg(env, 'getChatMember', { chat_id: fwd.id, user_id: botId });
+    if (r.ok && r.result.status === 'administrator') {
+      await setting(env, 'club_chat', String(fwd.id)); await setting(env, 'club_title', fwd.title || '');
+      const inv = r.result.can_invite_users !== false;
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: inv ? `✅ Канал «${fwd.title || ''}» подключён. Теперь каждый, кто нажмёт Start, получит личную ссылку в этот канал.` : `⚠️ Канал «${fwd.title || ''}» найден, но у бота нет права «Пригласительные ссылки». Включите его и перешлите пост ещё раз.` });
+      await toSales(env, `📢 Подключён закрытый канал «${esc(fwd.title || '')}» (<code>${fwd.id}</code>).`);
+    } else {
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `Бот не админ в канале «${fwd.title || ''}». Сделайте его администратором с правом «Пригласительные ссылки» и перешлите пост снова.` });
+    }
+    return new Response('ok');
+  }
   if (!m || !m.text) return new Response('ok');
   const text = m.text.trim();
   if (/^\/setsales(@\w+)?$/.test(text) && m.chat.type !== 'private') {
