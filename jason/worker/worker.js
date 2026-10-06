@@ -81,6 +81,13 @@ const T = {
   subBtn: { en:'📢 Subscribe', ru:'📢 Подписаться', fr:"📢 S'abonner", de:'📢 Abonnieren' },
   checkBtn: { en:"✅ I've subscribed", ru:'✅ Я подписался', fr:'✅ Je suis abonné', de:'✅ Ich habe abonniert' },
   notYet: { en:"I don't see your subscription yet — join the channel first, then tap again.", ru:'Пока не вижу подписку — сначала вступи в канал, потом нажми ещё раз.', fr:"Je ne vois pas encore ton abonnement — rejoins d'abord le canal, puis réessaie.", de:'Ich sehe dein Abo noch nicht — tritt zuerst dem Kanal bei und tippe dann nochmal.' },
+  vipInvite: {
+    en: "💰 Deposit confirmed — welcome to the VIP signals group! Here's your personal pass (works once, valid 7 days):",
+    ru: '💰 Депозит подтверждён — добро пожаловать в VIP-группу с сигналами! Вот твой личный пропуск (одноразовый, действует 7 дней):',
+    fr: '💰 Dépôt confirmé — bienvenue dans le groupe VIP de signaux ! Voici ton accès personnel (usage unique, valable 7 jours) :',
+    de: '💰 Einzahlung bestätigt — willkommen in der VIP-Signalgruppe! Hier ist dein persönlicher Zugang (einmalig, 7 Tage gültig):'
+  },
+  vipBtn: { en:'💎 Join VIP signals', ru:'💎 Вступить в VIP-сигналы', fr:'💎 Rejoindre les signaux VIP', de:'💎 VIP-Signalen beitreten' },
   openBtn: { en:'Open the Academy', ru:'Открыть Академию', fr:'Ouvrir l’Académie', de:'Akademie öffnen' },
   contBtn: { en:'Continue learning', ru:'Продолжить обучение', fr:'Continuer', de:'Weiterlernen' },
   mgrBtn: { en:'Message the manager', ru:'Написать менеджеру', fr:'Écrire au manager', de:'Manager schreiben' },
@@ -181,7 +188,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -293,7 +300,7 @@ async function handleBroker(req, env) {
   if (u.gate === 'approved') return json({ ok: true, me: await profile(env, u) });
   await env.DB.prepare(`UPDATE users SET broker_id = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc, Date.now(), u.id).run();
   await toSales(env, ['🔐 <b>Запрос доступа к курсам</b>', userLine(u), `Счёт у брокера: <code>${esc(acc)}</code>`, 'Проверь в партнёрском кабинете, что счёт открыт по нашей ссылке.'].join('\n'),
-    { reply_markup: { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }]] } });
+    { reply_markup: { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }], [{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${u.id}` }]] } });
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
@@ -409,6 +416,17 @@ async function clubInvite(env, userId) {
   await env.DB.prepare('UPDATE users SET invite = ?, invite_exp = ? WHERE id = ?').bind(r.result.invite_link, Date.now() + DAY, userId).run();
   return r.result.invite_link;
 }
+async function grantVip(env, id, by) {
+  const u = await getUser(env, id); if (!u) return { ok: false, error: 'user' };
+  const chat = await setting(env, 'vip_chat'); if (!chat) return { ok: false, error: 'vip_not_connected' };
+  const r = await tg(env, 'createChatInviteLink', { chat_id: chat, name: ('vip' + id).slice(0, 32), member_limit: 1, expire_date: Math.floor(Date.now() / 1000) + 7 * 86400 });
+  if (!r.ok) return { ok: false, error: 'invite_failed' };
+  const lang = pickLang(u.lang);
+  await tg(env, 'sendMessage', { chat_id: id, text: tt('vipInvite', lang), reply_markup: { inline_keyboard: [[{ text: tt('vipBtn', lang), url: r.result.invite_link }]] } });
+  await env.DB.prepare('UPDATE users SET vip_at = ? WHERE id = ?').bind(Date.now(), id).run();
+  await toSales(env, `💎 VIP-доступ выдан: ${userLine(u)} (выдал: ${esc(by || '—')})`);
+  return { ok: true };
+}
 async function sendSubGate(env, chatId, userId, lang) {
   const link = (await clubInvite(env, userId)) || env.CHANNEL_LINK;
   const row = link ? [[{ text: tt('subBtn', lang), url: link }]] : [];
@@ -422,10 +440,13 @@ async function handleWebhook(req, env) {
     const mc = upd.my_chat_member, st = mc.new_chat_member && mc.new_chat_member.status;
     const salesChat = await setting(env, 'sales_chat');
     if (String(mc.chat.id) !== String(salesChat) && mc.chat.type === 'channel') {
-      if (st === 'administrator') {
+      if (st === 'administrator' && !(await setting(env, 'club_chat')) && (await setting(env, 'vip_chat')) !== String(mc.chat.id)) {
         await setting(env, 'club_chat', String(mc.chat.id)); await setting(env, 'club_title', mc.chat.title || '');
         const canInvite = mc.new_chat_member.can_invite_users !== false;
         await toSales(env, `📢 Бот назначен админом канала «${esc(mc.chat.title || '')}» (<code>${mc.chat.id}</code>). Теперь каждый, кто нажмёт Start, получит личную одноразовую ссылку в этот канал.` + (canInvite ? '' : '\n⚠️ У бота нет права «Пригласительные ссылки» — включите его в настройках админа.'));
+      } else if (['left', 'kicked', 'member'].includes(st) && (await setting(env, 'vip_chat')) === String(mc.chat.id)) {
+        await setting(env, 'vip_chat', null);
+        await toSales(env, `⚠️ Бота убрали из админов VIP-канала «${esc(mc.chat.title || '')}» — выдача VIP-ссылок выключена.`);
       } else if (['left', 'kicked', 'member'].includes(st) && (await setting(env, 'club_chat')) === String(mc.chat.id)) {
         await setting(env, 'club_chat', null);
         await toSales(env, `⚠️ Бота убрали из админов канала «${esc(mc.chat.title || '')}» — автодобавление в канал выключено.`);
@@ -437,7 +458,7 @@ async function handleWebhook(req, env) {
   if (upd.channel_post) {
     const ch = upd.channel_post.chat;
     const cur = await setting(env, 'club_chat');
-    if (!cur || cur === String(ch.id)) {
+    if ((!cur || cur === String(ch.id)) && (await setting(env, 'vip_chat')) !== String(ch.id)) {
       if (!cur) { await setting(env, 'club_chat', String(ch.id)); await setting(env, 'club_title', ch.title || ''); await toSales(env, `📢 Подключён закрытый канал «${esc(ch.title || '')}» (<code>${ch.id}</code>) — по первому посту.`); }
     }
     return new Response('ok');
@@ -445,6 +466,10 @@ async function handleWebhook(req, env) {
   // someone joined the club channel → mark it
   if (upd.chat_member) {
     const cm = upd.chat_member;
+    if (String(cm.chat.id) === (await setting(env, 'vip_chat')) && cm.new_chat_member.status === 'member' && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
+      await env.DB.prepare('UPDATE users SET vip_joined = ? WHERE id = ?').bind(Date.now(), cm.new_chat_member.user.id).run();
+      return new Response('ok');
+    }
     if (String(cm.chat.id) === (await setting(env, 'club_chat')) && ['member', 'administrator', 'creator'].includes(cm.new_chat_member.status) && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
       await upsertUser(env, cm.new_chat_member.user);
       const u = await getUser(env, cm.new_chat_member.user.id);
@@ -465,6 +490,20 @@ async function handleWebhook(req, env) {
   if (upd.callback_query) {
     const cq = upd.callback_query;
     const salesChat = await setting(env, 'sales_chat');
+    if (/^setch:(club|vip)$/.test(cq.data || '')) {
+      const pc = JSON.parse((await setting(env, 'pending_ch')) || 'null');
+      const me = pc ? await tg(env, 'getChatMember', { chat_id: pc.id, user_id: cq.from.id }) : null;
+      if (!pc || !me.ok || !['creator', 'administrator'].includes(me.result.status)) { await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: 'Перешлите пост из канала ещё раз', show_alert: true }); return new Response('ok'); }
+      const role = cq.data.split(':')[1], other = role === 'club' ? 'vip' : 'club';
+      await setting(env, role + '_chat', pc.id); await setting(env, role + '_title', pc.title);
+      if ((await setting(env, other + '_chat')) === pc.id) { await setting(env, other + '_chat', null); await setting(env, other + '_title', null); }
+      await setting(env, 'pending_ch', null);
+      const label = role === 'club' ? 'канал для входа (подписка перед академией)' : 'VIP-канал (выдаётся после депозита)';
+      await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id });
+      await tg(env, 'editMessageText', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, text: `✅ «${pc.title}» подключён как ${label}.` });
+      await toSales(env, `📢 «${esc(pc.title)}» (<code>${pc.id}</code>) подключён как ${label}.`);
+      return new Response('ok');
+    }
     if (cq.data === 'subchk') {
       const u = await upsertUser(env, cq.from), lang = pickLang(u.lang || cq.from.language_code);
       if (await isSubscribed(env, cq.from.id)) {
@@ -482,7 +521,13 @@ async function handleWebhook(req, env) {
       const res = await setGate(env, Number(m[2]), m[1], cq.from.username || cq.from.first_name);
       await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: res ? (m[1] === 'approved' ? 'Подтверждено' : 'Отклонено') : 'Юзер не найден' });
       if (res) await tg(env, 'editMessageText', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, parse_mode: 'HTML',
-        text: esc(cq.message.text || '') + `\n\n${m[1] === 'approved' ? '✅ Подтвердил' : '❌ Отклонил'}: ${esc(cq.from.username ? '@' + cq.from.username : cq.from.first_name)}` });
+        text: esc(cq.message.text || '') + `\n\n${m[1] === 'approved' ? '✅ Подтвердил' : '❌ Отклонил'}: ${esc(cq.from.username ? '@' + cq.from.username : cq.from.first_name)}`,
+        reply_markup: { inline_keyboard: m[1] === 'approved' ? [[{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${m[2]}` }]] : [] } });
+    } else if (/^vip:\d+$/.test(cq.data || '') && String(cq.message?.chat?.id) === String(salesChat)) {
+      const by = cq.from.username ? '@' + cq.from.username : cq.from.first_name;
+      const r = await grantVip(env, Number(cq.data.split(':')[1]), by);
+      await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, show_alert: !r.ok, text: r.ok ? 'VIP-ссылка отправлена' : (r.error === 'vip_not_connected' ? 'VIP-канал не подключён: перешлите боту пост из VIP-канала' : 'Не получилось: ' + r.error) });
+      if (r.ok) await tg(env, 'editMessageReplyMarkup', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
     } else {
       await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id });
     }
@@ -495,10 +540,13 @@ async function handleWebhook(req, env) {
     const botId = Number(String(env.BOT_TOKEN).split(':')[0]);
     const r = await tg(env, 'getChatMember', { chat_id: fwd.id, user_id: botId });
     if (r.ok && r.result.status === 'administrator') {
-      await setting(env, 'club_chat', String(fwd.id)); await setting(env, 'club_title', fwd.title || '');
-      const inv = r.result.can_invite_users !== false;
-      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: inv ? `✅ Канал «${fwd.title || ''}» подключён. Теперь каждый, кто нажмёт Start, получит личную ссылку в этот канал.` : `⚠️ Канал «${fwd.title || ''}» найден, но у бота нет права «Пригласительные ссылки». Включите его и перешлите пост ещё раз.` });
-      await toSales(env, `📢 Подключён закрытый канал «${esc(fwd.title || '')}» (<code>${fwd.id}</code>).`);
+      const me = await tg(env, 'getChatMember', { chat_id: fwd.id, user_id: m.from.id });
+      if (!me.ok || !['creator', 'administrator'].includes(me.result.status)) { await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Подключать каналы может только админ этого канала.' }); return new Response('ok'); }
+      if (r.result.can_invite_users === false) { await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `⚠️ Канал «${fwd.title || ''}» найден, но у бота нет права «Пригласительные ссылки». Включите его и перешлите пост ещё раз.` }); return new Response('ok'); }
+      await setting(env, 'pending_ch', JSON.stringify({ id: String(fwd.id), title: fwd.title || '' }));
+      const club = await setting(env, 'club_title'), vip = await setting(env, 'vip_title');
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `Канал «${fwd.title || ''}» найден ✅\nДля чего его подключить?\n\nСейчас:\n• Вход (подписка перед академией): ${club ? '«' + club + '»' : '—'}\n• VIP после депозита: ${vip ? '«' + vip + '»' : '—'}`,
+        reply_markup: { inline_keyboard: [[{ text: '📢 Вход — подписка', callback_data: 'setch:club' }], [{ text: '💎 VIP — после депозита', callback_data: 'setch:vip' }]] } });
     } else {
       await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `Бот не админ в канале «${fwd.title || ''}». Сделайте его администратором с правом «Пригласительные ссылки» и перешлите пост снова.` });
     }
@@ -597,6 +645,9 @@ async function admin(req, env, url) {
       salesChat: !!(await setting(env, 'sales_chat')),
       club: (await setting(env, 'club_title')) && (await setting(env, 'club_chat')) ? await setting(env, 'club_title') : null,
       clubJoined: (await one('SELECT COUNT(*) n FROM users WHERE club_joined IS NOT NULL')).n,
+      vip: await setting(env, 'vip_chat') ? await setting(env, 'vip_title') : null,
+      vipGiven: (await one('SELECT COUNT(*) n FROM users WHERE vip_at IS NOT NULL')).n,
+      vipJoined: (await one('SELECT COUNT(*) n FROM users WHERE vip_joined IS NOT NULL')).n,
       bySrc: await all("SELECT COALESCE(src, '—') AS src, COUNT(*) n, SUM(CASE WHEN club_joined IS NOT NULL THEN 1 ELSE 0 END) club, SUM(CASE WHEN onboarded_at IS NOT NULL THEN 1 ELSE 0 END) onb, SUM(CASE WHEN gate = 'approved' THEN 1 ELSE 0 END) ok FROM users GROUP BY src ORDER BY n DESC"),
       manager: env.MANAGER || null
     });
@@ -627,6 +678,7 @@ async function admin(req, env, url) {
     sql += ' ORDER BY m.at DESC LIMIT 300';
     return json({ messages: await all(sql, ...b) });
   }
+  if (p === 'vip') { const r = await grantVip(env, Number(body.id), 'админка'); return json(r); }
   if (p === 'gate') { const r = await setGate(env, Number(body.id), String(body.status), 'admin'); return json({ ok: !!r }); }
   if (p === 'videos') {
     if (req.method === 'POST') { await setting(env, 'videos', JSON.stringify(body.videos || {})); }
@@ -664,7 +716,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.4', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.5', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
