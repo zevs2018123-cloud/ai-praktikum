@@ -133,7 +133,7 @@
   .toast{ position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,8px); background:var(--ink); color:var(--bg); font-size:12.5px; font-weight:600; padding:9px 16px; border-radius:99px; opacity:0; pointer-events:none; transition:.2s; z-index:40; white-space:nowrap; max-width:88%; text-align:center; }
   .toast.show{ opacity:1; transform:translate(-50%,0); }
 
-    .gate-overlay{ position:absolute; inset:0; z-index:50; background:var(--frame); display:flex; align-items:center; justify-content:center; padding:24px; }
+    .gate-overlay{ position:fixed; top:0; bottom:0; left:0; right:0; margin:0 auto; max-width:432px; z-index:50; background:var(--frame); display:flex; align-items:center; justify-content:center; padding:24px; }
   .gate-overlay[hidden]{ display:none; }
   .gate-box{ max-width:320px; width:100%; display:flex; flex-direction:column; gap:12px; text-align:center; }
   .gate-box .gate-ico{ font-size:42px; line-height:1; }
@@ -169,15 +169,17 @@
   .ach-pop .lbl{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-strong); }
   .ach-pop .nm{ font-family:'Unbounded','Inter',sans-serif; font-size:15px; font-weight:700; }
   .ach-pop .ds{ font-size:12px; color:var(--ink-muted); }
-  .lesson-overlay{ position:absolute; inset:0; z-index:30; background:var(--frame); display:flex; flex-direction:column; }
+  .lesson-overlay{ position:fixed; top:0; bottom:0; left:0; right:0; margin:0 auto; width:100%; max-width:432px; height:100%; z-index:30; background:var(--frame); display:flex; flex-direction:column; }
+  body.ov-open{ overflow:hidden; }
   .lesson-overlay[hidden]{ display:none; }
-  .lesson-head{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px; background:var(--frame); border-bottom:1px solid var(--border); }
+  .lesson-head{ flex:none; z-index:2; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px; background:var(--frame); border-bottom:1px solid var(--border); }
   .back-btn{ appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
   .back-btn svg{ width:17px;height:17px; stroke:var(--ink); fill:none; stroke-width:2; }
   .lesson-head-txt{ min-width:0; flex:1; }
   .lesson-head-txt .k{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; }
   .lesson-head-txt .t{ font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .lesson-scroll{ flex:1; overflow-y:auto; padding:18px 20px 24px; display:flex; flex-direction:column; gap:16px; -webkit-overflow-scrolling:touch; }
+  .lesson-scroll{ flex:1; min-height:0; overscroll-behavior:contain; overflow-y:auto; padding:18px 20px 24px; display:flex; flex-direction:column; gap:16px; -webkit-overflow-scrolling:touch; }
+  .lesson-scroll > *{ flex-shrink:0; }
   .lesson-scroll h3{ font-size:16.5px; margin:0; }
   .lesson-scroll .body-txt{ display:flex; flex-direction:column; gap:10px; font-size:13.8px; color:var(--ink); }
     .lsn-h{ font-family:'Unbounded','Inter',sans-serif; font-size:14.5px; font-weight:700; letter-spacing:-.01em; margin:10px 0 0; }
@@ -246,7 +248,7 @@
   .q-opt[disabled]{ cursor:default; }
   .q-explain{ font-size:11.8px; color:var(--ink-muted); padding-top:2px; }
   .q-explain[hidden]{ display:none; }
-  .lesson-actions{ position:sticky; bottom:0; padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--frame); border-top:1px solid var(--border); }
+  .lesson-actions{ flex:none; padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--frame); border-top:1px solid var(--border); }
   #screen-assistant{ height:var(--chat-avail-h, 62vh); }
   #screen-assistant .muted{ flex:none; }
   .chat-log{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; gap:10px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:2px; }

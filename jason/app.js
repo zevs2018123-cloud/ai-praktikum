@@ -483,6 +483,8 @@
   var lessonKicker = document.getElementById('lessonKicker');
   var lessonTitleTxt = document.getElementById('lessonTitleTxt');
   var finishBtn = document.getElementById('lessonFinishBtn');
+  function syncOv(){ document.body.classList.toggle('ov-open', !overlay.hidden || !quizOverlay.hidden); }
+  new MutationObserver(syncOv).observe(document.body, { subtree:true, attributes:true, attributeFilter:['hidden'] });
   function closeLesson(){ overlay.hidden = true; if(window.TG){ TG.hideBack(); TG.hideMainButton(); } }
   document.getElementById('lessonBack').addEventListener('click', function(){ closeLesson(); renderAll(); });
 
@@ -818,7 +820,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610061425';
+  var BUILD = '202610072136';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
