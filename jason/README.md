@@ -37,10 +37,14 @@ Stats: `https://…workers.dev/stats?key=<ADMIN_KEY>`.
 Notes: reminders go only to people who pressed /start in the bot, 10:00–20:00 their local time, max once per 3 days. Jason AI uses Claude Haiku, 40 messages/user/day, never gives buy/sell calls, and says it's an AI if asked.
 
 ## Deploying the worker (keep the landing alive)
-`worker/worker.js` is the **only** code file: the ad landing for jetsjaisontraider.com is inside it (no separate `landing.js`).
-- **Dashboard editor:** copy the whole file from GitHub (raw: `jason/worker/worker.js` on `master`), paste over everything, Deploy.
-- **Terminal:** `git pull`, then `cd jason/worker && npx wrangler deploy`. Fill `database_name`/`database_id` in `wrangler.toml` once (from the dashboard bindings) — until then the deploy fails on purpose instead of shipping a worker without its database.
-- **Check after every deploy:** open `https://jetsjaisontraider.com/status` — `version` must match the one in `worker.js`, and `https://jetsjaisontraider.com/` must show the landing, not "Jason Academy API".
+The worker is **two files** — always deploy both, from an up-to-date `master` (`git pull` first):
+- `worker/worker.js` — bot, API, `GET /` on jetsjaisontraider.com → `landingHtml`, Meta CAPI (`/track`, `sendCapi`).
+- `worker/landing.js` — the ad landing (`export function landingHtml`), imported by worker.js.
+
+Before deploying, check that worker.js still has `import { landingHtml } from './landing.js'`, `landingHtml(` and `sendCapi`.
+- **Terminal:** `cd jason/worker && npx wrangler deploy` (wrangler bundles landing.js automatically). Fill `database_name`/`database_id` in `wrangler.toml` once from the dashboard bindings — until then the deploy fails on purpose instead of shipping a worker without its database.
+- **Dashboard editor:** update **both** files (add `landing.js` next to `worker.js`), then Deploy.
+- **After every deploy:** `https://jetsjaisontraider.com/status` → `version` matches worker.js; `https://jetsjaisontraider.com/` shows the landing, not "Jason Academy API".
 
 ## v2 — funnel (onboarding → broker gate → goal → referrals)
 - **Onboarding** (6 questions + starting deposit $250/$1k/$10k + material goal & target) → saved in D1, posted to the managers' Telegram group.
