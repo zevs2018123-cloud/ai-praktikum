@@ -2,14 +2,28 @@ name = "jason-academy-bot"
 main = "worker.js"
 compatibility_date = "2026-09-01"
 
+# Keep variables/secrets set in the Cloudflare dashboard (PIXEL_ID, MANAGER, CAPI_TOKEN, BOT_USERNAME …)
+# instead of wiping them on every `wrangler deploy`.
+keep_vars = true
+
+# The ad landing lives on this domain (GET / is served by worker.js itself).
+routes = [{ pattern = "jetsjaisontraider.com", custom_domain = true }]
+
 [vars]
 APP_URL = "https://zevs2018123-cloud.github.io/ai-praktikum/jason/"
 CHANNEL_ID = ""          # e.g. "-1001234567890" — leave empty to disable the subscription lock
 CHANNEL_LINK = "https://t.me/+lKjn6jFBql41ZThi"
 
-[[kv_namespaces]]
-binding = "USERS"
-id = "75acc06f2c954e708fb16a53d8471100"  # wrangler kv namespace create USERS
+# D1 database the worker uses as env.DB (users, settings, funnel). Must match the one bound in the dashboard
+# (Workers → jason-academy-bot → Settings → Bindings). The placeholder below makes `wrangler deploy` fail
+# loudly instead of deploying a worker without its database.
+[[d1_databases]]
+binding = "DB"
+database_name = "REPLACE_WITH_D1_NAME"
+database_id = "REPLACE_WITH_D1_ID"
+
+[ai]
+binding = "AI"
 
 [triggers]
 crons = ["0 * * * *"]    # hourly; the code itself limits nudges to daytime, once per 3 days
