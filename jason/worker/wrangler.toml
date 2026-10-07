@@ -1,6 +1,7 @@
 name = "jason-academy-bot"
 main = "worker.js"
 compatibility_date = "2026-09-01"
+account_id = "9014bda87b6323d12b9765a0d6c4b04b"
 
 # Keep variables/secrets set in the Cloudflare dashboard (PIXEL_ID, MANAGER, CAPI_TOKEN, BOT_USERNAME …)
 # instead of wiping them on every `wrangler deploy`.
@@ -15,12 +16,11 @@ CHANNEL_ID = ""          # e.g. "-1001234567890" — leave empty to disable the 
 CHANNEL_LINK = "https://t.me/+lKjn6jFBql41ZThi"
 
 # D1 database the worker uses as env.DB (users, settings, funnel). Must match the one bound in the dashboard
-# (Workers → jason-academy-bot → Settings → Bindings). The placeholder below makes `wrangler deploy` fail
-# loudly instead of deploying a worker without its database.
+# (Workers → jason-academy-bot → Settings → Bindings).
 [[d1_databases]]
 binding = "DB"
-database_name = "REPLACE_WITH_D1_NAME"
-database_id = "REPLACE_WITH_D1_ID"
+database_name = "jason-academy"   # label only; the binding uses database_id
+database_id = "c8a6b1cd-0a97-48a5-a8e9-3f3a7d372f63"
 
 [ai]
 binding = "AI"

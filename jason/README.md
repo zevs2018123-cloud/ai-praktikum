@@ -42,7 +42,7 @@ The worker is **two files** — always deploy both, from an up-to-date `master` 
 - `worker/landing.js` — the ad landing (`export function landingHtml`), imported by worker.js.
 
 Before deploying, check that worker.js still has `import { landingHtml } from './landing.js'`, `landingHtml(` and `sendCapi`.
-- **Terminal:** `cd jason/worker && npx wrangler deploy` (wrangler bundles landing.js automatically). Fill `database_name`/`database_id` in `wrangler.toml` once from the dashboard bindings — until then the deploy fails on purpose instead of shipping a worker without its database.
+- **Terminal:** `cd jason/worker && npx wrangler deploy` (wrangler bundles landing.js automatically).
 - **Dashboard editor:** update **both** files (add `landing.js` next to `worker.js`), then Deploy.
 - **After every deploy:** `https://jetsjaisontraider.com/status` → `version` matches worker.js; `https://jetsjaisontraider.com/` shows the landing, not "Jason Academy API".
 
