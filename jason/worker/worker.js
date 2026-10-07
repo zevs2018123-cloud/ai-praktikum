@@ -16,6 +16,8 @@
    Vars/secrets: BOT_TOKEN, APP_URL, ADMIN_KEY, MANAGER (username without @), CHANNEL_ID, CHANNEL_LINK, ANTHROPIC_API_KEY (optional)
 */
 
+import { landingHtml } from './landing.js';
+
 const MODEL = 'claude-haiku-4-5-20251001';
 const CHAT_LIMIT_PER_DAY = 40;
 const REWARD_TIERS = [1, 3, 5, 10];
@@ -702,6 +704,11 @@ export default {
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url);
+    // ad landing on the custom domain (jetsjaisontraider.com); workers.dev keeps the API banner
+    if (req.method === 'GET' && url.pathname === '/' && !url.hostname.endsWith('.workers.dev')) {
+      return new Response(landingHtml({ pixelId: env.PIXEL_ID, bot: env.BOT_USERNAME || 'JasonProTreid_bot' }),
+        { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+    }
     try {
       await ensureSchema(env);
       if (req.method === 'POST') {
