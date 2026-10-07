@@ -5,10 +5,11 @@
   <div class="topbar">
     <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-width="1.8" stroke-linecap="round"><path d="M6 4v16M6 8h0M12 7v10M18 5v12"/><rect x="4.3" y="9" width="3.4" height="6" rx=".6" fill="var(--on-accent)"/><rect x="10.3" y="10" width="3.4" height="4" rx=".6"/><rect x="16.3" y="7" width="3.4" height="6" rx=".6" fill="var(--on-accent)"/></svg></div>
       <div><p class="eyebrow" id="screenEyebrow">Academy</p><h1 id="screenTitle">Home</h1></div></div>
-    <button class="lang-btn" id="langBtn" type="button" aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg><span id="langBtnTxt">EN</span></button>
+    <div class="top-actions"><button class="help-btn" id="helpBtn" type="button" data-support aria-label="Support">🆘<i class="dot" id="helpDot" hidden></i></button><button class="lang-btn" id="langBtn" type="button" aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg><span id="langBtnTxt">EN</span></button></div>
   </div>
   <main class="content">
     <section class="screen" id="screen-start" data-i18n-title="tabHome" data-i18n-eyebrow="eyebrowAcademy" data-title="Home" data-eyebrow="Academy">
+      <div id="introCardStart"></div>
       <div id="goalCardStart"></div>
       <div class="hero">
         <svg class="chart" viewBox="0 0 130 110" fill="none" stroke-linecap="round">
@@ -149,6 +150,13 @@
 
   <div class="onb-overlay" id="onbOverlay" hidden><div class="onb-box" id="onbBox"></div></div>
   <div class="lang-sheet" id="funnelGate" hidden><div class="lang-box gate-sheet" id="funnelGateBox"></div></div>
+  <div class="lang-sheet" id="supportSheet" hidden><div class="lang-box sup-box">
+    <button class="sheet-x" type="button" data-close aria-label="close">×</button>
+    <p class="eyebrow" data-i18n="supportTitle">Support</p>
+    <p class="muted" style="font-size:12.5px; margin:-4px 0 0;" data-i18n="supportSub">Write what went wrong — a manager will answer right here.</p>
+    <div class="sup-log" id="supLog"></div>
+    <div class="chat-row"><input id="supInput" maxlength="1000" autocomplete="off" data-i18n-ph="supportPh" placeholder="Describe the problem..."><button class="btn primary" id="supSend" type="button" aria-label="Send">→</button></div>
+  </div></div>
   <div class="lang-sheet" id="ledgerSheet" hidden><div class="lang-box">
     <button class="sheet-x" type="button" data-close aria-label="close">×</button>
     <p class="eyebrow" data-i18n="ledgerTitle">Deposits &amp; balance</p>
@@ -175,6 +183,7 @@
 <script src="data1.js?v=__BUILD__"></script>
 <script src="data2.js?v=__BUILD__"></script>
 <script src="data3.js?v=__BUILD__"></script>
+<script src="intro.js?v=__BUILD__"></script>
 <script src="funnel.js?v=__BUILD__"></script>
 <script src="app.js?v=__BUILD__"></script>
 </body>

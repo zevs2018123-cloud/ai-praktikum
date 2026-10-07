@@ -104,11 +104,18 @@ const T = {
     de: 'Mein Limit für heute ist erreicht — morgen wieder. Bis dahin beantworten die Lektionen im Tab Kurse die meisten Fragen.'
   },
   approved: {
-    en: '✅ Your broker account is confirmed — all courses are now unlocked. Welcome in!',
-    ru: '✅ Твой брокерский счёт подтверждён — все курсы открыты. Добро пожаловать!',
-    fr: '✅ Ton compte broker est confirmé — tous les cours sont débloqués. Bienvenue !',
-    de: '✅ Dein Brokerkonto ist bestätigt — alle Kurse sind freigeschaltet. Willkommen!'
+    en: '✅ Your broker account is confirmed — the academy is open! Your first lesson is waiting. The next ones unlock as you go.',
+    ru: '✅ Твой брокерский счёт подтверждён — академия открыта! Первый урок уже ждёт, следующие открываются по мере прохождения.',
+    fr: '✅ Ton compte broker est confirmé — l’académie est ouverte ! Ta première leçon t’attend, les suivantes se débloquent au fil du parcours.',
+    de: '✅ Dein Brokerkonto ist bestätigt — die Akademie ist offen! Deine erste Lektion wartet, die nächsten schalten sich nach und nach frei.'
   },
+  supportReply: {
+    en: '💬 Support replied:\n\n{t}',
+    ru: '💬 Ответ поддержки:\n\n{t}',
+    fr: '💬 Réponse du support :\n\n{t}',
+    de: '💬 Antwort vom Support:\n\n{t}'
+  },
+  supportOpen: { en:'Open the chat', ru:'Открыть чат', fr:'Ouvrir le chat', de:'Chat öffnen' },
   rejected: {
     en: "We couldn't confirm that account as registered through our link. Check the number or message the manager — we'll sort it out.",
     ru: 'Не получилось подтвердить, что счёт открыт по нашей ссылке. Проверь номер или напиши менеджеру — разберёмся.',
@@ -190,13 +197,17 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_users_ref ON users(ref_by)`,
   `CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id)`,
   `CREATE TABLE IF NOT EXISTS fb_clicks (cid TEXT PRIMARY KEY, fbc TEXT, fbp TEXT, ip TEXT, ua TEXT, url TEXT, utm TEXT, ts INTEGER, tg_id INTEGER)`,
-  `CREATE INDEX IF NOT EXISTS idx_fb_clicks_tg ON fb_clicks(tg_id, ts)`
+  `CREATE INDEX IF NOT EXISTS idx_fb_clicks_tg ON fb_clicks(tg_id, ts)`,
+  // in-app support chat: student <-> manager (managers answer by replying in the sales chat or from the admin panel)
+  `CREATE TABLE IF NOT EXISTS support (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, sender TEXT, text TEXT, by TEXT, at INTEGER)`,
+  `CREATE INDEX IF NOT EXISTS idx_support_user ON support(user_id, id)`,
+  `CREATE TABLE IF NOT EXISTS support_map (chat_id TEXT, msg_id INTEGER, user_id INTEGER, PRIMARY KEY (chat_id, msg_id))`
 ];
 let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -229,6 +240,7 @@ async function profile(env, u) {
     onboarded: !!u.onboarded_at, onboard: u.onboard ? JSON.parse(u.onboard) : null,
     tier: u.tier, goalTarget: u.goal_target, goalText: u.goal_text,
     gate: u.gate || 'none', brokerId: u.broker_id,
+    supportUnread: (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'manager' AND id > ?`).bind(u.id, u.support_seen || 0).first())?.n || 0,
     ledger,
     ref: { link: bu ? `https://t.me/${bu}?start=ref_${u.id}` : null, invited: ref.invited, approved: ref.approved, tiers: REWARD_TIERS }
   };
@@ -398,6 +410,33 @@ async function setGate(env, id, status, by) {
   return { ...u, gate: status, by };
 }
 
+/* ---------------- support chat ---------------- */
+const supportMsgs = async (env, uid) => ((await env.DB.prepare('SELECT id, sender, text, by, at FROM support WHERE user_id = ? ORDER BY id DESC LIMIT 100').bind(uid).all()).results || []).reverse();
+async function handleSupport(req, env) {
+  const { body, u, error } = await authed(req, env); if (error) return error;
+  const text = String(body.text || '').trim().slice(0, 1000);
+  if (text) {
+    const hour = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'user' AND at > ?`).bind(u.id, Date.now() - HOUR).first())?.n || 0;
+    if (hour >= 30) return json({ error: 'rate', msgs: await supportMsgs(env, u.id) }, 429);
+    await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at) VALUES (?, 'user', ?, ?)`).bind(u.id, text, Date.now()).run();
+    const gate = { none: 'счёт не отправлен', pending: `счёт ${esc(u.broker_id || '')} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
+    const r = await toSales(env, ['🆘 <b>Поддержка</b>', userLine(u), gate ? 'Статус: ' + gate : '', '', esc(text), '', '↩️ <i>Ответьте реплаем на это сообщение — ответ придёт ученику в приложение и в бот.</i>'].filter((x, i) => x || i === 3 || i === 5).join('\n'));
+    if (r && r.ok) await env.DB.prepare('INSERT OR REPLACE INTO support_map (chat_id, msg_id, user_id) VALUES (?, ?, ?)').bind(String(r.result.chat.id), r.result.message_id, u.id).run();
+  }
+  const msgs = await supportMsgs(env, u.id);
+  const lastMgr = msgs.filter(m => m.sender === 'manager').pop();
+  if (lastMgr && lastMgr.id > (u.support_seen || 0)) await env.DB.prepare('UPDATE users SET support_seen = ? WHERE id = ?').bind(lastMgr.id, u.id).run();
+  return json({ ok: true, msgs, online: !!(await setting(env, 'sales_chat')) });
+}
+async function supportReply(env, uid, text, by) {
+  const u = await getUser(env, uid); if (!u) return { ok: false, error: 'no user' };
+  text = String(text || '').trim().slice(0, 2000); if (!text) return { ok: false, error: 'empty' };
+  await env.DB.prepare(`INSERT INTO support (user_id, sender, text, by, at) VALUES (?, 'manager', ?, ?, ?)`).bind(uid, text, String(by || '').slice(0, 64), Date.now()).run();
+  const lang = pickLang(u.lang);
+  const r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
+  return { ok: true, delivered: !!(r && r.ok) };
+}
+
 /* ---------------- chat ---------------- */
 function parseTags(text) {
   const out = { topic: null, article: null, handoff: false };
@@ -491,6 +530,9 @@ async function grantVip(env, id, by) {
   return { ok: true };
 }
 async function sendSubGate(env, chatId, userId, lang) {
+  // one gate message per chat: a repeated /start replaces the old one instead of stacking duplicates
+  const prev = await env.DB.prepare('SELECT gate_msg FROM users WHERE id = ?').bind(userId).first();
+  if (prev && prev.gate_msg) await tg(env, 'deleteMessage', { chat_id: chatId, message_id: prev.gate_msg });
   const link = (await clubInvite(env, userId)) || env.CHANNEL_LINK;
   const row = link ? [[{ text: tt('subBtn', lang), url: link }]] : [];
   const r = await tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }]] } });
@@ -627,6 +669,14 @@ async function handleWebhook(req, env) {
   }
   if (!m || !m.text) return new Response('ok');
   const text = m.text.trim();
+  if (m.reply_to_message && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    const link = await env.DB.prepare('SELECT user_id FROM support_map WHERE chat_id = ? AND msg_id = ?').bind(String(m.chat.id), m.reply_to_message.message_id).first();
+    if (link && !text.startsWith('/')) {
+      const r = await supportReply(env, link.user_id, text, m.from.username ? '@' + m.from.username : m.from.first_name);
+      await tg(env, 'setMessageReaction', { chat_id: m.chat.id, message_id: m.message_id, reaction: [{ type: 'emoji', emoji: r.delivered ? '👍' : '👀' }] });
+      return new Response('ok');
+    }
+  }
   if (/^\/setsales(@\w+)?$/.test(text) && m.chat.type !== 'private') {
     const cur = await setting(env, 'sales_chat');
     if (!cur) { await setting(env, 'sales_chat', String(m.chat.id)); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Этот чат подключён: сюда будут приходить анкеты, запросы доступа и обращения к менеджеру.' }); }
@@ -758,6 +808,21 @@ async function admin(req, env, url) {
     sql += ' ORDER BY m.at DESC LIMIT 300';
     return json({ messages: await all(sql, ...b) });
   }
+  if (p === 'support-threads') {
+    return json({ threads: await all(`SELECT s.user_id, u.name, u.username, u.gate, u.broker_id,
+        MAX(s.id) AS last_id, MAX(s.at) AS last_at,
+        (SELECT text FROM support WHERE user_id = s.user_id ORDER BY id DESC LIMIT 1) AS last_text,
+        (SELECT sender FROM support WHERE user_id = s.user_id ORDER BY id DESC LIMIT 1) AS last_sender,
+        SUM(CASE WHEN s.sender = 'user' AND s.id > COALESCE(u.support_admin_seen, 0) THEN 1 ELSE 0 END) AS unread
+      FROM support s LEFT JOIN users u ON u.id = s.user_id GROUP BY s.user_id ORDER BY last_at DESC LIMIT 200`) });
+  }
+  if (p === 'support-thread') {
+    const id = Number(url.searchParams.get('id') || body.id);
+    const msgs = await supportMsgs(env, id);
+    if (msgs.length) await env.DB.prepare('UPDATE users SET support_admin_seen = ? WHERE id = ?').bind(msgs[msgs.length - 1].id, id).run();
+    return json({ user: await getUser(env, id), msgs });
+  }
+  if (p === 'support-reply') return json(await supportReply(env, Number(body.id), body.text, body.by || 'админка'));
   if (p === 'vip') { const r = await grantVip(env, Number(body.id), 'админка'); return json(r); }
   if (p === 'gate') { const r = await setGate(env, Number(body.id), String(body.status), 'admin'); return json({ ok: !!r }); }
   if (p === 'videos') {
@@ -795,6 +860,7 @@ export default {
         if (url.pathname === '/broker') return await handleBroker(req, env);
         if (url.pathname === '/ledger') return await handleLedger(req, env);
         if (url.pathname === '/chat') return await handleChat(req, env);
+        if (url.pathname === '/support') return await handleSupport(req, env);
         if (url.pathname === '/webhook') return await handleWebhook(req, env);
         if (url.pathname === '/track') return await handleTrack(req, env, ctx);
       }
@@ -802,7 +868,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.6', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.7', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }

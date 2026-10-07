@@ -46,6 +46,12 @@ Before deploying, check that worker.js still has `import { landingHtml } from '.
 - **Dashboard editor:** update **both** files (add `landing.js` next to `worker.js`), then Deploy.
 - **After every deploy:** `https://jetsjaisontraider.com/status` → `version` matches worker.js; `https://jetsjaisontraider.com/` shows the landing, not "Jason Academy API".
 
+## v3 — entry flow (Oct 2026)
+- **Bot:** /start → one message (subscribe to the channel); «I've subscribed» turns that same message into «Academy open». A repeated /start replaces the old gate message.
+- **App:** questionnaire on first open → intro lesson «Who is Jason» (`intro.js`: draft text EN/RU, put the video id in `INTRO.video`) → broker step (account number, review «usually within 1 hour») → bot message when a manager approves.
+- **Step-by-step lessons:** lesson N opens after N−1 is read, the quiz after all lessons, the next course after the quiz. Change the path in `unlockOrder()` (app.js).
+- **Support chat:** 🆘 in the top bar / «I have a problem». Messages go to the managers' chat (`/setsales`); a manager **replies to that message** and the answer appears in the app + bot. Admin API for the future panel: `/admin/support-threads`, `/admin/support-thread?id=`, `/admin/support-reply {id,text}`.
+
 ## v2 — funnel (onboarding → broker gate → goal → referrals)
 - **Onboarding** (6 questions + starting deposit $250/$1k/$10k + material goal & target) → saved in D1, posted to the managers' Telegram group.
 - **Broker gate**: courses unlock after the student sends a broker account number and a manager taps ✅ in the group (or in the admin panel). Set `REF_LINK` in `config.js` to turn it on.

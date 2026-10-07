@@ -102,6 +102,25 @@
   function flatOrder(){ var arr=[]; BLOCKS.forEach(function(b){ coursesInBlock(b.id).forEach(function(c){ arr.push(c.id); }); }); return arr; }
 
   function quizDone(c){ return Object.keys(getAnswers(c.id)).length >= c.quiz.length; }
+  /* Step-by-step access: a lesson opens when the previous one is read; a course's quiz when all its lessons are read;
+     the next course when the previous course's quiz is done. unlockOrder() is the single place to change the path
+     later (e.g. a different course order per goal or starting deposit). */
+  function unlockOrder(){ return flatOrder(); }
+  function courseUnlocked(cid){
+    var o = unlockOrder(), i = o.indexOf(cid);
+    if(i <= 0) return true;
+    var prev = findCourse(o[i-1]);
+    if(!prev) return true;
+    return prev.quiz.length ? quizDone(prev) : prev.lessons.every(function(_, k){ return readArr(prev.id).indexOf(k) !== -1; });
+  }
+  function lessonUnlocked(cid, idx){
+    if(!courseUnlocked(cid)) return false;
+    var r = readArr(cid);
+    for(var k = 0; k < idx; k++) if(r.indexOf(k) === -1) return false;
+    return true;
+  }
+  function quizUnlocked(c){ return courseUnlocked(c.id) && c.lessons.every(function(_, i){ return readArr(c.id).indexOf(i) !== -1; }); }
+  function lockToast(kind){ toast(T(kind === 'course' ? 'lockPrevCourse' : kind === 'quiz' ? 'lockQuiz' : 'lockPrevLesson')); if(window.TG) TG.haptic('error'); }
   function quizScore(c){ var ans = getAnswers(c.id); var correct=0, answered=0; c.quiz.forEach(function(q,qi){ if(ans[qi]!==undefined){ answered++; if(ans[qi]===q.correct) correct++; } }); return {answered:answered, correct:correct, total:c.quiz.length}; }
   function courseStatus(c){
     if(quizDone(c)) return 'done';
@@ -123,6 +142,7 @@
   function continueCourse(cid){
     if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
+    if(!courseUnlocked(cid)){ lockToast('course'); return; }
     storeSet('activeCourseId', cid);
     var read = readArr(cid);
     var next = 0; while(read.indexOf(next) !== -1) next++;
@@ -193,29 +213,32 @@
   function renderCourseCard(c){
     var wrap = document.createElement('details');
     wrap.className = 'course'; wrap.id = 'course-' + c.id;
-    var pct = coursePct(c);
+    var pct = coursePct(c), cOpen = courseUnlocked(c.id);
+    if(!cOpen) wrap.classList.add('locked');
     wrap.innerHTML =
       '<summary><div class="course-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[c.icon] || ICONS.book) + '</svg></div>' +
       '<div class="course-meta"><div class="name">' + c.name + '</div>' +
       '<span class="faint mono course-sub" style="font-size:11px;">' + lessonsN(c.lessons.length) + ' · ' + pct + '%</span>' +
       '<div class="progress sm" style="margin-top:6px;"><i style="width:' + pct + '%"></i></div></div>' +
-      '<div class="course-actions"><button class="btn primary sm course-cta" type="button">' + (window.FUNNEL && FUNNEL.locked() ? '🔒 ' : '') + ctaLabel(c) + '</button>' +
+      '<div class="course-actions"><button class="btn ' + (cOpen ? 'primary' : '') + ' sm course-cta" type="button">' + ((window.FUNNEL && FUNNEL.locked()) || !cOpen ? '🔒 ' : '') + (cOpen ? ctaLabel(c) : T('lockedCta')) + '</button>' +
       '<svg class="chev" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div></summary>' +
       '<div class="lesson-list"></div>';
     wrap.querySelector('.course-cta').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); continueCourse(c.id); });
     var list = wrap.querySelector('.lesson-list');
     c.lessons.forEach(function(l, i){
       var row = document.createElement('div'); row.className = 'lesson-row';
-      var isRead = readArr(c.id).indexOf(i) !== -1;
+      var isRead = readArr(c.id).indexOf(i) !== -1, lOpen = lessonUnlocked(c.id, i);
+      if(!lOpen) row.classList.add('locked');
       row.innerHTML = '<button class="lesson-check" data-read="' + isRead + '" aria-label="' + T('markRead') + '"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + checkSvg + '</svg></button>' +
         '<span class="lesson-txt"><span class="n">' + String(i+1).padStart(2,'0') + '</span>' + (l.video ? '<span class="lesson-video-dot" title="' + T('hasVideo') + '"></span>' : '') + l.title + '</span>' +
-        '<svg class="lesson-arrow" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + arrowSvg + '</svg>';
-      row.querySelector('.lesson-check').addEventListener('click', function(ev){ ev.stopPropagation(); toggleRead(c.id, i); syncCourseCard(c); });
+        (lOpen ? '<svg class="lesson-arrow" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + arrowSvg + '</svg>' : '<span class="lesson-lock">🔒</span>');
+      // read marks come from finishing a lesson (Next), not a manual tick — the tick would skip the step-by-step path
+      row.querySelector('.lesson-check').addEventListener('click', function(ev){ ev.stopPropagation(); storeSet('activeCourseId', c.id); renderBanners(); openLesson(c.id, i); });
       row.addEventListener('click', function(){ storeSet('activeCourseId', c.id); renderBanners(); openLesson(c.id, i); });
       list.appendChild(row);
     });
     var quizRow = document.createElement('div');
-    quizRow.className = 'quiz-row';
+    quizRow.className = 'quiz-row' + (quizUnlocked(c) ? '' : ' locked');
     var qs = quizScore(c);
     quizRow.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><span>' + T('quizRow',{n:c.quiz.length}) + (quizDone(c) ? T('quizRowDone',{c:qs.correct,t:qs.total}) : '') + '</span>';
     quizRow.addEventListener('click', function(ev){ ev.stopPropagation(); storeSet('activeCourseId', c.id); openQuiz(c.id); });
@@ -395,7 +418,7 @@
     });
   }
 
-  function renderAll(){ renderBlocks(); renderBanners(); refreshProfile(); renderGamification(computeStats()); renderStreak(); }
+  function renderAll(){ renderIntroCard(); renderBlocks(); renderBanners(); refreshProfile(); renderGamification(computeStats()); renderStreak(); }
 
   /* real progress happened → maybe pop achievements, count toward today's goal */
   function progressChanged(studied){
@@ -488,10 +511,48 @@
   function closeLesson(){ overlay.hidden = true; if(window.TG){ TG.hideBack(); TG.hideMainButton(); } }
   document.getElementById('lessonBack').addEventListener('click', function(){ closeLesson(); renderAll(); });
 
+  /* ---------- intro lesson (Home) ---------- */
+  function introDone(){ return !!storeGet('introDone', false); }
+  function introCardHtml(){
+    if(!window.INTRO) return '';
+    var it = introText(), done = introDone();
+    return '<button type="button" class="intro-card' + (done ? ' done' : '') + '" data-open-intro>' +
+      '<span class="intro-ico">' + (done ? '✓' : '▶') + '</span>' +
+      '<span class="intro-txt"><span class="eyebrow">' + T(done ? 'introSeen' : 'introStart') + '</span><b>' + it.title + '</b>' +
+      '<span class="faint mono" style="font-size:11px;">' + T('minRead',{n:INTRO.min}) + (INTRO.video ? ' · ' + T('hasVideo') : '') + '</span></span></button>';
+  }
+  function renderIntroCard(){
+    var el = document.getElementById('introCardStart'); if(!el) return;
+    el.innerHTML = introCardHtml();
+  }
+  function openIntro(){
+    if(!window.INTRO) return;
+    var it = introText();
+    quizOverlay.hidden = true;
+    lessonKicker.textContent = T('introStart');
+    lessonTitleTxt.textContent = it.title;
+    lessonScroll.innerHTML = (INTRO.video ? videoBlockHtml(INTRO.video) : '<div class="video-soon">🎬 ' + T('introVideoSoon') + '</div>') +
+      '<h3>' + it.title + '</h3><span class="faint mono" style="font-size:11px; margin-top:-8px;">' + T('minRead',{n:INTRO.min}) + '</span>' +
+      '<div class="body-txt">' + renderBody(it.body) + '</div>' +
+      '<button type="button" class="btn ghost block" data-support>🆘 ' + T('supportBtn') + '</button>';
+    lessonScroll.scrollTop = 0;
+    bindLessonExtras(lessonScroll); bindVideo(lessonScroll);
+    var gated = window.FUNNEL && FUNNEL.locked();
+    finishBtn.textContent = gated ? it.cta : it.ctaNoGate;
+    finishBtn.onclick = function(){
+      storeSet('introDone', true); closeLesson(); renderAll();
+      if(window.FUNNEL && FUNNEL.locked()) FUNNEL.showGate(); else continueCourse(unlockOrder()[0]);
+    };
+    if(window.TG){ TG.showBack(function(){ storeSet('introDone', true); closeLesson(); renderAll(); }); TG.hideMainButton(); }
+    overlay.hidden = false;
+  }
+  document.addEventListener('click', function(ev){ if(ev.target.closest('[data-open-intro]')) openIntro(); });
+
   function openLesson(cid, idx){
     if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
     if(idx >= c.lessons.length){ openQuiz(cid); return; }
+    if(!lessonUnlocked(cid, idx)){ lockToast(courseUnlocked(cid) ? 'lesson' : 'course'); return; }
     quizOverlay.hidden = true;
     var lesson = c.lessons[idx];
     lessonKicker.textContent = T('lessonKicker',{c:c.name,i:idx+1,n:c.lessons.length});
@@ -505,7 +566,7 @@
     finishBtn.textContent = isLast ? T('doneToQuiz') : T('nextLesson');
     finishBtn.onclick = function(){
       var wasRead = readArr(cid).indexOf(idx) !== -1;
-      markRead(cid, idx); syncCourseCard(c); renderBanners(); refreshProfile();
+      markRead(cid, idx); renderBlocks(); renderBanners(); refreshProfile();
       if(wasRead){ recordStudy(); renderStreak(); sendPing({ progressOnly:true, studied:true }); } else progressChanged(true);
       if(isLast) openQuiz(cid); else openLesson(cid, idx+1);
     };
@@ -524,6 +585,7 @@
   function openQuiz(cid){
     if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
     var c = findCourse(cid); if(!c) return;
+    if(!quizUnlocked(c)){ lockToast(courseUnlocked(cid) ? 'quiz' : 'course'); return; }
     overlay.hidden = true;
     quizTitleTxt.textContent = c.name;
     if(window.TG) TG.showBack(function(){ closeQuiz(); renderAll(); });
@@ -820,7 +882,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610072136';
+  var BUILD = '202610072141';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -897,7 +959,7 @@
     bindGate();
     seedChat();
     renderAll();
-    if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
+    if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, openIntro:openIntro, introDone:introDone, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
       onFunnelRender:function(){ renderBlocks(); presetCalcFromGoal(); } });
     showScreen(storeGet('activeScreen', 'start'));
     pingOpen();

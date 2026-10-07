@@ -148,3 +148,14 @@ Object.assign(I18N.en.ui, {
   intro_system:'Every trade I post in the club goes through this checklist first. Build yours here.',
   intro_mindset:'The hardest part isn’t the chart, it’s your head. This is the part that keeps you in the game long enough to get good.'
 });
+Object.assign(I18N.en.ui, {
+  introStart:'Start here', introSeen:'Intro · watched', introVideoSoon:'Jason’s welcome video is coming soon',
+  supportBtn:'I have a problem', supportTitle:'Support', supportSub:'Write what went wrong — a manager will answer right here.',
+  supportPh:'Describe the problem…', supportEmpty:'No messages yet. Tell us what’s not working — registration, the account number, the app — and we’ll help.',
+  supportMgr:'Manager', supportRate:'Too many messages — wait a little, the manager will reply.',
+  lockPrevLesson:'Finish the previous lesson first', lockPrevCourse:'Finish the previous course’s quiz to unlock this one', lockQuiz:'Read all lessons of this course to open the quiz', lockedCta:'Locked',
+  gTitle:'Open your account — that’s your entry', gText:'We work only with people who want to actually earn. Entry to the academy = an account with our partner broker. No deposit needed — just open it:',
+  gNote:'A manager checks the account — usually within 1 hour. Then the academy opens and you get a message in the bot.',
+  gPendText:'Account {a} is being checked by a manager — usually within 1 hour. You’ll get a message in the bot as soon as the academy opens.',
+  lockTitle:'The academy is locked', lockSub:'Open an account with our partner broker — no deposit needed.', lockPendingSub:'Usually within 1 hour — we’ll message you in the bot.'
+});

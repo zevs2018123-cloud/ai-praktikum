@@ -27,6 +27,7 @@ var FUNNEL = (function(){
     serverOk = true;
     me = j.me; manager = j.manager || C.MANAGER || null;
     applyVideos(j.videos || {});
+    supUnread(me.supportUnread || 0);
     try{ APP.storeSet('funnelMe', me); }catch(e){}
     if(!me.onboarded && API && !onbShown){ openOnboarding(); }
     renderAll();
@@ -148,7 +149,7 @@ var FUNNEL = (function(){
   /* ---------- gate (broker registration) ---------- */
   function gateHtml(){
     var m = me || {}; var st = m.gate || 'none';
-    var mgr = manager ? '<button class="btn block" type="button" data-ext="https://t.me/' + APP.esc(manager) + '">' + T('mgrContact', { m: manager }) + '</button>' : '';
+    var mgr = '<button class="btn block" type="button" data-support>🆘 ' + T('supportBtn') + '</button>';
     if(st === 'pending') return '<div class="gate-ico">⏳</div><h2>' + T('gPendTitle') + '</h2><p class="muted">' + T('gPendText', { a: APP.esc(m.brokerId || '') }) + '</p>' + mgr;
     return '<div class="gate-ico">🔓</div><h2>' + T('gTitle') + '</h2><p class="muted">' + T('gText') + '</p>' +
       (st === 'rejected' ? '<p class="gate-rej">' + T('gRejected') + '</p>' : '') +
@@ -256,7 +257,7 @@ var FUNNEL = (function(){
             if(!j.me){ btn.disabled = false; APP.toast(T('netErr')); return; }
             me = j.me; ov.hidden = true; if(window.TG) TG.haptic('success');
             renderAll();
-            if(locked()) showGate();
+            if(APP.openIntro) APP.openIntro(); else if(locked()) showGate();
           }).catch(function(){ btn.disabled = false; APP.toast(T('netErr')); });
       }
     });
@@ -277,7 +278,7 @@ var FUNNEL = (function(){
   }
   function handoffCard(u){
     return '<div class="art-card mgr"><span class="lbl">' + T('hoLbl') + '</span><b>' + T('hoTitle') + '</b><p>' + T('hoText') + '</p>' +
-      '<button class="btn primary sm" type="button" data-ext="https://t.me/' + APP.esc(u) + '">' + T('mgrContact', { m: u }) + '</button></div>';
+      '<button class="btn primary sm" type="button" data-support>🆘 ' + T('supportBtn') + '</button></div>';
   }
   function onChat(data){
     var cards = [];
@@ -287,6 +288,48 @@ var FUNNEL = (function(){
   }
   function chipsHtml(){
     return Object.keys(ART).slice(0, 6).map(function(id){ return '<button type="button" class="chip" data-chip="' + id + '">' + T('art_' + id + '_q') + '</button>'; }).join('');
+  }
+
+  /* ---------- support chat (student <-> manager) ---------- */
+  var supMsgs = [], supTimer = null, supBusy = false;
+  function supUnread(n){ var d = $('helpDot'); if(d) d.hidden = !(n > 0); }
+  function supRender(){
+    var log = $('supLog'); if(!log) return;
+    if(!supMsgs.length){ log.innerHTML = '<p class="faint sup-empty">' + T('supportEmpty') + '</p>'; return; }
+    log.innerHTML = supMsgs.map(function(m){
+      var d = new Date(m.at);
+      return '<div class="sup-msg ' + (m.sender === 'manager' ? 'mgr' : 'me') + '">' + (m.sender === 'manager' ? '<span class="who">' + T('supportMgr') + '</span>' : '') +
+        '<span class="txt">' + APP.esc(m.text).replace(/\n/g, '<br>') + '</span><span class="tm">' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + '</span></div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+  function supLoad(text){
+    if(!API){ APP.toast(T('netErr')); return Promise.resolve(); }
+    return post('/support', text ? { text: text } : {}).then(function(j){
+      if(j && j.msgs){ supMsgs = j.msgs; supRender(); supUnread(0); }
+      if(j && j.error === 'rate') APP.toast(T('supportRate'));
+    });
+  }
+  function openSupport(){
+    var sh = $('supportSheet'); if(!sh) return;
+    sh.hidden = false; supRender(); supLoad();
+    clearInterval(supTimer); supTimer = setInterval(function(){ if(!sh.hidden && !document.hidden) supLoad(); }, 8000);
+  }
+  function closeSupport(){ var sh = $('supportSheet'); if(sh) sh.hidden = true; clearInterval(supTimer); }
+  function supSend(){
+    var inp = $('supInput'), v = String(inp.value || '').trim();
+    if(!v || supBusy) return;
+    supBusy = true; $('supSend').disabled = true;
+    supMsgs.push({ sender:'user', text:v, at:Date.now() }); supRender(); inp.value = '';
+    supLoad(v).catch(function(){ APP.toast(T('netErr')); }).then(function(){ supBusy = false; $('supSend').disabled = false; });
+  }
+  function bindSupport(){
+    var sh = $('supportSheet'); if(!sh) return;
+    sh.addEventListener('click', function(ev){
+      if(ev.target === sh || ev.target.closest('[data-close]')){ closeSupport(); return; }
+      if(ev.target.closest('#supSend')) supSend();
+    });
+    $('supInput').addEventListener('keydown', function(ev){ if(ev.key === 'Enter'){ ev.preventDefault(); supSend(); } });
   }
 
   /* ---------- render ---------- */
@@ -302,16 +345,17 @@ var FUNNEL = (function(){
   function init(app){
     APP = app;
     var cached = APP.storeGet('funnelMe', null); if(cached) me = cached;
-    bindLedger(); bindGate(); bindOnb();
+    bindLedger(); bindGate(); bindOnb(); bindSupport();
     var prof = $('screen-profile'); if(prof) bindProfile(prof);
     document.addEventListener('click', function(ev){
       if(ev.target.closest('[data-ledger]')) openLedger();
       if(ev.target.closest('[data-show-gate]')) showGate();
+      if(ev.target.closest('[data-support]')){ var g = $('funnelGate'); if(g) g.hidden = true; openSupport(); }
       var ol = ev.target.closest('[data-open-lesson]');
       if(ol){ var p = ol.dataset.openLesson.split(':'); APP.openLesson(p[0], Number(p[1])); }
     });
     renderAll();
   }
 
-  return { init:init, onServer:onServer, locked:locked, showGate:showGate, onChat:onChat, openOnboarding:openOnboarding, articleCard:articleCard, balanceOf:balanceOf, me:function(){ return me; } };
+  return { init:init, openSupport:openSupport, onServer:onServer, locked:locked, showGate:showGate, onChat:onChat, openOnboarding:openOnboarding, articleCard:articleCard, balanceOf:balanceOf, me:function(){ return me; } };
 })();
