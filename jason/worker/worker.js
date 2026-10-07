@@ -196,7 +196,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -493,7 +493,18 @@ async function grantVip(env, id, by) {
 async function sendSubGate(env, chatId, userId, lang) {
   const link = (await clubInvite(env, userId)) || env.CHANNEL_LINK;
   const row = link ? [[{ text: tt('subBtn', lang), url: link }]] : [];
-  return tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }]] } });
+  const r = await tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }]] } });
+  if (r && r.ok) await env.DB.prepare('UPDATE users SET gate_msg = ? WHERE id = ?').bind(r.result.message_id, userId).run();
+  return r;
+}
+// Turn the subscription-gate message into the "You're in" message in place (keeps the chat clean).
+// Falls back to a new message if the gate message is gone or can't be edited.
+async function showClubWelcome(env, chatId, userId, lang, msgId) {
+  const text = tt('clubWelcome', lang), reply_markup = openButton(env, tt('openBtn', lang));
+  let r = msgId ? await tg(env, 'editMessageText', { chat_id: chatId, message_id: msgId, text, reply_markup }) : null;
+  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
+  await env.DB.prepare('UPDATE users SET gate_msg = NULL WHERE id = ?').bind(userId).run();
+  return r;
 }
 
 async function handleWebhook(req, env) {
@@ -537,7 +548,7 @@ async function handleWebhook(req, env) {
       await upsertUser(env, cm.new_chat_member.user);
       const u = await getUser(env, cm.new_chat_member.user.id);
       await env.DB.prepare('UPDATE users SET club_joined = ?, sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), Date.now(), cm.new_chat_member.user.id).run();
-      if (u && u.chat_ok) { const lang = pickLang(u.lang); await tg(env, 'sendMessage', { chat_id: u.id, text: tt('clubWelcome', lang), reply_markup: openButton(env, tt('openBtn', lang)) }); }
+      if (u && u.chat_ok && (u.gate_msg || !u.sub)) await showClubWelcome(env, u.id, u.id, pickLang(u.lang), u.gate_msg);
     }
     return new Response('ok');
   }
@@ -572,8 +583,7 @@ async function handleWebhook(req, env) {
       if (await isSubscribed(env, cq.from.id)) {
         await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ?, club_joined = COALESCE(club_joined, ?) WHERE id = ?').bind(Date.now(), Date.now(), u.id).run();
         await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id });
-        if (cq.message) await tg(env, 'editMessageReplyMarkup', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
-        await tg(env, 'sendMessage', { chat_id: cq.from.id, text: tt('clubWelcome', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
+        await showClubWelcome(env, cq.from.id, u.id, lang, cq.message && cq.message.message_id);
       } else {
         await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: tt('notYet', lang), show_alert: true });
       }
