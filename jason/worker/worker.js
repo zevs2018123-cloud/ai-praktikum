@@ -158,7 +158,7 @@ const RU = {
 };
 
 /* ---------------- helpers ---------------- */
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, x-admin-key', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, x-admin-key, x-session', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
 const esc = (s) => String(s ?? '').replace(/[<>&]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]));
 const money = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
@@ -693,7 +693,9 @@ async function handleWebhook(req, env) {
       await env.DB.prepare('UPDATE users SET ref_by = ? WHERE id = ?').bind(Number(refM[1]), u.id).run();
     }
     const srcM = /src_([\w-]{1,32})/.exec(text);
-    if (srcM && !existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind(srcM[1], u.id).run();
+    const tagM = /^\/start\s+([a-z][\w-]{0,31})$/i.exec(text);
+    const tag = srcM ? srcM[1] : (tagM && !/^(ref|fb)_/i.test(tagM[1]) ? tagM[1] : null);
+    if (tag && !existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind(tag.toLowerCase(), u.id).run();
     const fbM = /fb_([a-z0-9]{4,32})/i.exec(text);
     if (fbM) {
       const cid = cleanCid(fbM[1]);
@@ -707,6 +709,7 @@ async function handleWebhook(req, env) {
       await env.DB.prepare('UPDATE users SET sub = 0, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
       await sendSubGate(env, m.chat.id, u.id, lang);
     } else {
+      if (!u.sub) await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
       await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
     }
   }
@@ -743,20 +746,307 @@ async function cron(env) {
 }
 
 /* ---------------- admin ---------------- */
+
+/* ================= Team CRM (admin panel based on LeadCenter) =================
+   Staff accounts (one owner + invited team with per-tab access), sessions, funnel by channel,
+   CRM cards over the users table, ad spend, team kanban. All under /admin/*. */
+const CRM_SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS staff (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT UNIQUE, name TEXT, role TEXT, tabs TEXT, salt TEXT, hash TEXT, invite TEXT, created_at INTEGER, last_login INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS staff_sessions (token TEXT PRIMARY KEY, staff_id INTEGER, until INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS crm (user_id INTEGER PRIMARY KEY, stage TEXT, amount REAL, quals TEXT, notes TEXT, task_text TEXT, task_due TEXT, task_done INTEGER DEFAULT 0, src_override TEXT, updated_at INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS crm_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, who TEXT, what TEXT, at INTEGER)`,
+  `CREATE INDEX IF NOT EXISTS idx_crm_log_user ON crm_log(user_id, id)`,
+  `CREATE TABLE IF NOT EXISTS spend (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, channel TEXT, amount REAL, note TEXT, who TEXT, at INTEGER)`
+];
+let crmReady = false;
+async function ensureCrm(env) { if (crmReady) return; for (const q of CRM_SCHEMA) await env.DB.prepare(q).run(); crmReady = true; }
+
+const CRM_TABS = ['funnel', 'crm', 'tasks', 'content', 'team', 'settings'];
+const MEMBER_TABS = ['funnel', 'crm', 'tasks', 'content'];           // what an owner can hand out; team/settings stay owner-only
+const STAGES = ['старт', 'подписался', 'прошёл анкету', 'прислал счёт', 'счёт подтверждён', 'депозит', 'в VIP', 'отказ'];
+const MANUAL_STAGES = ['депозит', 'отказ'];
+const QUALS = ['горячий', 'опытный', 'новичок', 'крупный депозит', 'нужна помощь'];
+const CHANNELS = [
+  { key: 'fb', name: 'Facebook · реклама', paid: true }, { key: 'ig', name: 'Instagram' }, { key: 'th', name: 'Threads' },
+  { key: 'x', name: 'X' }, { key: 'yt', name: 'YouTube' }, { key: 'ref', name: 'Рефералы' }, { key: 'direct', name: 'Без метки' }
+];
+function channelOf(src, refBy) {
+  const s = String(src || '').toLowerCase();
+  if (s === 'meta_ads' || s === 'fb' || s.startsWith('fb_') || s.startsWith('fb-')) return 'fb';
+  for (const k of ['ig', 'th', 'x', 'yt']) if (s === k || s.startsWith(k + '_') || s.startsWith(k + '-')) return k;
+  if (refBy) return 'ref';
+  return 'direct';
+}
+function autoStage(u) {
+  if (u.vip_joined) return 'в VIP';
+  if (u.vip_at) return 'депозит';
+  if (u.gate === 'approved') return 'счёт подтверждён';
+  if (u.gate === 'pending' || u.gate === 'rejected') return 'прислал счёт';
+  if (u.onboarded_at) return 'прошёл анкету';
+  if (u.sub || u.club_joined) return 'подписался';
+  return 'старт';
+}
+function stageOf(u, c) {
+  const auto = autoStage(u), man = c && c.stage;
+  if (man === 'отказ') return 'отказ';
+  if (man && STAGES.indexOf(man) > STAGES.indexOf(auto)) return man;
+  return auto;
+}
+const randHex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join('');
+async function pwHash(password, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(password)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(salt), iterations: 20000 }, key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function staffPublic(s) {
+  if (!s) return null;
+  const owner = s.role === 'owner';
+  return { id: s.id, login: s.login, name: s.name || s.login, role: s.role, owner,
+    tabs: owner ? CRM_TABS : ['funnel', ...JSON.parse(s.tabs || '[]').filter(t => MEMBER_TABS.includes(t) && t !== 'funnel')] };
+}
+async function newSession(env, staffId) {
+  const token = randHex(32);
+  await env.DB.prepare('INSERT INTO staff_sessions (token, staff_id, until) VALUES (?, ?, ?)').bind(token, staffId, Date.now() + 30 * DAY).run();
+  await env.DB.prepare('UPDATE staff SET last_login = ? WHERE id = ?').bind(Date.now(), staffId).run();
+  return token;
+}
+const adminPageUrl = (env) => String(env.APP_URL || '').replace(/\/?$/, '/') + 'admin.html';
+
+/* public auth endpoints (no session yet) */
+async function crmAuth(p, req, env, body, fail) {
+  const ownerCount = (await env.DB.prepare(`SELECT COUNT(*) n FROM staff WHERE role = 'owner' AND hash IS NOT NULL`).first()).n;
+  if (p === 'auth-state') return json({ hasOwner: ownerCount > 0 });
+  const login = String(body.login || '').trim().toLowerCase().slice(0, 40), pw = String(body.password || '');
+  if (p === 'setup') {
+    if (ownerCount > 0) return json({ error: 'owner already exists' }, 400);
+    if (!env.ADMIN_KEY || body.adminKey !== env.ADMIN_KEY) { await fail(); return json({ error: 'Неверный ADMIN_KEY' }, 401); }
+    if (!/^[a-z0-9._-]{3,40}$/.test(login) || pw.length < 8) return json({ error: 'Логин 3+ символа (латиница, цифры), пароль 8+ символов' }, 400);
+    const salt = randHex(16);
+    const r = await env.DB.prepare(`INSERT INTO staff (login, name, role, tabs, salt, hash, created_at) VALUES (?, ?, 'owner', '[]', ?, ?, ?)`)
+      .bind(login, String(body.name || login).slice(0, 60), salt, await pwHash(pw, salt), Date.now()).run();
+    return json({ ok: true, token: await newSession(env, r.meta.last_row_id) });
+  }
+  if (p === 'login') {
+    const s = await env.DB.prepare('SELECT * FROM staff WHERE login = ? AND hash IS NOT NULL').bind(login).first();
+    if (!s || (await pwHash(pw, s.salt)) !== s.hash) { await fail(); return json({ error: 'Неверный логин или пароль' }, 401); }
+    return json({ ok: true, token: await newSession(env, s.id) });
+  }
+  if (p === 'invite-info') {
+    const s = await env.DB.prepare('SELECT name FROM staff WHERE invite = ?').bind(String(body.token || url_q(req, 'token'))).first();
+    return s ? json({ ok: true, name: s.name }) : json({ error: 'Ссылка недействительна' }, 404);
+  }
+  if (p === 'invite-accept') {
+    const s = await env.DB.prepare('SELECT * FROM staff WHERE invite = ?').bind(String(body.token || '')).first();
+    if (!s) { await fail(); return json({ error: 'Ссылка недействительна' }, 404); }
+    if (!/^[a-z0-9._-]{3,40}$/.test(login) || pw.length < 8) return json({ error: 'Логин 3+ символа (латиница, цифры), пароль 8+ символов' }, 400);
+    const taken = await env.DB.prepare('SELECT id FROM staff WHERE login = ? AND id != ?').bind(login, s.id).first();
+    if (taken) return json({ error: 'Логин занят' }, 400);
+    const salt = randHex(16);
+    await env.DB.prepare('UPDATE staff SET login = ?, salt = ?, hash = ?, invite = NULL WHERE id = ?').bind(login, salt, await pwHash(pw, salt), s.id).run();
+    return json({ ok: true, token: await newSession(env, s.id) });
+  }
+  return null;
+}
+const url_q = (req, k) => new URL(req.url).searchParams.get(k) || '';
+
+/* which tab each admin endpoint belongs to */
+const PERM = {
+  me: null, logout: null,
+  funnel: 'funnel', spend: 'funnel', stats: 'funnel',
+  crm: 'crm', 'crm-card': 'crm', 'crm-update': 'crm', users: 'crm', user: 'crm', messages: 'crm', gate: 'crm', vip: 'crm',
+  'support-threads': 'crm', 'support-thread': 'crm', 'support-reply': 'crm',
+  tasks: 'tasks',
+  videos: 'content', topics: 'content', rewards: 'content', reward: 'content',
+  staff: 'team',
+  'setup-webhook': 'settings', 'sales-reset': 'settings', settings: 'settings'
+};
+
+async function crmLog(env, uid, who, what) {
+  await env.DB.prepare('INSERT INTO crm_log (user_id, who, what, at) VALUES (?, ?, ?, ?)').bind(uid, String(who || '?').slice(0, 60), String(what).slice(0, 300), Date.now()).run();
+}
+async function crmRow(env, uid) {
+  return (await env.DB.prepare('SELECT * FROM crm WHERE user_id = ?').bind(uid).first()) || { user_id: uid, stage: null, amount: 0, quals: '[]', notes: '[]', task_text: null, task_due: null, task_done: 0, src_override: null };
+}
+async function crmSave(env, c) {
+  await env.DB.prepare(`INSERT OR REPLACE INTO crm (user_id, stage, amount, quals, notes, task_text, task_due, task_done, src_override, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(c.user_id, c.stage || null, Number(c.amount) || 0, c.quals || '[]', c.notes || '[]', c.task_text || null, c.task_due || null, c.task_done ? 1 : 0, c.src_override || null, Date.now()).run();
+}
+
+/* staff-only endpoints */
+async function crmApi(p, req, env, url, body, me, all) {
+  const who = me.name || me.login;
+  if (p === 'me') return json({ me, config: { stages: STAGES, manualStages: MANUAL_STAGES, quals: QUALS, channels: CHANNELS, memberTabs: MEMBER_TABS, adminUrl: adminPageUrl(env) } });
+  if (p === 'logout') { await env.DB.prepare('DELETE FROM staff_sessions WHERE token = ?').bind(req.headers.get('x-session') || '').run(); return json({ ok: true }); }
+
+  if (p === 'funnel') {
+    const now = Date.now(), days = Math.max(1, Math.min(3650, Number(url.searchParams.get('days')) || 7));
+    let since = now - days * DAY, until = now + 60e3;
+    const from = url.searchParams.get('start'), to = url.searchParams.get('end');
+    if (from && to) { since = Date.parse(from + 'T00:00:00Z'); until = Date.parse(to + 'T00:00:00Z') + DAY; }
+    const span = until - since, prevSince = since - span;
+    const us = await all(`SELECT u.id, u.first_seen, u.src, u.ref_by, u.sub, u.club_joined, u.opens, u.onboarded_at, u.gate, u.vip_at, u.vip_joined, u.tier,
+      c.stage AS c_stage, c.amount AS c_amount, c.quals AS c_quals, c.src_override AS c_src FROM users u LEFT JOIN crm c ON c.user_id = u.id WHERE u.first_seen >= ? AND u.first_seen < ?`, prevSince, until);
+    const STEP = [['starts', 'Старт бота'], ['sub', 'Подписались на канал'], ['app', 'Открыли академию'], ['onb', 'Прошли анкету'],
+      ['acc', 'Прислали счёт'], ['ok', 'Счёт подтверждён'], ['dep', 'Депозит'], ['vip', 'В VIP']];
+    const count = (ls) => {
+      const c = { starts: ls.length, sub: 0, app: 0, onb: 0, acc: 0, ok: 0, dep: 0, vip: 0, refused: 0, qual: 0, revenue: 0 };
+      for (const u of ls) {
+        const st = stageOf(u, { stage: u.c_stage }), i = STAGES.indexOf(st);
+        if (u.sub || u.club_joined || i >= 1 && st !== 'отказ') c.sub++;
+        if (u.opens > 0 || u.onboarded_at) c.app++;
+        if (u.onboarded_at) c.onb++;
+        if (u.gate && u.gate !== 'none') c.acc++;
+        if (u.gate === 'approved') c.ok++;
+        if (st === 'депозит' || st === 'в VIP') { c.dep++; c.revenue += Number(u.c_amount) || 0; }
+        if (u.vip_joined) c.vip++;
+        if (st === 'отказ') c.refused++;
+        if (JSON.parse(u.c_quals || '[]').length) c.qual++;
+      }
+      return c;
+    };
+    const cur = us.filter(u => u.first_seen >= since), prv = us.filter(u => u.first_seen < since);
+    const fromD = new Date(since).toISOString().slice(0, 10), toD = new Date(until - 1).toISOString().slice(0, 10);
+    const sp = await all('SELECT channel, SUM(amount) s FROM spend WHERE date >= ? AND date <= ? GROUP BY channel', fromD, toD);
+    const spendBy = Object.fromEntries(sp.map(r => [r.channel, r.s]));
+    const channels = CHANNELS.map(ch => {
+      const c = count(cur.filter(u => channelOf(u.c_src || u.src, u.ref_by) === ch.key));
+      const s = Math.round(spendBy[ch.key] || 0);
+      return { ...ch, ...c, spend: s, cps: s && c.starts ? Math.round(s / c.starts * 100) / 100 : null, cpa: s && c.ok ? Math.round(s / c.ok) : null };
+    });
+    const bySource = {};
+    for (const u of cur) { const k = u.c_src || u.src || 'без метки'; (bySource[k] = bySource[k] || []).push(u); }
+    const total = count(cur);
+    return json({ from: fromD, to: toD, days: Math.round(span / DAY), total, prev: count(prv), spend: Object.values(spendBy).reduce((a, b) => a + b, 0),
+      steps: STEP.map(([k, n]) => ({ key: k, name: n, n: total[k] })), channels,
+      bySource: Object.entries(bySource).map(([k, ls]) => ({ source: k, channel: channelOf(k === 'без метки' ? '' : k, ls[0].ref_by), ...count(ls) })).sort((a, b) => b.starts - a.starts).slice(0, 100) });
+  }
+  if (p === 'spend') {
+    if (body.delete) await env.DB.prepare('DELETE FROM spend WHERE id = ?').bind(Number(body.delete)).run();
+    else if (body.amount != null) {
+      const ch = CHANNELS.some(c => c.key === body.channel) ? body.channel : 'fb';
+      await env.DB.prepare('INSERT INTO spend (date, channel, amount, note, who, at) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(String(body.date || new Date().toISOString()).slice(0, 10), ch, Number(body.amount) || 0, String(body.note || '').slice(0, 120), who, Date.now()).run();
+    }
+    return json({ rows: await all('SELECT * FROM spend ORDER BY date DESC, id DESC LIMIT 300') });
+  }
+
+  if (p === 'crm') {
+    const rows = await all(`SELECT u.id, u.name, u.username, u.lang, u.src, u.ref_by, u.first_seen, u.last_seen, u.sub, u.club_joined, u.opens, u.onboarded_at,
+        u.gate, u.gate_at, u.broker_id, u.tier, u.vip_at, u.vip_joined, u.goal_text,
+        c.stage AS c_stage, c.amount AS c_amount, c.quals AS c_quals, c.task_text, c.task_due, c.task_done, c.src_override,
+        s.sender AS sup_sender, s.text AS sup_text, s.at AS sup_at,
+        (SELECT COUNT(*) FROM support x WHERE x.user_id = u.id AND x.sender = 'user' AND x.id > COALESCE(u.support_admin_seen, 0)) AS sup_unread
+      FROM users u LEFT JOIN crm c ON c.user_id = u.id
+      LEFT JOIN support s ON s.id = (SELECT MAX(id) FROM support WHERE user_id = u.id)
+      ORDER BY COALESCE(s.at, u.last_seen, u.first_seen) DESC LIMIT 3000`);
+    const today = new Date().toISOString().slice(0, 10);
+    return json({ leads: rows.map(u => ({
+      id: u.id, name: u.name || '—', username: u.username || '', lang: u.lang, source: u.src_override || u.src || '', channel: channelOf(u.src_override || u.src, u.ref_by),
+      first_seen: u.first_seen, last_seen: u.last_seen, gate: u.gate || 'none', broker_id: u.broker_id, tier: u.tier, goal: u.goal_text,
+      stage: stageOf(u, { stage: u.c_stage }), manual_stage: u.c_stage || '', amount: u.c_amount || 0, quals: JSON.parse(u.c_quals || '[]'),
+      task: u.task_text || '', task_due: u.task_due || '', task_done: !!u.task_done, task_overdue: !!(u.task_text && !u.task_done && u.task_due && u.task_due < today),
+      waiting: u.sup_sender === 'user', last_text: u.sup_text ? String(u.sup_text).slice(0, 90) : '', last_at: u.sup_at || u.last_seen || u.first_seen, unread: u.sup_unread || 0
+    })) });
+  }
+  if (p === 'crm-card') {
+    const id = Number(url.searchParams.get('id') || body.id);
+    const u = await getUser(env, id); if (!u) return json({ error: 'not found' }, 404);
+    const c = await crmRow(env, id);
+    const support = await supportMsgs(env, id);
+    if (support.length) await env.DB.prepare('UPDATE users SET support_admin_seen = ? WHERE id = ?').bind(support[support.length - 1].id, id).run();
+    return json({ user: { ...u, onboard: u.onboard ? JSON.parse(u.onboard) : null }, stage: stageOf(u, c), auto_stage: autoStage(u), channel: channelOf(c.src_override || u.src, u.ref_by),
+      crm: { ...c, quals: JSON.parse(c.quals || '[]'), notes: JSON.parse(c.notes || '[]') }, support,
+      ai: await all('SELECT text, reply, topic, at FROM messages WHERE user_id = ? ORDER BY at DESC LIMIT 40', id),
+      ledger: await all('SELECT type, amount, at FROM ledger WHERE user_id = ? ORDER BY at', id),
+      referrals: await all('SELECT id, name, username, gate FROM users WHERE ref_by = ?', id),
+      log: await all('SELECT who, what, at FROM crm_log WHERE user_id = ? ORDER BY id DESC LIMIT 60', id) });
+  }
+  if (p === 'crm-update') {
+    const id = Number(body.id); const u = await getUser(env, id); if (!u) return json({ error: 'not found' }, 404);
+    const c = await crmRow(env, id);
+    if ('stage' in body) {
+      const st = MANUAL_STAGES.includes(body.stage) ? body.stage : null;
+      if ((c.stage || null) !== st) { await crmLog(env, id, who, `этап: ${c.stage || 'авто'} → ${st || 'авто'}`); c.stage = st; }
+    }
+    if ('amount' in body) { c.amount = Math.max(0, Number(body.amount) || 0); await crmLog(env, id, who, `сумма депозита: $${c.amount}`); }
+    if ('quals' in body) {
+      const q = (Array.isArray(body.quals) ? body.quals : []).filter(x => QUALS.includes(x));
+      if (JSON.stringify(q) !== c.quals) { c.quals = JSON.stringify(q); await crmLog(env, id, who, `квалификация: ${q.join(', ') || 'снята'}`); }
+    }
+    if (body.note) { const n = JSON.parse(c.notes || '[]'); n.push({ at: Date.now(), who, text: String(body.note).slice(0, 2000) }); c.notes = JSON.stringify(n.slice(-200)); }
+    if ('task' in body) {
+      if (body.task === null) { c.task_text = null; c.task_due = null; c.task_done = 0; await crmLog(env, id, who, 'задача снята'); }
+      else { c.task_text = String(body.task || '').slice(0, 200); c.task_due = String(body.due || '').slice(0, 10) || null; c.task_done = 0; await crmLog(env, id, who, `задача${c.task_due ? ' на ' + c.task_due : ''}: ${c.task_text}`); }
+    }
+    if (body.taskDone) { c.task_done = 1; await crmLog(env, id, who, `задача выполнена: ${c.task_text || ''}`); }
+    if ('source' in body) { c.src_override = String(body.source || '').trim().slice(0, 40) || null; await crmLog(env, id, who, `источник: ${c.src_override || 'сброшен'}`); }
+    await crmSave(env, c);
+    return json({ ok: true });
+  }
+
+  if (p === 'tasks') {
+    if (req.method === 'POST' && Array.isArray(body.columns)) await setting(env, 'team_tasks', JSON.stringify({ columns: body.columns.slice(0, 8) }));
+    const t = JSON.parse((await setting(env, 'team_tasks')) || 'null') || { columns: ['Бэклог', 'В работе', 'На проверке', 'Готово'].map(name => ({ name, cards: [] })) };
+    return json(t);
+  }
+
+  if (p === 'staff') {
+    const pub = (s) => ({ id: s.id, login: s.hash ? s.login : null, name: s.name, role: s.role, tabs: JSON.parse(s.tabs || '[]'), invited: !s.hash,
+      invite_link: s.invite ? adminPageUrl(env) + '#invite=' + s.invite : null, last_login: s.last_login, created_at: s.created_at });
+    const tabsOf = (t) => JSON.stringify((Array.isArray(t) ? t : []).filter(x => MEMBER_TABS.includes(x)));
+    if (body.action === 'add') {
+      await env.DB.prepare(`INSERT INTO staff (login, name, role, tabs, invite, created_at) VALUES (?, ?, 'member', ?, ?, ?)`)
+        .bind('invite-' + randHex(6), String(body.name || 'Сотрудник').slice(0, 60), tabsOf(body.tabs), randHex(16), Date.now()).run();
+    }
+    if (body.action === 'update') await env.DB.prepare(`UPDATE staff SET name = ?, tabs = ? WHERE id = ? AND role != 'owner'`).bind(String(body.name || '').slice(0, 60), tabsOf(body.tabs), Number(body.id)).run();
+    if (body.action === 'remove') {
+      await env.DB.prepare(`DELETE FROM staff_sessions WHERE staff_id = ?`).bind(Number(body.id)).run();
+      await env.DB.prepare(`DELETE FROM staff WHERE id = ? AND role != 'owner'`).bind(Number(body.id)).run();
+    }
+    if (body.action === 'reinvite') await env.DB.prepare(`UPDATE staff SET invite = ?, hash = NULL, salt = NULL WHERE id = ? AND role != 'owner'`).bind(randHex(16), Number(body.id)).run();
+    if (body.action === 'password') {
+      const pw = String(body.password || ''); if (pw.length < 8) return json({ error: 'Пароль 8+ символов' }, 400);
+      const salt = randHex(16);
+      await env.DB.prepare('UPDATE staff SET salt = ?, hash = ? WHERE id = ?').bind(salt, await pwHash(pw, salt), me.id).run();
+    }
+    return json({ staff: (await all('SELECT * FROM staff ORDER BY id')).map(pub) });
+  }
+  if (p === 'settings') {
+    const wi = (await tg(env, 'getWebhookInfo', {})).result || {};
+    return json({ salesChat: !!(await setting(env, 'sales_chat')), club: await setting(env, 'club_title'), vip: await setting(env, 'vip_title'),
+      manager: env.MANAGER || null, bot: await botUsername(env), webhook: { ok: !!wi.url, pending: wi.pending_update_count || 0, lastError: wi.last_error_message || null },
+      pixel: !!env.PIXEL_ID, capi: !!env.CAPI_TOKEN, appUrl: env.APP_URL });
+  }
+  return null;
+}
+
 async function admin(req, env, url) {
   // brute-force guard: max 10 wrong keys per IP per 15 minutes
   const ip = req.headers.get('cf-connecting-ip') || 'local';
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS admin_fails (ip TEXT, at INTEGER)').run();
   const since = Date.now() - 15 * 60e3;
   const fails = (await env.DB.prepare('SELECT COUNT(*) AS n FROM admin_fails WHERE ip = ? AND at > ?').bind(ip, since).first())?.n || 0;
-  if (fails >= 10) return json({ error: 'too many attempts, wait 15 minutes' }, 429);
-  if (!env.ADMIN_KEY || req.headers.get('x-admin-key') !== env.ADMIN_KEY) {
-    await env.DB.prepare('INSERT INTO admin_fails (ip, at) VALUES (?, ?)').bind(ip, Date.now()).run();
-    return json({ error: 'unauthorized' }, 401);
-  }
+  if (fails >= 10) return json({ error: 'Слишком много попыток — подождите 15 минут' }, 429);
+  const fail = () => env.DB.prepare('INSERT INTO admin_fails (ip, at) VALUES (?, ?)').bind(ip, Date.now()).run();
+  await ensureCrm(env);
   const p = url.pathname.replace('/admin/', '');
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const all = async (q, ...b) => (await env.DB.prepare(q).bind(...b).all()).results || [];
+  const pub = await crmAuth(p, req, env, body, fail); if (pub) return pub;
+  // who is calling: a staff session (team CRM) or the legacy ADMIN_KEY (= owner)
+  let me = null;
+  const tok = req.headers.get('x-session');
+  if (tok) {
+    const s = await env.DB.prepare('SELECT st.* FROM staff_sessions ss JOIN staff st ON st.id = ss.staff_id WHERE ss.token = ? AND ss.until > ?').bind(tok, Date.now()).first();
+    me = staffPublic(s);
+  } else if (env.ADMIN_KEY && req.headers.get('x-admin-key') === env.ADMIN_KEY) {
+    me = { id: 0, login: 'admin-key', name: 'Администратор', role: 'owner', owner: true, tabs: CRM_TABS };
+  }
+  if (!me) { if (!tok) await fail(); return json({ error: 'unauthorized' }, 401); }
+  const need = PERM[p];
+  if (need === undefined && !me.owner) return json({ error: 'forbidden' }, 403);
+  if (need && !me.tabs.includes(need)) return json({ error: 'Нет доступа к этому разделу' }, 403);
+  const crmRes = await crmApi(p, req, env, url, body, me, all); if (crmRes) return crmRes;
   if (p === 'stats') {
     const week = Date.now() - 7 * DAY;
     const one = async (q, ...b) => (await env.DB.prepare(q).bind(...b).first()) || {};
@@ -822,9 +1112,9 @@ async function admin(req, env, url) {
     if (msgs.length) await env.DB.prepare('UPDATE users SET support_admin_seen = ? WHERE id = ?').bind(msgs[msgs.length - 1].id, id).run();
     return json({ user: await getUser(env, id), msgs });
   }
-  if (p === 'support-reply') return json(await supportReply(env, Number(body.id), body.text, body.by || 'админка'));
-  if (p === 'vip') { const r = await grantVip(env, Number(body.id), 'админка'); return json(r); }
-  if (p === 'gate') { const r = await setGate(env, Number(body.id), String(body.status), 'admin'); return json({ ok: !!r }); }
+  if (p === 'support-reply') { const r = await supportReply(env, Number(body.id), body.text, me.name); if (r.ok) await crmLog(env, Number(body.id), me.name, 'ответил(а) в поддержке'); return json(r); }
+  if (p === 'vip') { const r = await grantVip(env, Number(body.id), me.name); if (r.ok) await crmLog(env, Number(body.id), me.name, 'выдал(а) VIP-ссылку'); return json(r); }
+  if (p === 'gate') { const r = await setGate(env, Number(body.id), String(body.status), me.name); if (r) await crmLog(env, Number(body.id), me.name, 'счёт: ' + ({ approved: 'подтверждён', rejected: 'отклонён', pending: 'на проверке', none: 'сброшен' }[body.status] || body.status)); return json({ ok: !!r }); }
   if (p === 'videos') {
     if (req.method === 'POST') { await setting(env, 'videos', JSON.stringify(body.videos || {})); }
     return json({ videos: JSON.parse((await setting(env, 'videos')) || '{}') });
@@ -868,7 +1158,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.7', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.8', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }

@@ -46,6 +46,14 @@ Before deploying, check that worker.js still has `import { landingHtml } from '.
 - **Dashboard editor:** update **both** files (add `landing.js` next to `worker.js`), then Deploy.
 - **After every deploy:** `https://jetsjaisontraider.com/status` → `version` matches worker.js; `https://jetsjaisontraider.com/` shows the landing, not "Jason Academy API".
 
+## CRM / admin panel (`admin.html` + `admin.js`, Oct 2026)
+Based on LeadCenter (funnel · CRM · team tasks · users), rebuilt on the worker + D1 — no extra server.
+- **First login:** open `…/jason/admin.html` → «Первый вход»: ADMIN_KEY + login + password → you are the main administrator.
+- **Team:** «Команда» → add a person, tick tabs (CRM, Задачи, Контент; Воронка is always visible) → send them the invite link. Team and Settings are owner-only.
+- **Funnel:** start → subscribed → opened academy → questionnaire → account sent → approved → deposit → VIP, by channel (fb/ig/th/x/yt/ref/direct from `?start=` tags) and by tag; ad spend per day → cost per start / per approved account.
+- **CRM:** stages are automatic up to «счёт подтверждён»; «депозит» and «отказ» are set by a manager. Card: approve/reject account, VIP link, deposit amount, labels, next-touch task, notes, history, support chat (replies go to the app + bot).
+- API: `/admin/*` with header `x-session` (staff) or legacy `x-admin-key`.
+
 ## v3 — entry flow (Oct 2026)
 - **Bot:** /start → one message (subscribe to the channel); «I've subscribed» turns that same message into «Academy open». A repeated /start replaces the old gate message.
 - **App:** questionnaire on first open → intro lesson «Who is Jason» (`intro.js`: draft text EN/RU, put the video id in `INTRO.video`) → broker step (account number, review «usually within 1 hour») → bot message when a manager approves.

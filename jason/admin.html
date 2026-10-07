@@ -1,253 +1,255 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
+<!doctype html><html lang="ru" data-skin="slate"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jason Trade · Админка</title>
 <meta name="robots" content="noindex">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>Jason · CRM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-  :root{ --bg:#08080a; --panel:#131318; --panel2:#1b1b22; --border:#2a2a33; --ink:#f0eee8; --muted:#a3a0a8; --faint:#6e6b75; --acc:#4f7dff; --ok:#3ccf7c; --bad:#f06464; --warn:#e0b545; }
-  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --bg:#f3f4f7; --panel:#ffffff; --panel2:#f5f6f9; --border:#e2e4ea; --ink:#15161a; --muted:#5a5d66; --faint:#8a8d96; --acc:#2556d9; --ok:#1f9a55; --bad:#cc3f3f; --warn:#a8790c; } }
-  *{ box-sizing:border-box; }
-  body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 Inter, system-ui, sans-serif; }
-  .mono{ font-family:'JetBrains Mono', monospace; }
-  header{ position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  header h1{ font-size:16px; margin:0; }
-  nav{ display:flex; gap:4px; flex-wrap:wrap; }
-  nav button{ appearance:none; border:0; background:transparent; color:var(--muted); padding:7px 11px; border-radius:8px; font:600 13px Inter, system-ui, sans-serif; cursor:pointer; }
-  nav button[aria-pressed="true"]{ background:var(--panel2); color:var(--ink); }
-  main{ max-width:1200px; margin:0 auto; padding:16px; }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
-  .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
-  .kpi .v{ font-size:24px; font-weight:700; }
-  .kpi .k{ font-size:12px; color:var(--muted); }
-  .card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:14px; }
-  .card h2{ font-size:14px; margin:0 0 10px; }
-  table{ width:100%; border-collapse:collapse; font-size:13px; }
-  th{ text-align:left; color:var(--faint); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--border); }
-  td{ padding:8px; border-bottom:1px solid var(--border); vertical-align:top; }
-  tr.click{ cursor:pointer; } tr.click:hover td{ background:var(--panel2); }
-  .pill{ display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:var(--panel2); color:var(--muted); }
-  .pill.approved{ background:rgba(60,207,124,.15); color:var(--ok); } .pill.pending{ background:rgba(224,181,69,.15); color:var(--warn); } .pill.rejected{ background:rgba(240,100,100,.15); color:var(--bad); }
-  .btn{ appearance:none; border:1px solid var(--border); background:var(--panel2); color:var(--ink); padding:7px 12px; border-radius:8px; font:600 12.5px Inter, system-ui, sans-serif; cursor:pointer; }
-  .btn.pri{ background:var(--acc); border-color:var(--acc); color:#fff; } .btn.ok{ background:var(--ok); border-color:var(--ok); color:#06150d; } .btn.bad{ background:transparent; border-color:var(--bad); color:var(--bad); }
-  input, select{ background:var(--panel2); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font:13px Inter, system-ui, sans-serif; }
-  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .muted{ color:var(--muted); } .faint{ color:var(--faint); font-size:12px; }
-  .bar{ height:8px; border-radius:99px; background:var(--acc); }
-  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; justify-content:center; align-items:flex-start; padding:30px 12px; overflow-y:auto; z-index:20; }
-  .modal[hidden]{ display:none; }
-  .modal .box{ background:var(--panel); border:1px solid var(--border); border-radius:14px; max-width:820px; width:100%; padding:18px; }
-  .msg{ border-bottom:1px solid var(--border); padding:8px 0; } .msg .q{ font-weight:600; } .msg .a{ color:var(--muted); font-size:12.5px; white-space:pre-wrap; }
-  .login{ max-width:360px; margin:80px auto; }
-  .vid-row td input{ width:150px; }
-  .overflow{ overflow-x:auto; }
-</style>
-</head>
-<body>
-<header>
-  <h1>Jason Trade · платформа</h1>
-  <nav id="nav" hidden>
-    <button data-tab="dash" aria-pressed="true">Сводка</button>
-    <button data-tab="access">Доступы</button>
-    <button data-tab="users">Пользователи</button>
-    <button data-tab="topics">Вопросы → идеи для видео</button>
-    <button data-tab="videos">Видео в уроках</button>
-    <button data-tab="refs">Рефералы</button>
-    <button data-tab="settings">Настройки</button>
-  </nav>
+[data-skin="slate"]{
+  --bg:#0b1018;--panel:#141b26;--panel2:#1b2431;--line:#26303f;--tx:#e8eef6;--dim:#8a97ab;
+  --accent:#5b8dd9;--accent2:#7fb0ff;--glow:rgba(91,141,217,.18);
+  --s-grey:#28313f;--s-grey-t:#7d8a9c;--s-yellow:#3b3520;--s-yellow-t:#dcc47e;
+  --s-red:#3b2626;--s-red-t:#e39d9d;--s-green:#22322a;--s-green-t:#92d2aa;
+  --s-blue:#1e2c40;--s-blue-t:#8ab6ea;--s-violet:#2c2540;--s-violet-t:#b39ce0;
+  --wm:rgba(255,255,255,.02);--head:linear-gradient(180deg,#131b28 0%,#0b1018 100%);
+}
+[data-skin="coal"]{
+  --bg:#101110;--panel:#1a1c1a;--panel2:#232622;--line:#2e322d;--tx:#eceee9;--dim:#93998f;
+  --accent:#4fa87a;--accent2:#6fc99a;--glow:rgba(79,168,122,.16);
+  --s-grey:#2b2e2a;--s-grey-t:#8b9187;--s-yellow:#3a3520;--s-yellow-t:#dbc47f;
+  --s-red:#3a2725;--s-red-t:#e3a09a;--s-green:#22321f;--s-green-t:#9ad39a;
+  --s-blue:#1f2c34;--s-blue-t:#8cb9cc;--s-violet:#2c2738;--s-violet-t:#b6a2d8;
+  --wm:rgba(255,255,255,.018);--head:linear-gradient(180deg,#191b19 0%,#101110 100%);
+}
+[data-skin="night"]{
+  --bg:#0a0a14;--panel:#13131f;--panel2:#1a1a2b;--line:#242438;--tx:#e9e9f5;--dim:#8b8ba6;
+  --accent:#7c6bf0;--accent2:#9d90ff;--glow:rgba(124,107,240,.22);
+  --s-grey:#26263a;--s-grey-t:#8484a0;--s-yellow:#38321f;--s-yellow-t:#dcc57f;
+  --s-red:#38222f;--s-red-t:#e59bb4;--s-green:#1e3128;--s-green-t:#8ad3ab;
+  --s-blue:#1d2842;--s-blue-t:#8fb2f0;--s-violet:#2a2145;--s-violet-t:#b9a4f5;
+  --wm:rgba(255,255,255,.025);--head:linear-gradient(180deg,#16162a 0%,#0a0a14 100%);
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.55 "Golos Text",-apple-system,system-ui,sans-serif;padding:0 0 70px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 15% -10%,var(--glow),transparent 60%),
+             repeating-linear-gradient(135deg,var(--wm) 0 1px,transparent 1px 96px)}
+header{position:sticky;top:0;background:var(--head);border-bottom:1px solid var(--line);padding:11px 22px;z-index:9;backdrop-filter:blur(10px);display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.brand{display:inline-flex;align-items:center;gap:9px;vertical-align:middle}
+.logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;font-size:12px;color:#0b1018;box-shadow:0 0 18px var(--glow)}
+.brand b{font-size:15px;font-weight:800;letter-spacing:.3px}
+.brand span{color:var(--dim);font-size:10px;letter-spacing:.16em;text-transform:uppercase;display:block;margin-top:-3px}
+.tabs{display:inline-flex;gap:3px;flex-wrap:wrap;vertical-align:middle}
+.tab{background:transparent;border:1px solid transparent;color:var(--tx);opacity:.75;border-radius:9px;padding:6px 13px;cursor:pointer;font:600 12.5px "Golos Text",sans-serif;transition:.15s}
+.tab:hover{opacity:1;background:var(--panel)}
+.tab.active{background:var(--accent);color:#0b1018;opacity:1;box-shadow:0 3px 14px var(--glow)}
+.right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.upd{color:var(--dim);font-size:11px}
+.skins{display:flex;gap:4px}
+.sk{width:20px;height:20px;border-radius:6px;border:1px solid var(--line);cursor:pointer}
+.sk[data-s="slate"]{background:linear-gradient(135deg,#0b1018,#5b8dd9)}
+.sk[data-s="coal"]{background:linear-gradient(135deg,#101110,#4fa87a)}
+.sk[data-s="night"]{background:linear-gradient(135deg,#0a0a14,#7c6bf0)}
+main{max-width:1280px;margin:0 auto;padding:16px 22px;position:relative;z-index:1}
+body.crm-wide main{max-width:1760px}
+.view{display:none}.view.active{display:block}
+h2{font:800 13.5px "Golos Text";letter-spacing:.07em;text-transform:uppercase;color:var(--tx);margin:20px 0 9px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h2 .periods{display:flex;gap:3px;text-transform:none;letter-spacing:0}
+.per{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:7px;padding:3px 10px;font-size:11.5px;cursor:pointer}
+.per.active{background:var(--panel2);color:var(--tx);border-color:var(--accent)}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;font-size:12.5px;text-align:right}
+th{color:var(--dim);font:600 10.5px "Golos Text";text-transform:uppercase;letter-spacing:.05em;text-align:right}
+td:first-child,th:first-child{text-align:left}
+tr.sum td{background:var(--panel2);font-weight:700}
+.mono{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.funnel{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+@media(max-width:1100px){.funnel{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.funnel{grid-template-columns:repeat(2,1fr)}}
+.fc{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;position:relative;transition:.15s}
+.fc:hover{border-color:var(--accent)}
+.fc .t{color:var(--dim);font-size:11px;font-weight:600}
+.fc .v{font:800 24px "Golos Text";margin:3px 0 1px}
+.fc .d{font-size:11px}
+.fc .tip{display:none;position:absolute;left:8px;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--accent);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--tx);width:230px;z-index:20;font-weight:400}
+.fc:hover .tip{display:block}
+.up{color:var(--s-green-t)}.down{color:var(--s-red-t)}
+.convrow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:8px}
+@media(max-width:800px){.convrow{grid-template-columns:repeat(2,1fr)}}
+.cv{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.cv .t{color:var(--dim);font-size:11px}
+.cv .v{font:700 17px "JetBrains Mono",monospace;margin-top:2px}
+.mpick{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 12px;font-size:11.5px;cursor:pointer;color:var(--tx);font-weight:600}
+.mnav{background:var(--panel2);border:1px solid var(--accent);color:var(--accent2);border-radius:7px;padding:2px 10px;cursor:pointer;font-size:13px;font-weight:700}
+.chip{display:inline-block;min-width:30px;padding:2px 7px;border-radius:6px;font-weight:700;font-size:11.5px}
+.c-grey{background:var(--s-grey);color:var(--s-grey-t)}
+.c-yellow{background:var(--s-yellow);color:var(--s-yellow-t)}
+.c-red{background:var(--s-red);color:var(--s-red-t)}
+.c-green{background:var(--s-green);color:var(--s-green-t)}
+.c-blue{background:var(--s-blue);color:var(--s-blue-t)}
+.c-violet{background:var(--s-violet);color:var(--s-violet-t)}
+.legend{display:flex;gap:13px;flex-wrap:wrap;color:var(--dim);font-size:11.5px;margin:7px 0 12px}
+.actions{display:flex;gap:7px;margin-top:9px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid transparent;border-radius:8px;padding:7px 14px;font:600 12.5px "Golos Text";cursor:pointer}
+.ok-btn{background:var(--s-green);color:var(--s-green-t);border-color:#39543f}
+.rw{background:var(--s-yellow);color:var(--s-yellow-t);border-color:#5a5330}
+.ghost{background:var(--panel2);color:var(--dim);border-color:var(--line)}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent2);outline-offset:1px}
+textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:9px;font:13px "Golos Text";min-height:54px}
+input[type=text],input[type=number],input[type=date],input:not([type]){background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:6px 10px;font:13px "Golos Text"}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.toolbar .search{flex:1 1 200px;min-width:160px;max-width:340px}
+input.search{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--tx);padding:7px 12px;font:13px "Golos Text"}
+select{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--tx);padding:7px 10px;font:12.5px "Golos Text"}
+.fbtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:20px;padding:5px 12px;font-size:11.5px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+.fbtn.active{background:var(--panel2);color:var(--tx);border-color:var(--accent)}
+.fbtn.empty{opacity:.55}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
+.crm{display:grid;grid-template-columns:285px minmax(0,1fr);gap:11px;align-items:start}
+@media(max-width:900px){.crm{grid-template-columns:1fr}}
+.leadlist{background:var(--panel);border:1px solid var(--line);border-radius:11px;max-height:calc(100vh - 230px);overflow-y:auto}
+.lead{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:12.5px;border-left:3px solid transparent;min-height:56px}
+.lead.active{background:var(--panel2);border-left-color:var(--accent)}
+.lead.wait{border-left-color:var(--s-red-t)}
+.lead .nm{font-weight:700;display:flex;justify-content:space-between;gap:6px}
+.lead .src{color:var(--dim);font-size:10.8px;margin-top:2px}
+.lead .badge{font-size:10px;padding:1px 6px;border-radius:9px;background:var(--s-red-t);color:#fff;white-space:nowrap}
+.lead .badge.cnt{background:var(--s-grey);color:var(--s-grey-t)}
+.lead .task{font-size:10.5px;color:var(--s-yellow-t);margin-top:2px}
+.lead .last{color:var(--dim);font-size:10.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cardp{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px}
+.cardp .kv{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin:9px 0;font-size:12.5px}
+.cardp .kv .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.kv a{color:var(--accent2);text-decoration:none}
+.board{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:9px;overflow-x:auto;padding-bottom:6px;align-items:start}
+.bcol{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px;min-width:0;max-height:calc(100vh - 290px);overflow-y:auto}
+.bcol h4{margin:0 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);display:flex;justify-content:space-between;gap:6px}
+.bcard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;font-size:12px;cursor:pointer;border-left:3px solid transparent}
+.bcard:hover{border-color:var(--accent)}
+.bcard.wait{border-left-color:var(--s-red-t)}
+.bcard .bn{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bcard .bs{color:var(--dim);font-size:10.5px;margin-top:2px}
+.logrow{font-size:11.5px;color:var(--dim);padding:3px 0;border-bottom:1px solid var(--line)}
+.taskbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:9px 0}
+.taskbar input[type=text]{flex:1;min-width:180px}
+.taskbar input[type=date]{width:150px}
+.chat{background:var(--panel2);border-radius:9px;padding:12px;height:min(58vh,700px);min-height:300px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:7px;resize:vertical}
+.msg{max-width:80%;padding:7px 11px;border-radius:11px;font-size:12.3px;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;min-width:0}
+.them{background:#232c3a;color:var(--tx);align-self:flex-start;border-bottom-left-radius:3px}
+.us{background:#3a4658;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.msg small{display:block;color:var(--dim);font-size:9.8px;margin-top:2px}
+.msgacts{float:right;margin-left:8px;opacity:.55}
+.msg:hover .msgacts{opacity:1}
+.msgacts .ma{color:inherit;margin-left:6px;cursor:pointer;user-select:none}
+.msgacts .ma:hover{color:var(--accent2)}
+.msg .tick{margin-left:6px;color:var(--accent2);font-size:11px;letter-spacing:-1px}
+.msg.editing{max-width:100%!important;width:100%}
+.delask{margin-top:8px;padding:8px 10px;background:var(--panel);border:1px solid var(--s-red-t);border-radius:9px;font-size:12.5px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.mode{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.mode button{background:var(--panel2);border:none;color:var(--dim);padding:6px 12px;font:600 11.5px "Golos Text";cursor:pointer}
+.mode button.on{background:var(--accent);color:#0b1018}
+.quals{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:9px 0 4px}
+.ql{padding:4px 11px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid currentColor;background:transparent;opacity:.6;transition:.12s}
+.ql:hover{opacity:.9}
+.ql.c-green{color:var(--s-green-t)}.ql.c-blue{color:var(--s-blue-t)}.ql.c-yellow{color:var(--s-yellow-t)}.ql.c-violet{color:var(--s-violet-t)}
+.ql.on{opacity:1}
+.ql.on.c-green{background:var(--s-green)}.ql.on.c-blue{background:var(--s-blue)}.ql.on.c-yellow{background:var(--s-yellow)}.ql.on.c-violet{background:var(--s-violet)}
+.fbrow{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:5px;font-size:12px;cursor:pointer}
+.fbrow .fbfull{display:none;white-space:pre-wrap;margin-top:6px;color:var(--dim)}
+.fbrow.open .fbfull{display:block}
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+@media(max-width:900px){.kanban{grid-template-columns:repeat(2,1fr)}}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px}
+.col h4{font:700 11px "Golos Text";color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.col[data-c="0"]{background:linear-gradient(180deg,rgba(120,140,170,.08),transparent)}
+.col[data-c="1"]{background:linear-gradient(180deg,rgba(110,170,230,.10),transparent)}
+.col[data-c="2"]{background:linear-gradient(180deg,rgba(220,196,126,.10),transparent)}
+.col[data-c="3"]{background:linear-gradient(180deg,rgba(146,210,170,.10),transparent)}
+.task{background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12.3px;margin-bottom:6px;border-left:3px solid var(--accent)}
+.task .who{color:var(--dim);font-size:10.5px;margin-top:3px}
+.task.overdue{border-left:3px solid var(--s-red-t)}
+.note{color:var(--dim);font-size:11.8px;margin-top:8px;max-width:82ch}
+.q{background:var(--panel2);border-left:3px solid var(--s-yellow-t);border-radius:9px;padding:10px 12px;font-size:12.3px;margin-top:10px}
+.utable{width:100%;table-layout:fixed}
+.utable td,.utable th{vertical-align:top;text-align:left}
+.utable .acc{font-size:11.5px;line-height:1.5;color:var(--dim)}
+.ilink{color:var(--accent2);text-decoration:underline;font-size:11.5px}
+.iconbtn{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px;margin-left:4px}
+.iconbtn:hover{color:var(--accent2);border-color:var(--accent)}
+.calpop,.tmodal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;place-items:center;z-index:50}
+.calpop.open,.tmodal.open{display:grid}
+.calbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:300px}
+.calbox h3{font-size:14px;margin-bottom:10px}
+.calgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.calm{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 4px;text-align:center;cursor:pointer;font-size:12px}
+.calm:hover{border-color:var(--accent);color:var(--accent2)}
+.calyr{display:flex;justify-content:center;gap:14px;align-items:center;margin-bottom:6px}
+.calcustom{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;font-size:12px}
+.tbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(480px,92vw)}
+.tbox input,.tbox textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:7px 10px;font-size:13px;margin:4px 0}
+.tbox label{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.asknear{position:absolute;z-index:60;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--accent2);border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--tx);box-shadow:0 8px 26px rgba(0,0,0,.45)}
+.asknear .btn{padding:4px 12px;font-size:12px}
+.askinput{flex-wrap:wrap;max-width:340px}
+.askinput label{width:100%;color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+.askinput input{width:100%;margin:3px 0 5px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:11px 18px;font-size:13px;color:var(--tx);opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:80vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.dot-on{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--s-green-t);margin-left:4px;vertical-align:1px}
+.health{position:sticky;top:0;z-index:99;background:#5b1f1f;color:#ffe9c7;padding:8px 14px;font-size:13px}
+@media(max-width:780px){
+  header{padding:9px 13px;gap:7px 10px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%;order:3;width:100%;padding-bottom:2px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:6px 11px;font-size:12px}
+  .right{margin-left:auto;order:2}.skins{display:none}
+  .box{padding:11px}main{padding:12px 13px}
+  .convrow{grid-template-columns:1fr !important}
+  .kanban{grid-template-columns:1fr !important}
+  .chiprow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+}
+/* --- Jason CRM additions --- */
+.funnel{grid-template-columns:repeat(4,1fr)}@media(max-width:620px){.funnel{grid-template-columns:repeat(2,1fr)}}
+header[hidden]{display:none}
+.hint{color:var(--dim);font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:0}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.who{color:var(--dim);font-size:12px}
+.sect{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.sect .st,summary.st{font:700 10.5px "Golos Text";color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;cursor:default}
+summary.st{cursor:pointer}
+.chat{height:min(40vh,420px);min-height:180px}
+.cb{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--tx);margin-right:8px;cursor:pointer}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--panel2)}
+.bar{height:7px;border-radius:9px;background:var(--accent)}
+.fc .d{display:block;color:var(--dim)}
+.fc .d.up{color:var(--s-green-t)}.fc .d.down{color:var(--s-red-t)}
+body.auth{display:grid;place-items:center;min-height:100vh;padding:0}
+body.auth main{max-width:none;padding:16px}
+.authbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;width:min(360px,92vw);display:flex;flex-direction:column;gap:11px}
+.authbox h1{font-size:18px;margin:6px 0 0}.authbox p{color:var(--dim);font-size:13px;margin:0 0 4px}
+.authbox input{background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--tx);padding:10px 12px;font-size:14px}
+.authbox .btn{padding:11px}.authbox .err{color:var(--s-red-t);font-size:13px;min-height:1em}
+#tboxContent select,#tboxContent textarea{margin:4px 0 8px}
+</style></head><body>
+<header id="hdr" hidden>
+  <span class="brand"><span class="logo">J</span><span><b>Jason · CRM</b><span>воронка · CRM · команда</span></span></span>
+  <nav class="tabs" id="tabs"></nav>
+  <span class="right">
+    <span class="skins" title="варианты дизайна">
+      <span class="sk" data-s="slate" onclick="skin('slate')"></span>
+      <span class="sk" data-s="coal" onclick="skin('coal')"></span>
+      <span class="sk" data-s="night" onclick="skin('night')"></span>
+    </span>
+    <span class="upd" id="upd"></span>
+    <span class="who" id="who"></span>
+    <button class="btn ghost" onclick="logout()">Выйти</button>
+  </span>
 </header>
-<main id="main"></main>
-<div class="modal" id="modal" hidden><div class="box" id="modalBox"></div></div>
-
+<main id="main"><p class="note">Загрузка…</p></main>
+<div class="tmodal" id="tmodal"><div class="tbox" id="tboxContent"></div></div>
+<div id="toast"></div>
 <script src="data1.js"></script>
 <script src="data2.js"></script>
 <script src="data3.js"></script>
-<script>
-var API = 'https://jason-academy-bot.zevs2018123.workers.dev';
-var KEY = null; try{ KEY = localStorage.getItem('jasonAdminKey'); }catch(e){}
-var main = document.getElementById('main'), cache = {};
-var RU = {
-  exp:{ none:'Нет опыта', demo:'Только демо', lt1:'< 1 года', gt1:'> 1 года' },
-  markets:{ forex:'Форекс', gold:'Золото', crypto:'Крипта', stocks:'Акции', none:'Ничем' },
-  problem:{ knowledge:'Знания', losses:'Убытки', discipline:'Дисциплина', time:'Время', capital:'Капитал' },
-  time:{ lt30:'< 30 мин', h1:'~1 час', h2:'2+ ч' }, gate:{ none:'—', pending:'на проверке', approved:'подтверждён', rejected:'отклонён' }
-};
-function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
-function money(n){ return n == null ? '—' : '$' + Math.round(n).toLocaleString('en-US'); }
-function dt(t){ return t ? new Date(t).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'; }
-function api(path, body){
-  return fetch(API + '/admin/' + path, { method: body ? 'POST' : 'GET', headers:{ 'x-admin-key': KEY, 'Content-Type':'application/json' }, body: body ? JSON.stringify(body) : undefined })
-    .then(function(r){ if(r.status === 401){ logout(); throw new Error('401'); } return r.json(); });
-}
-function logout(){ try{ localStorage.removeItem('jasonAdminKey'); }catch(e){} KEY = null; renderLogin('Неверный ключ'); }
-function balanceOf(ledger){ var bal = null, dep = 0; (ledger || []).forEach(function(e){ if(e.type === 'balance') bal = e.amount; else if(e.type === 'deposit'){ dep += e.amount; if(bal !== null) bal += e.amount; } else { dep -= e.amount; if(bal !== null) bal -= e.amount; } }); return bal !== null ? bal : dep; }
-
-function renderLogin(err){
-  document.getElementById('nav').hidden = true;
-  main.innerHTML = '<div class="card login"><h2>Вход в админку</h2><p class="faint">Ключ ADMIN_KEY — в файле result.txt после деплоя.</p><div class="row"><input id="k" type="password" placeholder="ADMIN_KEY" style="flex:1"><button class="btn pri" id="go">Войти</button></div>' + (err ? '<p style="color:var(--bad)">' + err + '</p>' : '') + '</div>';
-  document.getElementById('go').onclick = function(){ KEY = document.getElementById('k').value.trim(); try{ localStorage.setItem('jasonAdminKey', KEY); }catch(e){} start(); };
-}
-
-var tab = 'dash';
-document.getElementById('nav').addEventListener('click', function(e){ var b = e.target.closest('[data-tab]'); if(!b) return; tab = b.dataset.tab; document.querySelectorAll('#nav button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); }); render(); });
-function start(){ api('stats').then(function(){ document.getElementById('nav').hidden = false; render(); }).catch(function(){}); }
-
-function render(){ ({ dash:renderDash, access:renderAccess, users:renderUsers, topics:renderTopics, videos:renderVideos, refs:renderRefs, settings:renderSettings })[tab](); }
-
-function renderDash(){
-  main.innerHTML = '<p class="muted">Загрузка…</p>';
-  api('stats').then(function(s){
-    var k = function(v, l){ return '<div class="kpi"><div class="v">' + v + '</div><div class="k">' + l + '</div></div>'; };
-    var conv = s.onboarded ? Math.round(100 * s.approved / s.onboarded) : 0;
-    main.innerHTML = '<div class="grid">' + k(s.users, 'пользователей') + k(s.active7, 'активны за 7 дней') + k(s.studied7, 'учились за 7 дней') + k(s.onboarded, 'прошли анкету') +
-      k(s.pending, 'ждут подтверждения') + k(s.approved, 'доступ открыт') + k(conv + '%', 'анкета → доступ') + k(s.referred, 'пришли по рефке') + k(s.messages7, 'вопросов ИИ за 7 дней') + k(s.handoffs7, 'передано менеджеру') + k(s.clubJoined || 0, 'вступили в канал') + k(s.vipGiven || 0, 'выдан VIP') + k(s.vipJoined || 0, 'вступили в VIP') + '</div>' +
-      '<div class="card"><h2>Закрытый канал</h2><p>' + (s.club ? '✅ «' + esc(s.club) + '» — каждый, кто нажал Start, получает личную одноразовую ссылку.' : '❌ Не подключён. Сделайте бота админом канала с правом «Пригласительные ссылки».') + '</p></div>' +
-      '<div class="card"><h2>VIP-канал (после депозита)</h2><p>' + (s.vip ? '✅ «' + esc(s.vip) + '» — менеджер жмёт «💰 Депозит внесён → выдать VIP», клиент получает личную ссылку.' : '❌ Не подключён. Сделайте бота админом VIP-канала и перешлите боту любой пост оттуда → «💎 VIP — после депозита».') + '</p></div>' +
-      '<div class="card overflow"><h2>Источники (метка ?start=src_…)</h2><table><tr><th>Источник</th><th>Пришло</th><th>В канале</th><th>Анкета</th><th>Доступ</th></tr>' + (s.bySrc || []).map(function(r){ return '<tr><td><b>' + esc(r.src) + '</b></td><td class="mono">' + r.n + '</td><td class="mono">' + (r.club || 0) + '</td><td class="mono">' + (r.onb || 0) + '</td><td class="mono">' + (r.ok || 0) + '</td></tr>'; }).join('') + '</table></div>' +
-      '<div class="card"><h2>Воронка</h2>' + funnelRow('Зашли в бота', s.users, s.users) + funnelRow('Прошли анкету', s.onboarded, s.users) + funnelRow('Отправили счёт', s.pending + s.approved, s.users) + funnelRow('Доступ открыт', s.approved, s.users) + '</div>' +
-      '<div class="card"><h2>Стартовые депозиты</h2>' + (s.byTier || []).map(function(t){ return funnelRow(money(t.tier), t.n, s.onboarded || 1); }).join('') + '</div>' +
-      '<div class="card"><h2>Языки</h2>' + (s.byLang || []).map(function(t){ return funnelRow(String(t.lang).toUpperCase(), t.n, s.users || 1); }).join('') + '</div>' +
-      (!s.salesChat ? '<div class="card" style="border-color:var(--warn)"><b>Чат менеджеров не подключён.</b> <span class="muted">Добавьте бота в группу менеджеров и напишите там /setsales — туда будут приходить анкеты и запросы доступа.</span></div>' : '') +
-      (!s.manager ? '<div class="card" style="border-color:var(--warn)"><b>Не задан MANAGER.</b> <span class="muted">Без него ИИ не сможет передать диалог менеджеру. Укажите юзернейм в deploy.ps1 и перезапустите деплой.</span></div>' : '');
-  });
-}
-function funnelRow(l, n, total){ var p = total ? Math.round(100 * n / total) : 0; return '<div class="row" style="margin:6px 0"><span style="width:170px">' + l + '</span><div style="flex:1;background:var(--panel2);border-radius:99px"><div class="bar" style="width:' + p + '%"></div></div><span class="mono" style="width:90px;text-align:right">' + n + ' · ' + p + '%</span></div>'; }
-
-function loadUsers(){ return api('users').then(function(j){ cache.users = j.users; return j.users; }); }
-function userRow(u, actions){
-  var ob = u.onboard ? JSON.parse(u.onboard) : null;
-  return '<tr class="click" data-uid="' + u.id + '"><td><b>' + esc(u.name || '—') + '</b><br><span class="faint">' + (u.username ? '@' + esc(u.username) : 'id ' + u.id) + ' · ' + esc((u.lang || '').toUpperCase()) + '</span></td>' +
-    '<td>' + (ob ? esc(RU.exp[ob.exp] || '—') + '<br><span class="faint">' + esc(RU.problem[ob.problem] || '') + '</span>' : '<span class="faint">нет анкеты</span>') + '</td>' +
-    '<td>' + (u.tier ? money(u.tier) : '—') + '</td><td>' + (u.goal_target ? money(u.goal_target) : '—') + '<br><span class="faint">' + esc(u.goal_text || '') + '</span></td>' +
-    '<td><span class="pill ' + (u.gate || 'none') + '">' + RU.gate[u.gate || 'none'] + '</span>' + (u.broker_id ? '<br><span class="mono faint">' + esc(u.broker_id) + '</span>' : '') + '</td>' +
-    '<td class="mono">' + (u.invited_ok || 0) + '/' + (u.invited || 0) + '</td><td class="faint">' + dt(u.last_seen) + '</td>' + (actions ? '<td>' + actions + '</td>' : '') + '</tr>';
-}
-var HEAD = '<tr><th>Пользователь</th><th>Опыт / проблема</th><th>Депозит</th><th>Цель</th><th>Доступ</th><th>Рефы</th><th>Был</th>';
-
-function renderAccess(){
-  main.innerHTML = '<p class="muted">Загрузка…</p>';
-  loadUsers().then(function(us){
-    var pend = us.filter(function(u){ return u.gate === 'pending'; });
-    var waiting = us.filter(function(u){ return u.onboarded_at && (!u.gate || u.gate === 'none'); });
-    main.innerHTML = '<div class="card"><h2>Ждут подтверждения (' + pend.length + ')</h2><p class="faint">Проверьте номер счёта в партнёрском кабинете брокера: открыт ли он по вашей ссылке. Кнопки дублируют кнопки в чате менеджеров.</p><div class="overflow"><table>' + HEAD + '<th></th></tr>' +
-      pend.map(function(u){ return userRow(u, '<button class="btn ok" data-gate="approved" data-id="' + u.id + '">Подтвердить</button> <button class="btn bad" data-gate="rejected" data-id="' + u.id + '">Отклонить</button>'); }).join('') + '</table></div></div>' +
-      '<div class="card"><h2>Прошли анкету, но не прислали счёт (' + waiting.length + ')</h2><p class="faint">Тёплые лиды — им стоит написать лично.</p><div class="overflow"><table>' + HEAD + '</tr>' + waiting.map(function(u){ return userRow(u); }).join('') + '</table></div></div>';
-  });
-}
-function renderUsers(){
-  main.innerHTML = '<div class="row"><input id="q" placeholder="Поиск: имя, @юзернейм, id, счёт" style="flex:1;min-width:220px"><select id="f"><option value="">Все</option><option value="onb">С анкетой</option><option value="pending">На проверке</option><option value="approved">С доступом</option><option value="ref">Пришли по рефке</option></select><button class="btn" id="csv">Экспорт CSV</button></div><div class="card overflow"><table id="ut"></table></div>';
-  loadUsers().then(draw);
-  function draw(){
-    var q = document.getElementById('q').value.toLowerCase(), f = document.getElementById('f').value;
-    var list = cache.users.filter(function(u){
-      if(f === 'onb' && !u.onboarded_at) return false; if(f === 'pending' && u.gate !== 'pending') return false; if(f === 'approved' && u.gate !== 'approved') return false; if(f === 'ref' && !u.ref_by) return false;
-      if(!q) return true; return [u.name, u.username, u.id, u.broker_id].join(' ').toLowerCase().indexOf(q) !== -1;
-    });
-    document.getElementById('ut').innerHTML = HEAD + '</tr>' + list.map(function(u){ return userRow(u); }).join('');
-  }
-  document.getElementById('q').oninput = draw; document.getElementById('f').onchange = draw;
-  document.getElementById('csv').onclick = function(){
-    var rows = [['id','name','username','lang','experience','markets','problem','time','deposit','goal_target','goal_text','gate','broker_id','ref_by','invited','first_seen','last_seen']];
-    cache.users.forEach(function(u){ var ob = u.onboard ? JSON.parse(u.onboard) : {}; rows.push([u.id,u.name,u.username,u.lang,RU.exp[ob.exp]||'',(ob.markets||[]).join('/'),RU.problem[ob.problem]||'',RU.time[ob.time]||'',u.tier,u.goal_target,u.goal_text,u.gate,u.broker_id,u.ref_by,u.invited,new Date(u.first_seen).toISOString(),new Date(u.last_seen).toISOString()]); });
-    download('users.csv', rows);
-  };
-}
-function download(name, rows){
-  var csv = '﻿' + rows.map(function(r){ return r.map(function(c){ c = c == null ? '' : String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\n');
-  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' })); a.download = name; a.click();
-}
-
-function openUser(id){
-  var m = document.getElementById('modal'), box = document.getElementById('modalBox');
-  box.innerHTML = '<p class="muted">Загрузка…</p>'; m.hidden = false;
-  api('user?id=' + id).then(function(j){
-    var u = j.user, ob = u.onboard ? JSON.parse(u.onboard) : null, bal = balanceOf(j.ledger);
-    var pr = u.progress ? JSON.parse(u.progress) : {};
-    box.innerHTML = '<div class="row" style="justify-content:space-between"><h2 style="margin:0">' + esc(u.name || '—') + ' ' + (u.username ? '<a href="https://t.me/' + esc(u.username) + '" target="_blank" style="color:var(--acc)">@' + esc(u.username) + '</a>' : '') + '</h2><button class="btn" data-close>Закрыть</button></div>' +
-      '<p class="faint">id ' + u.id + ' · ' + esc((u.lang || '').toUpperCase()) + ' · с ' + dt(u.first_seen) + ' · открытий ' + (u.opens || 0) + ' · уроков ' + (pr.lessons || 0) + '/' + (pr.totalLessons || '—') + ' · курсов ' + (pr.coursesDone || 0) + '</p>' +
-      '<div class="card"><h2>Анкета</h2>' + (ob ? '<p>Опыт: <b>' + esc(RU.exp[ob.exp]) + '</b> · Торговал: <b>' + (ob.markets || []).map(function(x){ return RU.markets[x]; }).join(', ') + '</b> · Проблема: <b>' + esc(RU.problem[ob.problem]) + '</b> · Время: <b>' + esc(RU.time[ob.time]) + '</b></p>' : '<p class="faint">не заполнена</p>') +
-      '<p>Стартовый депозит: <b>' + money(u.tier) + '</b> · Цель: <b>' + money(u.goal_target) + '</b> ' + esc(u.goal_text || '') + '</p></div>' +
-      '<div class="card"><h2>Доступ к курсам</h2><p><span class="pill ' + (u.gate || 'none') + '">' + RU.gate[u.gate || 'none'] + '</span> Счёт: <span class="mono">' + esc(u.broker_id || '—') + '</span></p><div class="row"><button class="btn ok" data-gate="approved" data-id="' + u.id + '">Подтвердить</button><button class="btn bad" data-gate="rejected" data-id="' + u.id + '">Отклонить</button><button class="btn" data-gate="none" data-id="' + u.id + '">Сбросить</button></div></div>' +
-      '<div class="card"><h2>VIP после депозита</h2><p>' + (u.vip_joined ? '✅ В VIP-канале' : u.vip_at ? '📨 Ссылка выдана ' + new Date(u.vip_at).toLocaleDateString('ru-RU') : '—') + '</p><div class="row"><button class="btn ok" data-vip="' + u.id + '">💰 Депозит внесён → выдать VIP</button></div></div>' +
-      '<div class="card"><h2>Счёт (вносит сам)</h2><p>Баланс: <b>' + money(bal) + '</b> · прогресс цели: <b>' + (u.goal_target ? Math.round(100 * bal / u.goal_target) : 0) + '%</b></p><table><tr><th>Тип</th><th>Сумма</th><th>Когда</th></tr>' + j.ledger.map(function(e){ return '<tr><td>' + ({ deposit:'пополнение', withdrawal:'вывод', balance:'баланс' })[e.type] + '</td><td class="mono">' + money(e.amount) + '</td><td class="faint">' + dt(e.at) + '</td></tr>'; }).join('') + '</table></div>' +
-      '<div class="card"><h2>Рефералы (' + j.referrals.length + ')</h2>' + (j.referrals.map(function(r){ return '<div>' + esc(r.name || '') + ' ' + (r.username ? '@' + esc(r.username) : '') + ' <span class="pill ' + (r.gate || 'none') + '">' + RU.gate[r.gate || 'none'] + '</span></div>'; }).join('') || '<p class="faint">нет</p>') + '</div>' +
-      '<div class="card"><h2>Вопросы к ИИ (' + j.messages.length + ')</h2>' + (j.messages.map(function(x){ return '<div class="msg"><div class="q">' + esc(x.text) + '</div><div class="faint">' + dt(x.at) + ' · ' + esc(x.topic || '') + (x.handoff ? ' · <b style="color:var(--warn)">передан менеджеру</b>' : '') + '</div><div class="a">' + esc(x.reply) + '</div></div>'; }).join('') || '<p class="faint">нет</p>') + '</div>';
-  });
-}
-document.addEventListener('click', function(e){
-  var g = e.target.closest('[data-gate]');
-  if(g){ e.stopPropagation(); g.disabled = true; api('gate', { id:Number(g.dataset.id), status:g.dataset.gate }).then(function(){ document.getElementById('modal').hidden = true; render(); }); return; }
-  var vb = e.target.closest('[data-vip]');
-  if(vb){ e.stopPropagation(); vb.disabled = true; api('vip', { id:Number(vb.dataset.vip) }).then(function(r){ alert(r && r.ok ? 'VIP-ссылка отправлена клиенту' : (r && r.error === 'vip_not_connected' ? 'VIP-канал не подключён' : 'Ошибка: ' + (r && r.error))); vb.disabled = false; }); return; }
-  var tr = e.target.closest('[data-uid]'); if(tr){ openUser(tr.dataset.uid); return; }
-  if(e.target.closest('[data-close]') || e.target.id === 'modal') document.getElementById('modal').hidden = true;
-  var t = e.target.closest('[data-topic]'); if(t) openTopic(t.dataset.topic);
-});
-
-function renderTopics(){
-  main.innerHTML = '<div class="row"><select id="days"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="3650">всё время</option></select><input id="mq" placeholder="Поиск по вопросам" style="flex:1;min-width:200px"><button class="btn" id="mgo">Найти</button><button class="btn" id="hand">Только переданные менеджеру</button><button class="btn" id="tcsv">Экспорт CSV</button></div><div id="tw"></div>';
-  function load(){
-    api('topics?days=' + document.getElementById('days').value).then(function(j){
-      cache.topics = j.topics; var max = j.topics.length ? j.topics[0].n : 1;
-      document.getElementById('tw').innerHTML = '<div class="card"><h2>Частые темы — идеи для роликов</h2><p class="faint">Темы размечает ИИ по каждому вопросу. Чем выше тема, тем больше людей о ней спрашивают. Нажмите на тему, чтобы увидеть сами вопросы.</p><table><tr><th>Тема</th><th>Вопросов</th><th>Людей</th><th>К менеджеру</th><th>Последний</th><th></th></tr>' +
-        j.topics.map(function(t){ return '<tr class="click" data-topic="' + esc(t.topic) + '"><td><b>' + esc(t.topic) + '</b></td><td class="mono">' + t.n + '</td><td class="mono">' + t.users + '</td><td class="mono">' + (t.handoffs || 0) + '</td><td class="faint">' + dt(t.last) + '</td><td style="width:30%"><div class="bar" style="width:' + Math.round(100 * t.n / max) + '%"></div></td></tr>'; }).join('') + '</table></div>' +
-        '<div class="card"><h2>Какие готовые статьи выдавались</h2>' + (j.articles.map(function(a){ return '<div>' + esc(a.article) + ' — <b>' + a.n + '</b></div>'; }).join('') || '<p class="faint">пока нет</p>') + '</div>';
-    });
-  }
-  document.getElementById('days').onchange = load; load();
-  document.getElementById('mgo').onclick = function(){ openMessages('q=' + encodeURIComponent(document.getElementById('mq').value), 'Поиск'); };
-  document.getElementById('hand').onclick = function(){ openMessages('handoff=1', 'Переданы менеджеру'); };
-  document.getElementById('tcsv').onclick = function(){ api('messages').then(function(j){ download('questions.csv', [['date','topic','article','handoff','lang','user','question','answer']].concat(j.messages.map(function(m){ return [new Date(m.at).toISOString(), m.topic, m.article, m.handoff, m.lang, m.username || m.name, m.text, m.reply]; }))); }); };
-}
-function openTopic(t){ openMessages('topic=' + encodeURIComponent(t), 'Тема: ' + t); }
-function openMessages(qs, title){
-  var m = document.getElementById('modal'), box = document.getElementById('modalBox'); m.hidden = false; box.innerHTML = '<p class="muted">Загрузка…</p>';
-  api('messages?' + qs).then(function(j){
-    box.innerHTML = '<div class="row" style="justify-content:space-between"><h2 style="margin:0">' + esc(title) + ' (' + j.messages.length + ')</h2><button class="btn" data-close>Закрыть</button></div>' +
-      j.messages.map(function(x){ return '<div class="msg"><div class="q">' + esc(x.text) + '</div><div class="faint">' + dt(x.at) + ' · ' + esc(x.username ? '@' + x.username : x.name || '') + ' · ' + esc((x.lang || '').toUpperCase()) + (x.handoff ? ' · <b style="color:var(--warn)">к менеджеру</b>' : '') + '</div><div class="a">' + esc(x.reply) + '</div></div>'; }).join('');
-  });
-}
-
-function renderVideos(){
-  main.innerHTML = '<p class="muted">Загрузка…</p>';
-  api('videos').then(function(j){
-    var v = j.videos || {};
-    main.innerHTML = '<div class="card"><h2>YouTube-видео в уроках</h2><p class="faint">Вставьте ссылку или ID ролика. Видео должно быть «доступ по ссылке» (unlisted) — приватные внутри приложения не проигрываются. Появятся у учеников при следующем открытии.</p><table>' +
-      COURSES.map(function(c){ return '<tr><th colspan="2">' + esc(c.name) + '</th></tr>' + c.lessons.map(function(l, i){ var k = c.id + ':' + i; return '<tr class="vid-row"><td>' + (i + 1) + '. ' + esc(l.title) + '</td><td><input data-vk="' + k + '" value="' + esc(v[k] || '') + '" placeholder="youtu.be/…"></td></tr>'; }).join(''); }).join('') +
-      '</table><div class="row" style="margin-top:12px"><button class="btn pri" id="vsave">Сохранить</button><span id="vmsg" class="faint"></span></div></div>';
-    document.getElementById('vsave').onclick = function(){
-      var out = {};
-      document.querySelectorAll('[data-vk]').forEach(function(inp){ var s = inp.value.trim(); if(!s) return; var m = s.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/); out[inp.dataset.vk] = m ? m[1] : s; });
-      api('videos', { videos: out }).then(function(){ document.getElementById('vmsg').textContent = 'Сохранено: ' + Object.keys(out).length + ' видео'; });
-    };
-  });
-}
-
-function renderRefs(){
-  main.innerHTML = '<p class="muted">Загрузка…</p>';
-  Promise.all([loadUsers(), api('rewards')]).then(function(r){
-    var us = r[0], given = {}; r[1].rewards.forEach(function(x){ given[x.user_id + ':' + x.tier] = x.at; });
-    var tiers = [1, 3, 5, 10];
-    var list = us.filter(function(u){ return u.invited > 0; }).sort(function(a, b){ return b.invited_ok - a.invited_ok; });
-    main.innerHTML = '<div class="card"><h2>Рефералы и призы</h2><p class="faint">Засчитываются друзья с подтверждённым доступом. Отметьте приз, когда выдали его вручную. Тексты призов — в config.js (PRIZES).</p><table><tr><th>Кто пригласил</th><th>Подтверждено / пришло</th>' + tiers.map(function(t){ return '<th>' + t + '</th>'; }).join('') + '</tr>' +
-      list.map(function(u){ return '<tr><td><b>' + esc(u.name || '') + '</b> <span class="faint">' + (u.username ? '@' + esc(u.username) : u.id) + '</span></td><td class="mono">' + u.invited_ok + ' / ' + u.invited + '</td>' +
-        tiers.map(function(t){ var reached = u.invited_ok >= t, done = given[u.id + ':' + t]; return '<td>' + (!reached ? '<span class="faint">—</span>' : done ? '<button class="btn" data-rw="' + u.id + ':' + t + ':undo">✓ выдан</button>' : '<button class="btn ok" data-rw="' + u.id + ':' + t + '">Выдать</button>') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' + (list.length ? '' : '<p class="faint">Пока никто никого не пригласил.</p>') + '</div>';
-  });
-}
-document.addEventListener('click', function(e){ var b = e.target.closest('[data-rw]'); if(!b) return; var p = b.dataset.rw.split(':'); api('reward', { id:Number(p[0]), tier:Number(p[1]), undo: p[2] === 'undo' }).then(renderRefs); });
-
-function renderSettings(){
-  api('stats').then(function(s){
-    main.innerHTML = '<div class="card"><h2>Чат менеджеров</h2><p>' + (s.salesChat ? '✅ Подключён. Туда приходят анкеты, запросы доступа, обращения к менеджеру и призы.' : '❌ Не подключён. Добавьте бота в группу и напишите <span class="mono">/setsales</span>.') + '</p>' + (s.salesChat ? '<button class="btn bad" id="sr">Отвязать чат</button>' : '') + '</div>' +
-      '<div class="card"><h2>Менеджер для передачи диалога</h2><p>' + (s.manager ? '@' + esc(s.manager) : 'не задан') + '</p><p class="faint">Меняется в deploy.ps1 (переменная $MANAGER) с повторным запуском DEPLOY.bat.</p></div>' +
-      '<div class="card"><h2>Выход</h2><button class="btn" onclick="logout()">Выйти из админки</button></div>';
-    var sr = document.getElementById('sr'); if(sr) sr.onclick = function(){ if(confirm('Отвязать чат менеджеров?')) api('sales-reset', {}).then(renderSettings); };
-  });
-}
-
-if(KEY) start(); else renderLogin();
-</script>
-</body>
-</html>
+<script src="admin.js?v=20261008"></script>
+</body></html>
