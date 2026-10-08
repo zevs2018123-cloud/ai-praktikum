@@ -165,6 +165,8 @@ Object.assign(I18N.en.ui, {
   depTitle:'Join the private club', depText:'The club opens the full academy (20+ lessons from the basics to a complete trading system), Jason’s signals and live trade breakdowns. To get in, top up your broker account with any amount.',
   depStep1:'Top up your broker account — any amount', depOpenBroker:'Open {b} →', depStep2:'Send us the proof',
   depShot:'Screenshot', depAcc:'Account number', depShotPick:'Choose a screenshot of the top-up', depShotReady:'Screenshot attached', depShotBad:'Couldn’t read the image — try another one',
+  gStep2:'Send a screenshot of your account or its number', gShotPick:'Choose a screenshot of your {b} account', gPendShot:'A manager is checking your screenshot — usually within 1 hour. You’ll get a message in the bot as soon as the academy opens.',
+  proofReplace:'Replace', proofHint:'The account number should be visible. Crop out balances if you like.',
   depSend:'Send for review', depNote:'A manager checks the deposit — usually within 1 hour. You’ll get a message in the bot when the club opens.',
   depPendTitle:'Checking your deposit', depPendSub:'Usually within 1 hour — we’ll message you in the bot.', depPendText:'A manager is checking your deposit — usually within 1 hour. As soon as it’s confirmed, the club and the full academy open.',
   depRejected:'We couldn’t confirm the deposit. Check the details or write to support.', depOkTitle:'You’re in the club', depOkText:'The full academy is open. Welcome!',

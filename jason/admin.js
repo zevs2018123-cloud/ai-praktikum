@@ -261,8 +261,9 @@ function drawCard(j){
       '<span><span class="k">Пришёл</span> ' + dt(u.first_seen) + '</span><span><span class="k">Был</span> ' + dt(u.last_seen) + '</span><span><span class="k">Открывал академию</span> ' + (u.opens || 0) + '×</span>' +
       (u.ref_by ? '<span><span class="k">Пригласил</span> id ' + u.ref_by + '</span>' : '') + '</div>' +
     /* access: broker account */
-    '<div class="sect"><div class="st">Счёт у брокера</div><div class="kv" style="margin:4px 0"><span class="k">Номер</span> <b class="mono">' + esc(u.broker_id || '—') + '</b> <span class="chip ' + ({ pending:'c-yellow', approved:'c-green', rejected:'c-red' }[gate] || 'c-grey') + '">' + RU.gate[gate] + '</span>' + (u.gate_at ? ' <span class="hint">' + dt(u.gate_at) + '</span>' : '') + '</div>' +
-      '<div class="actions" style="margin:0">' + (gate !== 'approved' && u.broker_id ? '<button class="btn ok-btn" data-gate="approved">✅ Подтвердить — открыть академию</button>' : '') +
+    '<div class="sect"><div class="st">Счёт у брокера</div><div class="kv" style="margin:4px 0"><span class="k">Номер</span> <b class="mono">' + esc(u.broker_id || '—') + '</b> <span class="chip ' + ({ pending:'c-yellow', approved:'c-green', rejected:'c-red' }[gate] || 'c-grey') + '">' + RU.gate[gate] + '</span>' + (u.gate_at ? ' <span class="hint">' + dt(u.gate_at) + '</span>' : '') +
+      (u.broker_shot && u.broker_shot !== 'none' ? ' <span class="ilink" data-depphoto="broker">🖼 Скриншот кабинета</span>' : u.broker_shot ? ' <span class="hint">скриншот не дошёл до Telegram (чат менеджеров не подключён)</span>' : '') + '</div><div id="brokerImg"></div>' +
+      '<div class="actions" style="margin:0">' + (gate !== 'approved' && (u.broker_id || u.broker_shot) ? '<button class="btn ok-btn" data-gate="approved">✅ Подтвердить — открыть академию</button>' : '') +
       (gate === 'pending' ? '<button class="btn ghost" data-gate="rejected">❌ Отклонить</button>' : '') +
       '</div></div>' + depositBlock(u) +
     /* stage */
@@ -298,7 +299,7 @@ function drawCard(j){
     if(dp){ var yes = dp.dataset.dep === '1'; if(!confirm(yes ? 'Подтвердить депозит? Ученику откроются клуб и полный курс.' : 'Отклонить депозит? Ученик получит сообщение.')) return; dp.disabled = true;
       api('deposit', { id:id, ok:yes }).then(function(r){ toast(yes ? (r.vip ? 'Готово: курс открыт, пропуск в клуб отправлен' : 'Курс открыт. Пропуск в VIP не выдан: ' + (r.vipError === 'vip_not_connected' ? 'VIP-канал не подключён' : r.vipError)) : 'Отклонено'); openLead(id, true); loadCrm(true); }).catch(fail); return; }
     var ph = e.target.closest('[data-depphoto]');
-    if(ph){ fetch(API + '/admin/deposit-photo?id=' + id, { headers:{ 'x-session':TOKEN } }).then(function(r){ if(!r.ok) throw new Error('Скриншот недоступен'); return r.blob(); }).then(function(b){ $('depImg').innerHTML = '<img src="' + URL.createObjectURL(b) + '" style="max-width:100%;max-height:420px;border-radius:9px;margin:6px 0;border:1px solid var(--line)">'; }).catch(fail); return; }
+    if(ph){ var isB = ph.dataset.depphoto === 'broker'; fetch(API + '/admin/deposit-photo?id=' + id + (isB ? '&kind=broker' : ''), { headers:{ 'x-session':TOKEN } }).then(function(r){ if(!r.ok) throw new Error('Скриншот недоступен'); return r.blob(); }).then(function(b){ $(isB ? 'brokerImg' : 'depImg').innerHTML = '<img src="' + URL.createObjectURL(b) + '" style="max-width:100%;max-height:420px;border-radius:9px;margin:6px 0;border:1px solid var(--line)">'; }).catch(fail); return; }
     if(e.target.closest('[data-vip]')){ if(!confirm('Отправить ученику ссылку в VIP-канал?')) return; api('vip', { id:id }).then(function(r){ toast(r.ok ? 'VIP-ссылка отправлена' : 'Не получилось: ' + (r.error === 'vip_not_connected' ? 'VIP-канал не подключён' : r.error)); openLead(id, true); }).catch(fail); return; }
     var q = e.target.closest('[data-qual]');
     if(q){ var on = c.quals.slice(), i = on.indexOf(q.dataset.qual); if(i === -1) on.push(q.dataset.qual); else on.splice(i, 1); upd({ quals:on }); return; }

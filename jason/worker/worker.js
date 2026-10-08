@@ -229,7 +229,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -261,7 +261,7 @@ async function profile(env, u) {
   return {
     onboarded: !!u.onboarded_at, onboard: u.onboard ? JSON.parse(u.onboard) : null,
     tier: u.tier, goalTarget: u.goal_target, goalText: u.goal_text,
-    gate: u.gate || 'none', brokerId: u.broker_id,
+    gate: u.gate || 'none', brokerId: u.broker_id, brokerShot: !!u.broker_shot,
     deposit: u.dep_ok_at || u.vip_at ? 'confirmed' : (u.dep_status || 'none'),
     supportUnread: (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'manager' AND id > ?`).bind(u.id, u.support_seen || 0).first())?.n || 0,
     ledger,
@@ -393,14 +393,34 @@ async function handleOnboard(req, env) {
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
+/* a screenshot from the app (data:image/...;base64) → photo in the managers' chat; returns the Telegram file_id */
+async function photoToSales(env, img, caption, kb) {
+  const m = /^data:(image\/\w+);base64,(.+)$/.exec(String(img || ''));
+  if (!m || m[2].length > 7e6) return { error: 'bad image' };
+  const sales = await setting(env, 'sales_chat'); if (!sales) return { fileId: null };
+  const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+  const fd = new FormData();
+  fd.append('chat_id', sales); fd.append('caption', caption.slice(0, 1000)); fd.append('parse_mode', 'HTML');
+  if (kb) fd.append('reply_markup', JSON.stringify(kb));
+  fd.append('photo', new Blob([bin], { type: m[1] }), 'proof.' + m[1].split('/')[1]);
+  const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}));
+  if (!r.ok) { await toSales(env, caption + '\n\n⚠️ Скриншот не загрузился в Telegram — попросите ученика прислать номер счёта.', kb ? { reply_markup: kb } : {}); return { fileId: null }; }
+  return { fileId: r.result.photo[r.result.photo.length - 1].file_id };
+}
+
 async function handleBroker(req, env) {
   const { body, u, error } = await authed(req, env); if (error) return error;
   const acc = String(body.accountId || '').replace(/[^\w-]/g, '').slice(0, 32);
-  if (acc.length < 4) return json({ error: 'bad account' }, 400);
+  const img = String(body.image || '');
+  if (acc.length < 4 && !img) return json({ error: 'bad account' }, 400);
   if (u.gate === 'approved') return json({ ok: true, me: await profile(env, u) });
-  await env.DB.prepare(`UPDATE users SET broker_id = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc, Date.now(), u.id).run();
-  await toSales(env, ['🔐 <b>Запрос доступа к курсам</b>', userLine(u), `Счёт у брокера: <code>${esc(acc)}</code>`, 'Проверь в партнёрском кабинете, что счёт открыт по нашей ссылке.'].join('\n'),
-    { reply_markup: { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }], [{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${u.id}` }]] } });
+  const kb = { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }], [{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${u.id}` }]] };
+  const cap = ['🔐 <b>Запрос доступа к курсам</b>', userLine(u), acc.length >= 4 ? `Счёт у брокера: <code>${esc(acc)}</code>` : '📷 Прислал скриншот кабинета брокера', 'Проверь в партнёрском кабинете, что счёт открыт по нашей ссылке.'].join('\n');
+  let shot = null;
+  if (img) { const r = await photoToSales(env, img, cap, kb); if (r.error) return json({ error: r.error }, 400); shot = r.fileId || 'none'; }
+  else await toSales(env, cap, { reply_markup: kb });
+  await env.DB.prepare(`UPDATE users SET broker_id = ?, broker_shot = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc.length >= 4 ? acc : (u.broker_id || null), shot || u.broker_shot || null, Date.now(), u.id).run();
+  await crmLog(env, u.id, 'ученик', 'прислал ' + (acc.length >= 4 ? 'счёт ' + acc : '') + (acc.length >= 4 && img ? ' и ' : '') + (img ? 'скриншот кабинета брокера' : ''));
   if (u.gate !== 'pending') await capiByUser(env, u.id, 'SubmitApplication');
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
@@ -447,7 +467,7 @@ async function handleSupport(req, env) {
     if (hour >= 30) return json({ error: 'rate', msgs: await supportMsgs(env, u.id) }, 429);
     await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at) VALUES (?, 'user', ?, ?)`).bind(u.id, text, Date.now()).run();
     await env.DB.prepare('INSERT OR IGNORE INTO support_sla (user_id, since) VALUES (?, ?)').bind(u.id, Date.now()).run();
-    const gate = { none: 'счёт не отправлен', pending: `счёт ${esc(u.broker_id || '')} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
+    const gate = { none: 'счёт не отправлен', pending: `${u.broker_id ? 'счёт ' + esc(u.broker_id) : 'скриншот счёта'} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
     const r = await toSales(env, ['🆘 <b>Поддержка</b>', userLine(u), gate ? 'Статус: ' + gate : '', '', esc(text), '', '↩️ <i>Ответьте реплаем на это сообщение — ответ придёт ученику в приложение и в бот.</i>'].filter((x, i) => x || i === 3 || i === 5).join('\n'));
     if (r && r.ok) await env.DB.prepare('INSERT OR REPLACE INTO support_map (chat_id, msg_id, user_id) VALUES (?, ?, ?)').bind(String(r.result.chat.id), r.result.message_id, u.id).run();
   }
@@ -518,18 +538,9 @@ async function handleDeposit(req, env) {
   if (!acc && !img) return json({ error: 'need proof' }, 400);
   const kb = { inline_keyboard: [[{ text: '💰 Депозит подтверждён → клуб + полный курс', callback_data: `dep:ok:${u.id}` }], [{ text: '❌ Не подтверждён', callback_data: `dep:no:${u.id}` }]] };
   const cap = ['💰 <b>Ученик сообщил о депозите</b>', userLine(u), u.broker_id ? 'Счёт (вход): <code>' + esc(u.broker_id) + '</code>' : '', acc ? 'Счёт пополнения: <code>' + esc(acc) + '</code>' : '', 'Проверьте пополнение в партнёрском кабинете.'].filter(Boolean).join('\n');
-  const sales = await setting(env, 'sales_chat');
   let fileId = null;
-  if (img && sales) {
-    const m = /^data:(image\/\w+);base64,(.+)$/.exec(img);
-    if (!m || m[2].length > 7e6) return json({ error: 'bad image' }, 400);
-    const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
-    const fd = new FormData();
-    fd.append('chat_id', sales); fd.append('caption', cap); fd.append('parse_mode', 'HTML'); fd.append('reply_markup', JSON.stringify(kb));
-    fd.append('photo', new Blob([bin], { type: m[1] }), 'deposit.' + m[1].split('/')[1]);
-    const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}));
-    if (r.ok) fileId = r.result.photo[r.result.photo.length - 1].file_id;
-  } else if (sales) await toSales(env, cap, { reply_markup: kb });
+  if (img) { const r = await photoToSales(env, img, cap, kb); if (r.error) return json({ error: r.error }, 400); fileId = r.fileId; }
+  else await toSales(env, cap, { reply_markup: kb });
   await env.DB.prepare(`UPDATE users SET dep_claim_at = ?, dep_claim = ?, dep_status = 'pending' WHERE id = ?`).bind(Date.now(), JSON.stringify({ acc: acc || null, photo: fileId, hasImage: !!img }), u.id).run();
   await crmLog(env, u.id, 'ученик', 'сообщил о депозите' + (acc ? ', счёт ' + acc : '') + (img ? ', скриншот' : ''));
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
@@ -987,7 +998,7 @@ const PERM = {
 };
 
 async function crmLog(env, uid, who, what) {
-  await env.DB.prepare('INSERT INTO crm_log (user_id, who, what, at) VALUES (?, ?, ?, ?)').bind(uid, String(who || '?').slice(0, 60), String(what).slice(0, 300), Date.now()).run();
+  try { await env.DB.prepare('INSERT INTO crm_log (user_id, who, what, at) VALUES (?, ?, ?, ?)').bind(uid, String(who || '?').slice(0, 60), String(what).slice(0, 300), Date.now()).run(); } catch (e) {}   // table appears with the CRM schema
 }
 async function crmRow(env, uid) {
   return (await env.DB.prepare('SELECT * FROM crm WHERE user_id = ?').bind(uid).first()) || { user_id: uid, stage: null, amount: 0, quals: '[]', notes: '[]', task_text: null, task_due: null, task_done: 0, src_override: null };
@@ -1149,9 +1160,10 @@ async function crmApi(p, req, env, url, body, me, all) {
   }
   if (p === 'deposit') return json(await confirmDeposit(env, Number(body.id), !!body.ok, me.name));
   if (p === 'deposit-photo') {
-    const u = await getUser(env, Number(url.searchParams.get('id'))); const c = u && u.dep_claim ? JSON.parse(u.dep_claim) : null;
-    if (!c || !c.photo) return json({ error: 'no photo' }, 404);
-    const f = await tg(env, 'getFile', { file_id: c.photo }); if (!f.ok) return json({ error: 'file' }, 404);
+    const u = await getUser(env, Number(url.searchParams.get('id')));
+    const fid = !u ? null : url.searchParams.get('kind') === 'broker' ? u.broker_shot : (u.dep_claim ? JSON.parse(u.dep_claim).photo : null);
+    if (!fid || fid === 'none') return json({ error: 'no photo' }, 404);
+    const f = await tg(env, 'getFile', { file_id: fid }); if (!f.ok) return json({ error: 'file' }, 404);
     const img = await fetch(`https://api.telegram.org/file/bot${env.BOT_TOKEN}/${f.result.file_path}`);
     return new Response(img.body, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600', ...CORS } });
   }
@@ -1312,7 +1324,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.9', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.10', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }

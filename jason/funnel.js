@@ -160,15 +160,27 @@ var FUNNEL = (function(){
     });
   }
 
+  /* ---------- proof widget: screenshot (default) or account number — used by the gate and the deposit sheet ---------- */
+  function proofHtml(p, mode, img, accVal, pickKey){
+    return '<div class="seg dep-seg"><button type="button" data-pmode="' + p + ':shot" aria-pressed="' + (mode === 'shot') + '">📷 ' + T('depShot') + '</button><button type="button" data-pmode="' + p + ':acc" aria-pressed="' + (mode === 'acc') + '">🔢 ' + T('depAcc') + '</button></div>' +
+      (mode === 'shot'
+        ? (img
+          ? '<div class="proof-prev"><img src="' + img + '" alt=""><div><b>✅ ' + T('depShotReady') + '</b><label class="ilink">' + T('proofReplace') + '<input type="file" accept="image/*" id="' + p + 'File" hidden></label></div></div>'
+          : '<label class="dep-file"><input type="file" accept="image/*" id="' + p + 'File" hidden><span>📎 ' + T(pickKey, { b: C.BROKER_NAME || 'broker' }) + '</span><small>' + T('proofHint') + '</small></label>')
+        : '<input id="' + p + 'Acc" class="g-input" inputmode="numeric" placeholder="' + T('gAccPh') + '" value="' + APP.esc(accVal || '') + '">');
+  }
+
   /* ---------- gate (broker registration) ---------- */
+  var gMode = 'shot', gImg = null;
   function gateHtml(){
     var m = me || {}; var st = m.gate || 'none';
     var mgr = '<button class="btn block" type="button" data-support>🆘 ' + T('supportBtn') + '</button>';
-    if(st === 'pending') return '<div class="gate-ico">⏳</div><h2>' + T('gPendTitle') + '</h2><p class="muted">' + T('gPendText', { a: APP.esc(m.brokerId || '') }) + '</p>' + mgr;
+    if(st === 'pending') return '<div class="gate-ico">⏳</div><h2>' + T('gPendTitle') + '</h2><p class="muted">' + (m.brokerId ? T('gPendText', { a: APP.esc(m.brokerId) }) : T('gPendShot')) + '</p>' + mgr;
     return '<div class="gate-ico">🔓</div><h2>' + T('gTitle') + '</h2><p class="muted">' + T('gText') + '</p>' +
       (st === 'rejected' ? '<p class="gate-rej">' + T('gRejected') + '</p>' : '') +
       '<div class="g-step"><span class="n">1</span><div><b>' + T('gStep1', { b: APP.esc(C.BROKER_NAME || 'broker') }) + '</b><button class="btn primary block" type="button" data-ext="' + APP.esc(C.REF_LINK || '') + '">' + T('gOpenBroker', { b: APP.esc(C.BROKER_NAME || 'broker') }) + '</button></div></div>' +
-      '<div class="g-step"><span class="n">2</span><div><b>' + T('gStep2') + '</b><div class="row" style="gap:8px;"><input id="gAcc" class="g-input" inputmode="numeric" placeholder="' + T('gAccPh') + '"><button class="btn primary" id="gSend" type="button">' + T('gSend') + '</button></div></div></div>' +
+      '<div class="g-step"><span class="n">2</span><div><b>' + T('gStep2') + '</b>' + proofHtml('g', gMode, gImg, m.brokerId, 'gShotPick') +
+        '<button class="btn primary block" id="gSend" type="button">' + T('depSend') + '</button></div></div>' +
       '<p class="faint" style="font-size:11.5px;">' + T('gNote') + '</p>' + mgr;
   }
   function showGate(){
@@ -182,13 +194,14 @@ var FUNNEL = (function(){
     ov.addEventListener('click', function(ev){
       if(ev.target === ov || ev.target.closest('[data-close]')){ ov.hidden = true; return; }
       if(ev.target.closest('#gSend')){
-        var v = String($('gAcc').value || '').trim();
-        if(v.replace(/\D/g, '').length < 4){ APP.toast(T('gBadAcc')); return; }
-        $('gSend').disabled = true;
-        post('/broker', { accountId: v }).then(function(j){
-          if(j.me){ me = j.me; if(window.TG) TG.haptic('success'); showGate(); renderAll(); }
-          else { $('gSend').disabled = false; APP.toast(T('gBadAcc')); }
-        }).catch(function(){ $('gSend').disabled = false; APP.toast(T('netErr')); });
+        var body = {};
+        if(gMode === 'shot'){ if(!gImg){ APP.toast(T('gShotPick', { b: C.BROKER_NAME || 'broker' })); return; } body.image = gImg; }
+        else { var v = String(($('gAcc') || {}).value || '').trim(); if(v.replace(/\D/g, '').length < 4){ APP.toast(T('gBadAcc')); return; } body.accountId = v; }
+        var b = $('gSend'); b.disabled = true; b.textContent = '…';
+        post('/broker', body).then(function(j){
+          if(j.me){ me = j.me; gImg = null; if(window.TG) TG.haptic('success'); showGate(); renderAll(); }
+          else { b.disabled = false; b.textContent = T('depSend'); APP.toast(T(gMode === 'shot' ? 'depShotBad' : 'gBadAcc')); }
+        }).catch(function(){ b.disabled = false; b.textContent = T('depSend'); APP.toast(T('netErr')); });
       }
     });
   }
@@ -204,10 +217,7 @@ var FUNNEL = (function(){
       (st === 'rejected' ? '<p class="gate-rej">' + T('depRejected') + '</p>' : '') +
       '<div class="g-step"><span class="n">1</span><div><b>' + T('depStep1') + '</b>' + (link ? '<button class="btn block" type="button" data-ext="' + APP.esc(link) + '">' + T('depOpenBroker', { b: APP.esc(C.BROKER_NAME || 'broker') }) + '</button>' : '') + '</div></div>' +
       '<div class="g-step"><span class="n">2</span><div><b>' + T('depStep2') + '</b>' +
-        '<div class="seg dep-seg"><button type="button" data-dmode="shot" aria-pressed="' + (depMode === 'shot') + '">' + T('depShot') + '</button><button type="button" data-dmode="acc" aria-pressed="' + (depMode === 'acc') + '">' + T('depAcc') + '</button></div>' +
-        (depMode === 'shot'
-          ? '<label class="dep-file"><input type="file" accept="image/*" id="dFile" hidden><span id="dFileLbl">' + (depImg ? '✅ ' + T('depShotReady') : '📎 ' + T('depShotPick')) + '</span></label>'
-          : '<input id="dAcc" class="g-input" inputmode="numeric" placeholder="' + T('gAccPh') + '" value="' + APP.esc(m.brokerId || '') + '">') +
+        proofHtml('d', depMode, depImg, m.brokerId, 'depShotPick') +
         '<button class="btn primary block" id="dSend" type="button">' + T('depSend') + '</button></div></div>' +
       '<p class="faint" style="font-size:11.5px;">' + T('depNote') + '</p>' + help;
   }
@@ -233,7 +243,8 @@ var FUNNEL = (function(){
   function bindDeposit(){
     var ov = $('funnelGate'); if(!ov) return;
     ov.addEventListener('click', function(ev){
-      var md = ev.target.closest('[data-dmode]'); if(md){ depMode = md.dataset.dmode; showDeposit(); return; }
+      var md = ev.target.closest('[data-pmode]');
+      if(md){ var pm = md.dataset.pmode.split(':'); if(pm[0] === 'g'){ gMode = pm[1]; showGate(); } else { depMode = pm[1]; showDeposit(); } return; }
       if(ev.target.closest('#dSend')){
         var body = {};
         if(depMode === 'shot'){ if(!depImg){ APP.toast(T('depShotPick')); return; } body.image = depImg; }
@@ -246,8 +257,8 @@ var FUNNEL = (function(){
       }
     });
     ov.addEventListener('change', function(ev){
-      if(ev.target.id !== 'dFile' || !ev.target.files[0]) return;
-      shrinkImage(ev.target.files[0]).then(function(d){ depImg = d; $('dFileLbl').textContent = '✅ ' + T('depShotReady'); }).catch(function(){ APP.toast(T('depShotBad')); });
+      var id = ev.target.id; if((id !== 'dFile' && id !== 'gFile') || !ev.target.files[0]) return;
+      shrinkImage(ev.target.files[0]).then(function(d){ if(id === 'gFile'){ gImg = d; showGate(); } else { depImg = d; showDeposit(); } }).catch(function(){ APP.toast(T('depShotBad')); });
     });
   }
 
