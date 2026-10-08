@@ -159,3 +159,18 @@ Object.assign(I18N.en.ui, {
   gPendText:'Account {a} is being checked by a manager — usually within 1 hour. You’ll get a message in the bot as soon as the academy opens.',
   lockTitle:'The academy is locked', lockSub:'Open an account with our partner broker — no deposit needed.', lockPendingSub:'Usually within 1 hour — we’ll message you in the bot.'
 });
+Object.assign(I18N.en.ui, {
+  clubLockedCta:'Club', baseDoneCta:'Join the club →',
+  clubBannerTitle:'Full academy — in the private club', clubBannerSub:'20+ lessons, Jason’s signals and trade breakdowns. Built by the head strategist and the best students.', clubBannerBtn:'How to join',
+  depTitle:'Join the private club', depText:'The club opens the full academy (20+ lessons from the basics to a complete trading system), Jason’s signals and live trade breakdowns. To get in, top up your broker account with any amount.',
+  depStep1:'Top up your broker account — any amount', depOpenBroker:'Open {b} →', depStep2:'Send us the proof',
+  depShot:'Screenshot', depAcc:'Account number', depShotPick:'Choose a screenshot of the top-up', depShotReady:'Screenshot attached', depShotBad:'Couldn’t read the image — try another one',
+  depSend:'Send for review', depNote:'A manager checks the deposit — usually within 1 hour. You’ll get a message in the bot when the club opens.',
+  depPendTitle:'Checking your deposit', depPendSub:'Usually within 1 hour — we’ll message you in the bot.', depPendText:'A manager is checking your deposit — usually within 1 hour. As soon as it’s confirmed, the club and the full academy open.',
+  depRejected:'We couldn’t confirm the deposit. Check the details or write to support.', depOkTitle:'You’re in the club', depOkText:'The full academy is open. Welcome!',
+  onbTargetPh:'or enter your own amount',
+  pathEyebrow:'Your path', pathTitle:'Goal: {t}', pathStart:'Start', pathGoal:'Goal', pathMult:'Growth', pathAt:'At {r}% a month', pathMonths:'~{n} mo', pathYears:'~{n} years',
+  pathJason:'Jason is walking the ×100 path in public — from $10,000 to $1,000,000, trade by trade. Your goal works by the same rules.',
+  pathReal:'This path is real when you trade by the rules: 1–2% risk per trade, a stop on every trade, no revenge trading. You don’t have to follow this pace — what matters is not to blow the deposit on day one and to keep trading for the long run.',
+  pathGo:'Start my path →', pathRisk:'Examples, not a promise of results. Trading with leverage carries a high risk of loss.'
+});

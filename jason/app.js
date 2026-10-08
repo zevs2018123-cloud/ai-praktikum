@@ -101,7 +101,8 @@
   function coursesInBlock(bid){ return COURSES.filter(function(c){ return c.blockId===bid; }); }
   function flatOrder(){ var arr=[]; BLOCKS.forEach(function(b){ coursesInBlock(b.id).forEach(function(c){ arr.push(c.id); }); }); return arr; }
 
-  function quizDone(c){ return Object.keys(getAnswers(c.id)).length >= c.quiz.length; }
+  function allRead(c){ return c.lessons.every(function(_, i){ return readArr(c.id).indexOf(i) !== -1; }); }
+  function quizDone(c){ return c.quiz.length ? Object.keys(getAnswers(c.id)).length >= c.quiz.length : allRead(c); }
   /* Step-by-step access: a lesson opens when the previous one is read; a course's quiz when all its lessons are read;
      the next course when the previous course's quiz is done. unlockOrder() is the single place to change the path
      later (e.g. a different course order per goal or starting deposit). */
@@ -120,6 +121,8 @@
     return true;
   }
   function quizUnlocked(c){ return courseUnlocked(c.id) && c.lessons.every(function(_, i){ return readArr(c.id).indexOf(i) !== -1; }); }
+  function access(cid){ return window.FUNNEL && FUNNEL.access ? FUNNEL.access(cid) : 'ok'; }
+  function blocked(cid){ var a = access(cid); if(a === 'gate'){ FUNNEL.showGate(); return true; } if(a === 'deposit'){ FUNNEL.showDeposit(); return true; } return false; }
   function lockToast(kind){ toast(T(kind === 'course' ? 'lockPrevCourse' : kind === 'quiz' ? 'lockQuiz' : 'lockPrevLesson')); if(window.TG) TG.haptic('error'); }
   function quizScore(c){ var ans = getAnswers(c.id); var correct=0, answered=0; c.quiz.forEach(function(q,qi){ if(ans[qi]!==undefined){ answered++; if(ans[qi]===q.correct) correct++; } }); return {answered:answered, correct:correct, total:c.quiz.length}; }
   function courseStatus(c){
@@ -140,7 +143,7 @@
     return T('ctaQuiz');
   }
   function continueCourse(cid){
-    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
+    if(blocked(cid)) return;
     var c = findCourse(cid); if(!c) return;
     if(!courseUnlocked(cid)){ lockToast('course'); return; }
     storeSet('activeCourseId', cid);
@@ -213,14 +216,14 @@
   function renderCourseCard(c){
     var wrap = document.createElement('details');
     wrap.className = 'course'; wrap.id = 'course-' + c.id;
-    var pct = coursePct(c), cOpen = courseUnlocked(c.id);
+    var pct = coursePct(c), acc = access(c.id), cOpen = courseUnlocked(c.id) && acc === 'ok';
     if(!cOpen) wrap.classList.add('locked');
     wrap.innerHTML =
       '<summary><div class="course-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[c.icon] || ICONS.book) + '</svg></div>' +
       '<div class="course-meta"><div class="name">' + c.name + '</div>' +
       '<span class="faint mono course-sub" style="font-size:11px;">' + lessonsN(c.lessons.length) + ' · ' + pct + '%</span>' +
       '<div class="progress sm" style="margin-top:6px;"><i style="width:' + pct + '%"></i></div></div>' +
-      '<div class="course-actions"><button class="btn ' + (cOpen ? 'primary' : '') + ' sm course-cta" type="button">' + ((window.FUNNEL && FUNNEL.locked()) || !cOpen ? '🔒 ' : '') + (cOpen ? ctaLabel(c) : T('lockedCta')) + '</button>' +
+      '<div class="course-actions"><button class="btn ' + (cOpen ? 'primary' : '') + ' sm course-cta" type="button">' + ((window.FUNNEL && FUNNEL.locked()) || !cOpen ? '🔒 ' : '') + (acc === 'deposit' ? T('clubLockedCta') : cOpen ? ctaLabel(c) : T('lockedCta')) + '</button>' +
       '<svg class="chev" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div></summary>' +
       '<div class="lesson-list"></div>';
     wrap.querySelector('.course-cta').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); continueCourse(c.id); });
@@ -238,6 +241,7 @@
       list.appendChild(row);
     });
     var quizRow = document.createElement('div');
+    if(!c.quiz.length) quizRow.hidden = true;
     quizRow.className = 'quiz-row' + (quizUnlocked(c) ? '' : ' locked');
     var qs = quizScore(c);
     quizRow.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + quizIconPath + '</svg><span>' + T('quizRow',{n:c.quiz.length}) + (quizDone(c) ? T('quizRowDone',{c:qs.correct,t:qs.total}) : '') + '</span>';
@@ -549,7 +553,7 @@
   document.addEventListener('click', function(ev){ if(ev.target.closest('[data-open-intro]')) openIntro(); });
 
   function openLesson(cid, idx){
-    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
+    if(blocked(cid)) return;
     var c = findCourse(cid); if(!c) return;
     if(idx >= c.lessons.length){ openQuiz(cid); return; }
     if(!lessonUnlocked(cid, idx)){ lockToast(courseUnlocked(cid) ? 'lesson' : 'course'); return; }
@@ -563,12 +567,16 @@
     lessonScroll.scrollTop = 0;
     bindLessonExtras(lessonScroll); bindVideo(lessonScroll);
     var isLast = idx === c.lessons.length - 1;
-    finishBtn.textContent = isLast ? T('doneToQuiz') : T('nextLesson');
+    finishBtn.textContent = isLast ? (c.quiz.length ? T('doneToQuiz') : c.base && access('__full') === 'deposit' ? T('baseDoneCta') : T('nextLesson')) : T('nextLesson');
     finishBtn.onclick = function(){
       var wasRead = readArr(cid).indexOf(idx) !== -1;
       markRead(cid, idx); renderBlocks(); renderBanners(); refreshProfile();
       if(wasRead){ recordStudy(); renderStreak(); sendPing({ progressOnly:true, studied:true }); } else progressChanged(true);
-      if(isLast) openQuiz(cid); else openLesson(cid, idx+1);
+      if(!isLast) return openLesson(cid, idx+1);
+      if(c.quiz.length) return openQuiz(cid);
+      closeLesson(); renderAll();
+      var order = unlockOrder(), nextId = order[order.indexOf(cid)+1];
+      if(nextId) continueCourse(nextId); else showScreen('courses');
     };
     if(window.TG){ TG.showBack(function(){ closeLesson(); renderAll(); }); TG.hideMainButton(); }
     overlay.hidden = false;
@@ -583,8 +591,8 @@
   document.getElementById('quizBack').addEventListener('click', function(){ closeQuiz(); renderAll(); });
 
   function openQuiz(cid){
-    if(window.FUNNEL && FUNNEL.locked()){ FUNNEL.showGate(); return; }
-    var c = findCourse(cid); if(!c) return;
+    if(blocked(cid)) return;
+    var c = findCourse(cid); if(!c || !c.quiz.length) return;
     if(!quizUnlocked(c)){ lockToast(courseUnlocked(cid) ? 'quiz' : 'course'); return; }
     overlay.hidden = true;
     quizTitleTxt.textContent = c.name;
@@ -882,7 +890,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610072141';
+  var BUILD = '202610090039';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){

@@ -171,6 +171,7 @@ var COURSE_COPY = { id:'copy', blockId:'mindset', icon:'copy', name:'Copy Tradin
 
 /* ---------------- structure ---------------- */
 var BLOCKS = [
+  { id:'start',       num:0, name:'Base course', level:'free after registration' },
   { id:'foundations', num:1, name:'Foundations', level:'beginner' },
   { id:'chart',       num:2, name:'Reading the Chart', level:'beginner → mid' },
   { id:'risk',        num:3, name:'Risk Management', level:'core' },
@@ -180,6 +181,7 @@ var BLOCKS = [
 ];
 
 var COURSES = [
+  COURSE_BASE,
   COURSE_101, COURSE_CHART,
   COURSE_SR, COURSE_IND,
   COURSE_RISK,

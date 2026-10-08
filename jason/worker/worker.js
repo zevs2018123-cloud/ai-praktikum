@@ -104,10 +104,10 @@ const T = {
     de: 'Mein Limit für heute ist erreicht — morgen wieder. Bis dahin beantworten die Lektionen im Tab Kurse die meisten Fragen.'
   },
   approved: {
-    en: '✅ Your broker account is confirmed — the academy is open! Your first lesson is waiting. The next ones unlock as you go.',
-    ru: '✅ Твой брокерский счёт подтверждён — академия открыта! Первый урок уже ждёт, следующие открываются по мере прохождения.',
-    fr: '✅ Ton compte broker est confirmé — l’académie est ouverte ! Ta première leçon t’attend, les suivantes se débloquent au fil du parcours.',
-    de: '✅ Dein Brokerkonto ist bestätigt — die Akademie ist offen! Deine erste Lektion wartet, die nächsten schalten sich nach und nach frei.'
+    en: '✅ Your broker account is confirmed — the base course is open! 4 lessons are waiting for you in the app.',
+    ru: '✅ Твой брокерский счёт подтверждён — базовый курс открыт! В приложении тебя ждут 4 урока.',
+    fr: '✅ Ton compte broker est confirmé — le cours de base est ouvert ! 4 leçons t’attendent dans l’app.',
+    de: '✅ Dein Brokerkonto ist bestätigt — der Basiskurs ist offen! 4 Lektionen warten in der App auf dich.'
   },
   supportReply: {
     en: '💬 Support replied:\n\n{t}',
@@ -116,6 +116,24 @@ const T = {
     de: '💬 Antwort vom Support:\n\n{t}'
   },
   supportOpen: { en:'Open the chat', ru:'Открыть чат', fr:'Ouvrir le chat', de:'Chat öffnen' },
+  supportHello: {
+    en: "Hi! I'm your personal manager at Jason's academy 👋 Anything unclear — registration, the broker account, the lessons — write right here, I answer within minutes.",
+    ru: 'Привет! Я твой персональный менеджер в академии Джейсона 👋 Если что-то непонятно — регистрация, счёт у брокера, уроки — пиши прямо сюда, отвечаю в течение нескольких минут.',
+    fr: "Salut ! Je suis ton manager personnel à l'académie de Jason 👋 Une question — inscription, compte broker, leçons — écris ici, je réponds en quelques minutes.",
+    de: 'Hi! Ich bin dein persönlicher Manager in Jasons Akademie 👋 Fragen zu Registrierung, Brokerkonto oder Lektionen — schreib einfach hier, ich antworte in wenigen Minuten.'
+  },
+  depositOk: {
+    en: '🎉 Deposit confirmed — welcome to the private club! The full academy (20+ lessons) is now open in the app.',
+    ru: '🎉 Депозит подтверждён — добро пожаловать в закрытый клуб! Полное обучение (20+ уроков) уже открыто в приложении.',
+    fr: '🎉 Dépôt confirmé — bienvenue dans le club privé ! L’académie complète (20+ leçons) est ouverte dans l’app.',
+    de: '🎉 Einzahlung bestätigt — willkommen im privaten Club! Die komplette Akademie (20+ Lektionen) ist jetzt in der App offen.'
+  },
+  depositNo: {
+    en: "We couldn't confirm the deposit yet. Check the details or message support in the app — we'll sort it out.",
+    ru: 'Пока не получилось подтвердить депозит. Проверь данные или напиши в поддержку в приложении — разберёмся.',
+    fr: "Nous n'avons pas encore pu confirmer le dépôt. Vérifie les infos ou écris au support dans l'app.",
+    de: 'Wir konnten die Einzahlung noch nicht bestätigen. Prüf die Angaben oder schreib dem Support in der App.'
+  },
   rejected: {
     en: "We couldn't confirm that account as registered through our link. Check the number or message the manager — we'll sort it out.",
     ru: 'Не получилось подтвердить, что счёт открыт по нашей ссылке. Проверь номер или напиши менеджеру — разберёмся.',
@@ -201,13 +219,17 @@ const SCHEMA = [
   // in-app support chat: student <-> manager (managers answer by replying in the sales chat or from the admin panel)
   `CREATE TABLE IF NOT EXISTS support (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, sender TEXT, text TEXT, by TEXT, at INTEGER)`,
   `CREATE INDEX IF NOT EXISTS idx_support_user ON support(user_id, id)`,
-  `CREATE TABLE IF NOT EXISTS support_map (chat_id TEXT, msg_id INTEGER, user_id INTEGER, PRIMARY KEY (chat_id, msg_id))`
+  `CREATE TABLE IF NOT EXISTS support_map (chat_id TEXT, msg_id INTEGER, user_id INTEGER, PRIMARY KEY (chat_id, msg_id))`,
+  // response-time SLA: one open row per student waiting for an answer; closed rows become KPI records
+  `CREATE TABLE IF NOT EXISTS support_sla (user_id INTEGER PRIMARY KEY, since INTEGER, reminded INTEGER DEFAULT 0, overdue INTEGER DEFAULT 0)`,
+  `CREATE TABLE IF NOT EXISTS support_kpi (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, by TEXT, since INTEGER, answered_at INTEGER, secs INTEGER, ontime INTEGER)`,
+  `CREATE INDEX IF NOT EXISTS idx_support_kpi_at ON support_kpi(answered_at)`
 ];
 let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -240,6 +262,7 @@ async function profile(env, u) {
     onboarded: !!u.onboarded_at, onboard: u.onboard ? JSON.parse(u.onboard) : null,
     tier: u.tier, goalTarget: u.goal_target, goalText: u.goal_text,
     gate: u.gate || 'none', brokerId: u.broker_id,
+    deposit: u.dep_ok_at || u.vip_at ? 'confirmed' : (u.dep_status || 'none'),
     supportUnread: (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'manager' AND id > ?`).bind(u.id, u.support_seen || 0).first())?.n || 0,
     ledger,
     ref: { link: bu ? `https://t.me/${bu}?start=ref_${u.id}` : null, invited: ref.invited, approved: ref.approved, tiers: REWARD_TIERS }
@@ -336,6 +359,10 @@ async function handleOpen(req, env) {
   let sub = u.sub;
   if (body.recheck || u.sub !== 1 || !u.sub_at || now - u.sub_at > 600e3) { sub = (await isSubscribed(env, u.id)) ? 1 : 0; set('sub', sub); set('sub_at', now); }
   if (sets.length) await env.DB.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, u.id).run();
+  if (!u.greeted) {
+    await env.DB.prepare(`INSERT INTO support (user_id, sender, text, by, at) VALUES (?, 'manager', ?, 'system', ?)`).bind(u.id, tt('supportHello', pickLang(body.lang || u.lang)), now).run();
+    await env.DB.prepare('UPDATE users SET greeted = 1 WHERE id = ?').bind(u.id).run();
+  }
   const videos = JSON.parse((await setting(env, 'videos')) || '{}');
   const channel = sub === 0 ? ((await clubInvite(env, u.id)) || env.CHANNEL_LINK || null) : (env.CHANNEL_LINK || null);
   return json({ access: sub !== 0, channel, me: await profile(env, { ...u, sub }), videos, manager: env.MANAGER || null });
@@ -419,6 +446,7 @@ async function handleSupport(req, env) {
     const hour = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'user' AND at > ?`).bind(u.id, Date.now() - HOUR).first())?.n || 0;
     if (hour >= 30) return json({ error: 'rate', msgs: await supportMsgs(env, u.id) }, 429);
     await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at) VALUES (?, 'user', ?, ?)`).bind(u.id, text, Date.now()).run();
+    await env.DB.prepare('INSERT OR IGNORE INTO support_sla (user_id, since) VALUES (?, ?)').bind(u.id, Date.now()).run();
     const gate = { none: 'счёт не отправлен', pending: `счёт ${esc(u.broker_id || '')} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
     const r = await toSales(env, ['🆘 <b>Поддержка</b>', userLine(u), gate ? 'Статус: ' + gate : '', '', esc(text), '', '↩️ <i>Ответьте реплаем на это сообщение — ответ придёт ученику в приложение и в бот.</i>'].filter((x, i) => x || i === 3 || i === 5).join('\n'));
     if (r && r.ok) await env.DB.prepare('INSERT OR REPLACE INTO support_map (chat_id, msg_id, user_id) VALUES (?, ?, ?)').bind(String(r.result.chat.id), r.result.message_id, u.id).run();
@@ -431,10 +459,100 @@ async function handleSupport(req, env) {
 async function supportReply(env, uid, text, by) {
   const u = await getUser(env, uid); if (!u) return { ok: false, error: 'no user' };
   text = String(text || '').trim().slice(0, 2000); if (!text) return { ok: false, error: 'empty' };
-  await env.DB.prepare(`INSERT INTO support (user_id, sender, text, by, at) VALUES (?, 'manager', ?, ?, ?)`).bind(uid, text, String(by || '').slice(0, 64), Date.now()).run();
+  const now = Date.now();
+  await env.DB.prepare(`INSERT INTO support (user_id, sender, text, by, at) VALUES (?, 'manager', ?, ?, ?)`).bind(uid, text, String(by || '').slice(0, 64), now).run();
+  const sla = await env.DB.prepare('SELECT * FROM support_sla WHERE user_id = ?').bind(uid).first();
+  if (sla) {
+    const secs = Math.round((now - sla.since) / 1000), limit = (await slaCfg(env)).minutes * 60;
+    await env.DB.prepare('INSERT INTO support_kpi (user_id, by, since, answered_at, secs, ontime) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, String(by || '?').slice(0, 64), sla.since, now, secs, secs <= limit ? 1 : 0).run();
+    await env.DB.prepare('DELETE FROM support_sla WHERE user_id = ?').bind(uid).run();
+  }
   const lang = pickLang(u.lang);
   const r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
   return { ok: true, delivered: !!(r && r.ok) };
+}
+
+/* ---------------- support SLA (response-time KPI) ----------------
+   Settings (CRM → Настройки): minutes limit, reminder minute, where alerts go, working hours. */
+async function slaCfg(env) {
+  const c = JSON.parse((await setting(env, 'sla_cfg')) || '{}');
+  return { minutes: c.minutes || 10, remind: c.remind || 7, target: c.target || 'sales', chat: c.chat || null, hours: c.hours || null, tz: c.tz ?? 3 };
+}
+function slaWorkingNow(cfg, t) {
+  if (!cfg.hours) return true;                       // 24/7
+  const [a, b] = String(cfg.hours).split('-').map(Number);
+  const h = (new Date(t).getUTCHours() + Math.round(cfg.tz) + 48) % 24;
+  return a <= b ? h >= a && h < b : h >= a || h < b;
+}
+async function slaAlert(env, cfg, uid, text) {
+  const chat = cfg.target === 'chat' && cfg.chat ? cfg.chat : await setting(env, 'sales_chat');
+  if (!chat) return;
+  const r = await tg(env, 'sendMessage', { chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true });
+  // a reply to the alert also goes to the student
+  if (r && r.ok) await env.DB.prepare('INSERT OR REPLACE INTO support_map (chat_id, msg_id, user_id) VALUES (?, ?, ?)').bind(String(r.result.chat.id), r.result.message_id, uid).run();
+}
+async function slaTick(env) {
+  const cfg = await slaCfg(env), now = Date.now();
+  if (!slaWorkingNow(cfg, now)) return;
+  const rows = (await env.DB.prepare('SELECT s.*, u.name, u.username, u.id AS uid, u.lang FROM support_sla s JOIN users u ON u.id = s.user_id WHERE s.overdue = 0').all()).results || [];
+  for (const r of rows) {
+    const mins = (now - r.since) / 60000;
+    const last = await env.DB.prepare(`SELECT text FROM support WHERE user_id = ? AND sender = 'user' ORDER BY id DESC LIMIT 1`).bind(r.user_id).first();
+    const quote = last ? '\n\n«' + esc(String(last.text).slice(0, 300)) + '»' : '';
+    if (mins >= cfg.minutes) {
+      await env.DB.prepare('UPDATE support_sla SET overdue = 1, reminded = 1 WHERE user_id = ?').bind(r.user_id).run();
+      await slaAlert(env, cfg, r.user_id, `🔴 <b>Просрочен ответ (${cfg.minutes} мин)</b>\n${userLine({ ...r, id: r.uid })}${quote}\n\n↩️ <i>Ответьте реплаем — ответ уйдёт ученику.</i>`);
+    } else if (!r.reminded && mins >= cfg.remind) {
+      await env.DB.prepare('UPDATE support_sla SET reminded = 1 WHERE user_id = ?').bind(r.user_id).run();
+      await slaAlert(env, cfg, r.user_id, `⏰ <b>Осталось ${Math.max(1, Math.round(cfg.minutes - mins))} мин на ответ</b>\n${userLine({ ...r, id: r.uid })}${quote}\n\n↩️ <i>Ответьте реплаем — ответ уйдёт ученику.</i>`);
+    }
+  }
+}
+
+/* ---------------- deposit: student proof → manager confirms → club + full academy ---------------- */
+async function handleDeposit(req, env) {
+  const { body, u, error } = await authed(req, env); if (error) return error;
+  if (u.dep_ok_at || u.vip_at) return json({ ok: true, me: await profile(env, u) });
+  const acc = String(body.accountId || '').replace(/[^\w-]/g, '').slice(0, 32);
+  const img = String(body.image || '');
+  if (!acc && !img) return json({ error: 'need proof' }, 400);
+  const kb = { inline_keyboard: [[{ text: '💰 Депозит подтверждён → клуб + полный курс', callback_data: `dep:ok:${u.id}` }], [{ text: '❌ Не подтверждён', callback_data: `dep:no:${u.id}` }]] };
+  const cap = ['💰 <b>Ученик сообщил о депозите</b>', userLine(u), u.broker_id ? 'Счёт (вход): <code>' + esc(u.broker_id) + '</code>' : '', acc ? 'Счёт пополнения: <code>' + esc(acc) + '</code>' : '', 'Проверьте пополнение в партнёрском кабинете.'].filter(Boolean).join('\n');
+  const sales = await setting(env, 'sales_chat');
+  let fileId = null;
+  if (img && sales) {
+    const m = /^data:(image\/\w+);base64,(.+)$/.exec(img);
+    if (!m || m[2].length > 7e6) return json({ error: 'bad image' }, 400);
+    const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+    const fd = new FormData();
+    fd.append('chat_id', sales); fd.append('caption', cap); fd.append('parse_mode', 'HTML'); fd.append('reply_markup', JSON.stringify(kb));
+    fd.append('photo', new Blob([bin], { type: m[1] }), 'deposit.' + m[1].split('/')[1]);
+    const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}));
+    if (r.ok) fileId = r.result.photo[r.result.photo.length - 1].file_id;
+  } else if (sales) await toSales(env, cap, { reply_markup: kb });
+  await env.DB.prepare(`UPDATE users SET dep_claim_at = ?, dep_claim = ?, dep_status = 'pending' WHERE id = ?`).bind(Date.now(), JSON.stringify({ acc: acc || null, photo: fileId, hasImage: !!img }), u.id).run();
+  await crmLog(env, u.id, 'ученик', 'сообщил о депозите' + (acc ? ', счёт ' + acc : '') + (img ? ', скриншот' : ''));
+  return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
+}
+async function confirmDeposit(env, id, ok, by) {
+  const u = await getUser(env, id); if (!u) return { ok: false, error: 'user' };
+  const lang = pickLang(u.lang);
+  if (!ok) {
+    await env.DB.prepare(`UPDATE users SET dep_status = 'rejected' WHERE id = ?`).bind(id).run();
+    await tg(env, 'sendMessage', { chat_id: id, text: tt('depositNo', lang), reply_markup: openButton(env, tt('supportOpen', lang)) });
+    await crmLog(env, id, by, 'депозит не подтверждён');
+    return { ok: true };
+  }
+  const first = !u.dep_ok_at;
+  await env.DB.prepare(`UPDATE users SET dep_ok_at = COALESCE(dep_ok_at, ?), dep_status = 'confirmed' WHERE id = ?`).bind(Date.now(), id).run();
+  const c = await crmRow(env, id); if (!c.stage || c.stage === 'отказ') { c.stage = 'депозит'; await crmSave(env, c); }
+  if (first) {
+    await tg(env, 'sendMessage', { chat_id: id, text: tt('depositOk', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
+    await capiByUser(env, id, 'Purchase', { value: c.amount || u.tier || 250, currency: 'USD' });
+  }
+  const vip = await grantVip(env, id, by);   // personal invite to the club, if the VIP channel is connected
+  await crmLog(env, id, by, 'депозит подтверждён' + (vip.ok ? ', выдан пропуск в клуб' : ''));
+  return { ok: true, vip: vip.ok, vipError: vip.ok ? null : vip.error };
 }
 
 /* ---------------- chat ---------------- */
@@ -638,6 +756,12 @@ async function handleWebhook(req, env) {
       if (res) await tg(env, 'editMessageText', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, parse_mode: 'HTML',
         text: esc(cq.message.text || '') + `\n\n${m[1] === 'approved' ? '✅ Подтвердил' : '❌ Отклонил'}: ${esc(cq.from.username ? '@' + cq.from.username : cq.from.first_name)}`,
         reply_markup: { inline_keyboard: m[1] === 'approved' ? [[{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${m[2]}` }]] : [] } });
+    } else if (/^dep:(ok|no):\d+$/.test(cq.data || '') && String(cq.message?.chat?.id) === String(salesChat)) {
+      const [, act, uid] = cq.data.split(':'); const by = cq.from.username ? '@' + cq.from.username : cq.from.first_name;
+      const r = await confirmDeposit(env, Number(uid), act === 'ok', by);
+      await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id, show_alert: act === 'ok' && !r.vip, text: act === 'ok' ? (r.vip ? 'Подтверждено: клуб и полный курс открыты' : 'Курс открыт. VIP-ссылку не выдать: ' + (r.vipError === 'vip_not_connected' ? 'VIP-канал не подключён' : r.vipError)) : 'Отклонено' });
+      await tg(env, 'editMessageReplyMarkup', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+      await toSales(env, `${act === 'ok' ? '✅ Депозит подтвердил' : '❌ Депозит отклонил'}: ${esc(by)} — id <code>${uid}</code>`);
     } else if (/^vip:\d+$/.test(cq.data || '') && String(cq.message?.chat?.id) === String(salesChat)) {
       const by = cq.from.username ? '@' + cq.from.username : cq.from.first_name;
       const r = await grantVip(env, Number(cq.data.split(':')[1]), by);
@@ -779,7 +903,7 @@ function channelOf(src, refBy) {
 }
 function autoStage(u) {
   if (u.vip_joined) return 'в VIP';
-  if (u.vip_at) return 'депозит';
+  if (u.vip_at || u.dep_ok_at) return 'депозит';
   if (u.gate === 'approved') return 'счёт подтверждён';
   if (u.gate === 'pending' || u.gate === 'rejected') return 'прислал счёт';
   if (u.onboarded_at) return 'прошёл анкету';
@@ -858,7 +982,8 @@ const PERM = {
   tasks: 'tasks',
   videos: 'content', topics: 'content', rewards: 'content', reward: 'content',
   staff: 'team',
-  'setup-webhook': 'settings', 'sales-reset': 'settings', settings: 'settings'
+  'setup-webhook': 'settings', 'sales-reset': 'settings', settings: 'settings', 'sla-settings': 'settings',
+  kpi: 'crm', deposit: 'crm', 'deposit-photo': 'crm'
 };
 
 async function crmLog(env, uid, who, what) {
@@ -884,7 +1009,7 @@ async function crmApi(p, req, env, url, body, me, all) {
     const from = url.searchParams.get('start'), to = url.searchParams.get('end');
     if (from && to) { since = Date.parse(from + 'T00:00:00Z'); until = Date.parse(to + 'T00:00:00Z') + DAY; }
     const span = until - since, prevSince = since - span;
-    const us = await all(`SELECT u.id, u.first_seen, u.src, u.ref_by, u.sub, u.club_joined, u.opens, u.onboarded_at, u.gate, u.vip_at, u.vip_joined, u.tier,
+    const us = await all(`SELECT u.id, u.first_seen, u.src, u.ref_by, u.sub, u.club_joined, u.opens, u.onboarded_at, u.gate, u.vip_at, u.vip_joined, u.tier, u.dep_ok_at,
       c.stage AS c_stage, c.amount AS c_amount, c.quals AS c_quals, c.src_override AS c_src FROM users u LEFT JOIN crm c ON c.user_id = u.id WHERE u.first_seen >= ? AND u.first_seen < ?`, prevSince, until);
     const STEP = [['starts', 'Старт бота'], ['sub', 'Подписались на канал'], ['app', 'Открыли академию'], ['onb', 'Прошли анкету'],
       ['acc', 'Прислали счёт'], ['ok', 'Счёт подтверждён'], ['dep', 'Депозит'], ['vip', 'В VIP']];
@@ -932,7 +1057,8 @@ async function crmApi(p, req, env, url, body, me, all) {
 
   if (p === 'crm') {
     const rows = await all(`SELECT u.id, u.name, u.username, u.lang, u.src, u.ref_by, u.first_seen, u.last_seen, u.sub, u.club_joined, u.opens, u.onboarded_at,
-        u.gate, u.gate_at, u.broker_id, u.tier, u.vip_at, u.vip_joined, u.goal_text,
+        u.gate, u.gate_at, u.broker_id, u.tier, u.vip_at, u.vip_joined, u.goal_text, u.dep_status, u.dep_ok_at, u.dep_claim_at,
+        (SELECT since FROM support_sla x WHERE x.user_id = u.id) AS sla_since,
         c.stage AS c_stage, c.amount AS c_amount, c.quals AS c_quals, c.task_text, c.task_due, c.task_done, c.src_override,
         s.sender AS sup_sender, s.text AS sup_text, s.at AS sup_at,
         (SELECT COUNT(*) FROM support x WHERE x.user_id = u.id AND x.sender = 'user' AND x.id > COALESCE(u.support_admin_seen, 0)) AS sup_unread
@@ -945,6 +1071,7 @@ async function crmApi(p, req, env, url, body, me, all) {
       first_seen: u.first_seen, last_seen: u.last_seen, gate: u.gate || 'none', broker_id: u.broker_id, tier: u.tier, goal: u.goal_text,
       stage: stageOf(u, { stage: u.c_stage }), manual_stage: u.c_stage || '', amount: u.c_amount || 0, quals: JSON.parse(u.c_quals || '[]'),
       task: u.task_text || '', task_due: u.task_due || '', task_done: !!u.task_done, task_overdue: !!(u.task_text && !u.task_done && u.task_due && u.task_due < today),
+      deposit: u.dep_ok_at || u.vip_at ? 'confirmed' : (u.dep_status || 'none'), sla_since: u.sla_since || null,
       waiting: u.sup_sender === 'user', last_text: u.sup_text ? String(u.sup_text).slice(0, 90) : '', last_at: u.sup_at || u.last_seen || u.first_seen, unread: u.sup_unread || 0
     })) });
   }
@@ -1010,6 +1137,32 @@ async function crmApi(p, req, env, url, body, me, all) {
       await env.DB.prepare('UPDATE staff SET salt = ?, hash = ? WHERE id = ?').bind(salt, await pwHash(pw, salt), me.id).run();
     }
     return json({ staff: (await all('SELECT * FROM staff ORDER BY id')).map(pub) });
+  }
+  if (p === 'kpi') {
+    const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 7)), since = Date.now() - days * DAY;
+    const cfg = await slaCfg(env);
+    const rows = await all(`SELECT by, COUNT(*) n, AVG(secs) avg, SUM(ontime) ontime, MAX(secs) worst FROM support_kpi WHERE answered_at >= ? GROUP BY by ORDER BY n DESC`, since);
+    const tot = await env.DB.prepare('SELECT COUNT(*) n, AVG(secs) avg, SUM(ontime) ontime FROM support_kpi WHERE answered_at >= ?').bind(since).first();
+    const waiting = await all('SELECT s.user_id, s.since, s.overdue, u.name, u.username FROM support_sla s JOIN users u ON u.id = s.user_id ORDER BY s.since');
+    return json({ days, cfg, managers: rows.map(r => ({ by: r.by, n: r.n, avg: Math.round(r.avg || 0), ontime: r.ontime || 0, pct: r.n ? Math.round(100 * (r.ontime || 0) / r.n) : 0, worst: r.worst || 0 })),
+      total: { n: tot.n || 0, avg: Math.round(tot.avg || 0), pct: tot.n ? Math.round(100 * (tot.ontime || 0) / tot.n) : 0 }, waiting });
+  }
+  if (p === 'deposit') return json(await confirmDeposit(env, Number(body.id), !!body.ok, me.name));
+  if (p === 'deposit-photo') {
+    const u = await getUser(env, Number(url.searchParams.get('id'))); const c = u && u.dep_claim ? JSON.parse(u.dep_claim) : null;
+    if (!c || !c.photo) return json({ error: 'no photo' }, 404);
+    const f = await tg(env, 'getFile', { file_id: c.photo }); if (!f.ok) return json({ error: 'file' }, 404);
+    const img = await fetch(`https://api.telegram.org/file/bot${env.BOT_TOKEN}/${f.result.file_path}`);
+    return new Response(img.body, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600', ...CORS } });
+  }
+  if (p === 'sla-settings') {
+    if (req.method === 'POST') {
+      const c = { minutes: Math.max(1, Math.min(240, Number(body.minutes) || 10)), remind: Math.max(0, Math.min(239, Number(body.remind) || 7)),
+        target: body.target === 'chat' ? 'chat' : 'sales', chat: String(body.chat || '').trim().slice(0, 32) || null,
+        hours: /^\d{1,2}-\d{1,2}$/.test(String(body.hours || '')) ? body.hours : null, tz: Number.isFinite(Number(body.tz)) ? Number(body.tz) : 3 };
+      await setting(env, 'sla_cfg', JSON.stringify(c));
+    }
+    return json(await slaCfg(env));
   }
   if (p === 'settings') {
     const wi = (await tg(env, 'getWebhookInfo', {})).result || {};
@@ -1151,6 +1304,7 @@ export default {
         if (url.pathname === '/ledger') return await handleLedger(req, env);
         if (url.pathname === '/chat') return await handleChat(req, env);
         if (url.pathname === '/support') return await handleSupport(req, env);
+        if (url.pathname === '/deposit') return await handleDeposit(req, env);
         if (url.pathname === '/webhook') return await handleWebhook(req, env);
         if (url.pathname === '/track') return await handleTrack(req, env, ctx);
       }
@@ -1158,11 +1312,17 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.8', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.9', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
     return new Response('Jason Academy API v2', { status: 200, headers: CORS });
   },
-  async scheduled(event, env, ctx) { ctx.waitUntil(cron(env)); }
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil((async () => {
+      await ensureSchema(env);
+      await slaTick(env);
+      if (event.cron === '0 * * * *' || new Date(event.scheduledTime || Date.now()).getUTCMinutes() === 0 && event.cron !== '* * * * *') await cron(env);
+    })());
+  }
 };

@@ -171,3 +171,15 @@
   .sup-msg.mgr{ align-self:flex-start; background:var(--surface-2); border:1px solid var(--border); border-bottom-left-radius:5px; }
   .sup-msg .who{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-strong); }
   .sup-msg .tm{ font-size:10px; opacity:.65; align-self:flex-end; }
+  /* goal path screen */
+  .chip.sel{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+  .tgt-chips{ margin:2px 0 6px; }
+  .path-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:16px; padding:6px 14px; }
+  .path-row{ display:flex; justify-content:space-between; align-items:baseline; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--ink-muted); }
+  .path-row:last-child{ border-bottom:0; }
+  .path-row b{ color:var(--ink); font-family:'Unbounded','Inter',sans-serif; font-size:14px; }
+  .path-row.big b{ font-size:22px; color:var(--accent-strong); }
+  /* club banner + deposit sheet */
+  .lock-banner.club{ border-color:var(--accent); }
+  .dep-seg{ margin:6px 0 8px; }
+  .dep-file{ display:block; border:1px dashed var(--border); border-radius:12px; padding:14px; text-align:center; font-size:12.5px; color:var(--ink-muted); cursor:pointer; margin-bottom:8px; background:var(--surface-2); }

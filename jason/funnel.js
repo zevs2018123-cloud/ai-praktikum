@@ -37,6 +37,20 @@ var FUNNEL = (function(){
     var m = me || (APP && APP.storeGet('funnelMe', null));
     return !(m && m.gate === 'approved');
   }
+  /* Access levels: 0 = no broker account yet (all locked), 1 = base course open, 2 = deposit confirmed (club + full academy).
+     Offline (no API) everything is open. */
+  function level(){
+    if(!API) return 2;
+    if(locked()) return 0;
+    var m = me || (APP && APP.storeGet('funnelMe', null));
+    return m && m.deposit === 'confirmed' ? 2 : 1;
+  }
+  function access(cid){
+    var lv = level(); if(lv === 0) return 'gate';
+    var c = APP.findCourse(cid);
+    if(c && c.base) return 'ok';
+    return lv >= 2 ? 'ok' : 'deposit';
+  }
   function applyVideos(v){
     COURSES.forEach(function(c){ c.lessons.forEach(function(l, i){ var id = v[c.id + ':' + i]; if(id) l.video = id; }); });
   }
@@ -178,8 +192,73 @@ var FUNNEL = (function(){
       }
     });
   }
+  /* ---------- deposit → club ---------- */
+  var depMode = 'shot', depImg = null;
+  function depositHtml(){
+    var m = me || {}, st = m.deposit || 'none';
+    var help = '<button class="btn block" type="button" data-support>🆘 ' + T('supportBtn') + '</button>';
+    if(st === 'confirmed') return '<div class="gate-ico">🎉</div><h2>' + T('depOkTitle') + '</h2><p class="muted">' + T('depOkText') + '</p>';
+    if(st === 'pending') return '<div class="gate-ico">⏳</div><h2>' + T('depPendTitle') + '</h2><p class="muted">' + T('depPendText') + '</p>' + help;
+    var link = C.REF_LINK || C.BROKER_LINK || '';
+    return '<div class="gate-ico">💎</div><h2>' + T('depTitle') + '</h2><p class="muted">' + T('depText') + '</p>' +
+      (st === 'rejected' ? '<p class="gate-rej">' + T('depRejected') + '</p>' : '') +
+      '<div class="g-step"><span class="n">1</span><div><b>' + T('depStep1') + '</b>' + (link ? '<button class="btn block" type="button" data-ext="' + APP.esc(link) + '">' + T('depOpenBroker', { b: APP.esc(C.BROKER_NAME || 'broker') }) + '</button>' : '') + '</div></div>' +
+      '<div class="g-step"><span class="n">2</span><div><b>' + T('depStep2') + '</b>' +
+        '<div class="seg dep-seg"><button type="button" data-dmode="shot" aria-pressed="' + (depMode === 'shot') + '">' + T('depShot') + '</button><button type="button" data-dmode="acc" aria-pressed="' + (depMode === 'acc') + '">' + T('depAcc') + '</button></div>' +
+        (depMode === 'shot'
+          ? '<label class="dep-file"><input type="file" accept="image/*" id="dFile" hidden><span id="dFileLbl">' + (depImg ? '✅ ' + T('depShotReady') : '📎 ' + T('depShotPick')) + '</span></label>'
+          : '<input id="dAcc" class="g-input" inputmode="numeric" placeholder="' + T('gAccPh') + '" value="' + APP.esc(m.brokerId || '') + '">') +
+        '<button class="btn primary block" id="dSend" type="button">' + T('depSend') + '</button></div></div>' +
+      '<p class="faint" style="font-size:11.5px;">' + T('depNote') + '</p>' + help;
+  }
+  function showDeposit(){
+    var ov = $('funnelGate'); if(!ov) return;
+    if(level() === 0) return showGate();
+    $('funnelGateBox').innerHTML = '<button class="sheet-x" type="button" data-close aria-label="close">×</button>' + depositHtml();
+    ov.hidden = false;
+  }
+  function shrinkImage(file){
+    return new Promise(function(res, rej){
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function(){
+        var k = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+        res(cv.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('img')); };
+      img.src = url;
+    });
+  }
+  function bindDeposit(){
+    var ov = $('funnelGate'); if(!ov) return;
+    ov.addEventListener('click', function(ev){
+      var md = ev.target.closest('[data-dmode]'); if(md){ depMode = md.dataset.dmode; showDeposit(); return; }
+      if(ev.target.closest('#dSend')){
+        var body = {};
+        if(depMode === 'shot'){ if(!depImg){ APP.toast(T('depShotPick')); return; } body.image = depImg; }
+        else { var v = String(($('dAcc') || {}).value || '').trim(); if(v.replace(/\D/g, '').length < 4){ APP.toast(T('gBadAcc')); return; } body.accountId = v; }
+        var b = $('dSend'); b.disabled = true; b.textContent = '…';
+        post('/deposit', body).then(function(j){
+          if(j.me){ me = j.me; depImg = null; if(window.TG) TG.haptic('success'); showDeposit(); renderAll(); }
+          else { b.disabled = false; b.textContent = T('depSend'); APP.toast(T('netErr')); }
+        }).catch(function(){ b.disabled = false; b.textContent = T('depSend'); APP.toast(T('netErr')); });
+      }
+    });
+    ov.addEventListener('change', function(ev){
+      if(ev.target.id !== 'dFile' || !ev.target.files[0]) return;
+      shrinkImage(ev.target.files[0]).then(function(d){ depImg = d; $('dFileLbl').textContent = '✅ ' + T('depShotReady'); }).catch(function(){ APP.toast(T('depShotBad')); });
+    });
+  }
+
   function lockBannerHtml(){
-    if(!locked() || !serverOk) return '';
+    if(!serverOk) return '';
+    if(!locked() && level() === 1){
+      var dp = me && me.deposit === 'pending';
+      return '<div class="lock-banner club"><div class="ico">' + (dp ? '⏳' : '💎') + '</div><div class="txt"><b>' + T(dp ? 'depPendTitle' : 'clubBannerTitle') + '</b><span>' + T(dp ? 'depPendSub' : 'clubBannerSub') + '</span></div>' +
+        (dp ? '' : '<button class="btn primary sm" type="button" data-show-deposit>' + T('clubBannerBtn') + '</button>') + '</div>';
+    }
+    if(!locked()) return '';
     var st = (me && me.gate) || 'none';
     return '<div class="lock-banner"><div class="ico">' + (st === 'pending' ? '⏳' : '🔒') + '</div><div class="txt"><b>' + (st === 'pending' ? T('lockPending') : T('lockTitle')) + '</b><span>' + (st === 'pending' ? T('lockPendingSub') : T('lockSub')) + '</span></div>' +
       (st === 'pending' ? '' : '<button class="btn primary sm" type="button" data-show-gate>' + T('lockBtn') + '</button>') + '</div>';
@@ -214,7 +293,9 @@ var FUNNEL = (function(){
       html += '<h2>' + T('onbGoalQ') + '</h2><p class="muted">' + T('onbGoalSub') + '</p>' +
         '<div class="onb-chips">' + GOAL_CHIPS.map(function(g){ return '<button type="button" class="chip" data-goalchip="' + g + '">' + T('gc_' + g) + '</button>'; }).join('') + '</div>' +
         '<div class="fld"><label for="onbGoalText">' + T('onbGoalText') + '</label><input id="onbGoalText" maxlength="120" value="' + APP.esc(ans.goalText || '') + '" placeholder="' + T('onbGoalPh') + '"></div>' +
-        '<div class="fld"><label for="onbTarget">' + T('onbTarget') + '</label><input id="onbTarget" type="number" inputmode="decimal" value="' + (ans.target || '') + '" placeholder="25000"></div>' +
+        '<div class="fld"><label for="onbTarget">' + T('onbTarget') + '</label>' +
+          '<div class="onb-chips tgt-chips">' + [5000, 10000, 100000, 1000000].map(function(v){ return '<button type="button" class="chip' + (Number(ans.target) === v ? ' sel' : '') + '" data-tgt="' + v + '">' + fmt(v) + '</button>'; }).join('') + '</div>' +
+          '<input id="onbTarget" type="number" inputmode="decimal" value="' + (ans.target || '') + '" placeholder="' + T('onbTargetPh') + '"></div>' +
         '<p class="faint" style="font-size:11px;">' + T('onbGoalNote') + '</p>';
     } else {
       html += '<h2>' + T('q_' + s.key) + '</h2>' + (s.multi ? '<p class="muted">' + T('onbMulti') + '</p>' : '') +
@@ -244,6 +325,9 @@ var FUNNEL = (function(){
         } else { ans[s.key] = v; if(window.TG) TG.haptic('select'); step++; renderOnb(); }
         return;
       }
+      var tg = ev.target.closest('[data-tgt]');
+      if(tg){ $('onbTarget').value = tg.dataset.tgt; document.querySelectorAll('[data-tgt]').forEach(function(x){ x.classList.toggle('sel', x === tg); }); if(window.TG) TG.haptic('select'); return; }
+      if(ev.target.closest('[data-path-go]')){ ov.hidden = true; if(APP.openIntro) APP.openIntro(); else if(locked()) showGate(); return; }
       var gc = ev.target.closest('[data-goalchip]');
       if(gc){ $('onbGoalText').value = T('gc_' + gc.dataset.goalchip); return; }
       if(ev.target.closest('[data-back]')){ if(s.key === 'goal') saveGoalFields(); step = Math.max(0, step - 1); renderOnb(); return; }
@@ -255,12 +339,29 @@ var FUNNEL = (function(){
         post('/onboard', { answers:{ exp:ans.exp, markets:ans.markets, problem:ans.problem, time:ans.time }, tier:Number(ans.tier), target:ans.target, goalText:ans.goalText })
           .then(function(j){
             if(!j.me){ btn.disabled = false; APP.toast(T('netErr')); return; }
-            me = j.me; ov.hidden = true; if(window.TG) TG.haptic('success');
+            me = j.me; if(window.TG) TG.haptic('success');
             renderAll();
-            if(APP.openIntro) APP.openIntro(); else if(locked()) showGate();
+            renderPath();
           }).catch(function(){ btn.disabled = false; APP.toast(T('netErr')); });
       }
     });
+  }
+  /* "Your path": the goal is the engine — show the road is real when you trade by the rules, without making it a promise */
+  function monthsTo(mult, r){ return mult <= 1 ? 0 : Math.ceil(Math.log(mult) / Math.log(1 + r)); }
+  function yrs(mo){ return mo < 12 ? T('pathMonths', { n: mo }) : T('pathYears', { n: Math.round(mo / 12 * 10) / 10 }); }
+  function renderPath(){
+    var start = Number(ans.tier) || 250, target = Number(ans.target) || 10000, mult = target / start;
+    var x = mult >= 10 ? Math.round(mult) : Math.round(mult * 10) / 10;
+    $('onbBox').innerHTML = '<div class="onb-hero">🎯</div><span class="eyebrow">' + T('pathEyebrow') + '</span>' +
+      '<h2>' + T('pathTitle', { t: fmt(target) }) + '</h2>' + (ans.goalText ? '<p class="muted" style="margin-top:-6px">' + APP.esc(ans.goalText) + '</p>' : '') +
+      '<div class="path-card"><div class="path-row"><span>' + T('pathStart') + '</span><b>' + fmt(start) + '</b></div>' +
+        '<div class="path-row"><span>' + T('pathGoal') + '</span><b>' + fmt(target) + '</b></div>' +
+        '<div class="path-row big"><span>' + T('pathMult') + '</span><b>×' + x + '</b></div>' +
+        '<div class="path-row"><span>' + T('pathAt', { r: 5 }) + '</span><b>' + yrs(monthsTo(mult, 0.05)) + '</b></div>' +
+        '<div class="path-row"><span>' + T('pathAt', { r: 10 }) + '</span><b>' + yrs(monthsTo(mult, 0.10)) + '</b></div></div>' +
+      '<p>' + T('pathJason') + '</p><p class="muted">' + T('pathReal') + '</p>' +
+      '<div class="onb-actions"><span></span><button type="button" class="btn primary" data-path-go>' + T('pathGo') + '</button></div>' +
+      '<p class="faint" style="font-size:10.5px;margin-top:6px">' + T('pathRisk') + '</p>';
   }
   function saveGoalFields(){
     var t = $('onbGoalText'), g = $('onbTarget');
@@ -345,11 +446,12 @@ var FUNNEL = (function(){
   function init(app){
     APP = app;
     var cached = APP.storeGet('funnelMe', null); if(cached) me = cached;
-    bindLedger(); bindGate(); bindOnb(); bindSupport();
+    bindLedger(); bindGate(); bindOnb(); bindSupport(); bindDeposit();
     var prof = $('screen-profile'); if(prof) bindProfile(prof);
     document.addEventListener('click', function(ev){
       if(ev.target.closest('[data-ledger]')) openLedger();
       if(ev.target.closest('[data-show-gate]')) showGate();
+      if(ev.target.closest('[data-show-deposit]')) showDeposit();
       if(ev.target.closest('[data-support]')){ var g = $('funnelGate'); if(g) g.hidden = true; openSupport(); }
       var ol = ev.target.closest('[data-open-lesson]');
       if(ol){ var p = ol.dataset.openLesson.split(':'); APP.openLesson(p[0], Number(p[1])); }
@@ -357,5 +459,5 @@ var FUNNEL = (function(){
     renderAll();
   }
 
-  return { init:init, openSupport:openSupport, onServer:onServer, locked:locked, showGate:showGate, onChat:onChat, openOnboarding:openOnboarding, articleCard:articleCard, balanceOf:balanceOf, me:function(){ return me; } };
+  return { init:init, openSupport:openSupport, access:access, level:level, showDeposit:showDeposit, onServer:onServer, locked:locked, showGate:showGate, onChat:onChat, openOnboarding:openOnboarding, articleCard:articleCard, balanceOf:balanceOf, me:function(){ return me; } };
 })();

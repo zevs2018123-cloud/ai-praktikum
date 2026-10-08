@@ -156,12 +156,12 @@ function drawSpend(rows){
 /* ================= CRM ================= */
 var LEADS = [], CUR = null, ACT = {}, BOARD = false;
 function viewCrm(){
-  main.innerHTML = '<h2>Лиды <span id="crmCount" class="hint"></span> <button class="btn ghost" style="margin-left:auto" id="crmCsv">Выгрузить CSV</button></h2>' +
+  main.innerHTML = '<h2>Лиды <span id="crmCount" class="hint"></span> <button class="btn rw" style="margin-left:auto" id="crmKpi">⏱ KPI поддержки</button><button class="btn ghost" id="crmCsv">Выгрузить CSV</button></h2>' +
     '<div class="toolbar"><input class="search" id="crmSearch" placeholder="🔍 Имя, ник, id, номер счёта">' +
     '<select id="crmChan"><option value="">Все каналы</option>' + CFG.channels.map(function(c){ return '<option value="' + c.key + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
     '<select id="crmStage"><option value="">Все этапы</option>' + CFG.stages.map(function(s){ return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
     '<select id="crmSort"><option value="last">Последняя активность</option><option value="first">По дате прихода</option><option value="wait">Кто дольше ждёт</option><option value="task">По сроку задачи</option></select>' +
-    '<span class="chiprow" style="width:auto">' + [['wait','Ждут ответа'],['pending','Счёт на проверке'],['task','С задачей'],['over','Просрочено'],['board','Доска этапов']].map(function(f){ return '<span class="fbtn" data-act="' + f[0] + '">' + f[1] + '</span>'; }).join('') + '</span></div>' +
+    '<span class="chiprow" style="width:auto">' + [['wait','Ждут ответа'],['pending','Счёт на проверке'],['dep','Депозит на проверке'],['task','С задачей'],['over','Просрочено'],['board','Доска этапов']].map(function(f){ return '<span class="fbtn" data-act="' + f[0] + '">' + f[1] + '</span>'; }).join('') + '</span></div>' +
     '<div class="legend" id="qualLegend"></div><div class="board" id="crmBoard" style="display:none"></div>' +
     '<div class="crm" id="crmSplit"><div class="leadlist" id="leadList"></div><div class="cardp" id="leadCard"><p class="note">Выберите лида слева.</p></div></div>';
   ['crmSearch','crmChan','crmStage','crmSort'].forEach(function(id){ $(id).addEventListener(id === 'crmSearch' ? 'input' : 'change', renderCrm); });
@@ -170,6 +170,7 @@ function viewCrm(){
     if(b.dataset.act === 'board'){ BOARD = !BOARD; } else ACT[b.dataset.act] = !ACT[b.dataset.act];
     renderCrm();
   });
+  $('crmKpi').onclick = function(){ showKpi(7); };
   $('crmCsv').onclick = function(){ download('jason-crm.csv', [['id','name','username','channel','source','stage','amount','gate','broker_id','tier','goal','quals','task','task_due','first_seen','last_seen']].concat(LEADS.map(function(l){ return [l.id, l.name, l.username, l.channel, l.source, l.stage, l.amount, l.gate, l.broker_id, l.tier, l.goal, l.quals.join('; '), l.task, l.task_due, new Date(l.first_seen || 0).toISOString(), new Date(l.last_seen || 0).toISOString()]; }))); };
   $('qualLegend').innerHTML = 'Этапы: ' + CFG.stages.map(function(s){ return '<span class="chip ' + STAGE_COL[s] + '">' + esc(s) + '</span>'; }).join(' ');
   loadCrm();
@@ -187,7 +188,7 @@ function filtered(){
   var ls = LEADS.filter(function(l){
     if(q && (l.name + ' ' + l.username + ' ' + l.id + ' ' + (l.broker_id || '') + ' ' + l.source).toLowerCase().indexOf(q) === -1) return false;
     if(ch && l.channel !== ch) return false; if(st && l.stage !== st) return false;
-    if(ACT.wait && !l.waiting) return false; if(ACT.pending && l.gate !== 'pending') return false;
+    if(ACT.wait && !l.waiting) return false; if(ACT.pending && l.gate !== 'pending') return false; if(ACT.dep && l.deposit !== 'pending') return false;
     if(ACT.task && !(l.task && !l.task_done)) return false; if(ACT.over && !l.task_overdue) return false;
     return true;
   });
@@ -204,8 +205,8 @@ function renderCrm(){
   if(!$('leadList')) return;
   document.querySelectorAll('[data-act]').forEach(function(b){ b.classList.toggle('active', b.dataset.act === 'board' ? BOARD : !!ACT[b.dataset.act]); });
   var ls = filtered();
-  var waiting = LEADS.filter(function(l){ return l.waiting; }).length, pend = LEADS.filter(function(l){ return l.gate === 'pending'; }).length;
-  $('crmCount').innerHTML = ls.length + ' из ' + LEADS.length + (waiting ? ' · <span class="chip c-red">ждут ответа: ' + waiting + '</span>' : '') + (pend ? ' <span class="chip c-yellow">счетов на проверке: ' + pend + '</span>' : '');
+  var waiting = LEADS.filter(function(l){ return l.waiting; }).length, pend = LEADS.filter(function(l){ return l.gate === 'pending'; }).length, dpend = LEADS.filter(function(l){ return l.deposit === 'pending'; }).length;
+  $('crmCount').innerHTML = ls.length + ' из ' + LEADS.length + (waiting ? ' · <span class="chip c-red">ждут ответа: ' + waiting + '</span>' : '') + (pend ? ' <span class="chip c-yellow">счетов на проверке: ' + pend + '</span>' : '') + (dpend ? ' <span class="chip c-violet">депозитов на проверке: ' + dpend + '</span>' : '');
   $('crmBoard').style.display = BOARD ? 'grid' : 'none'; $('crmSplit').style.display = BOARD ? 'none' : 'grid';
   if(BOARD){
     $('crmBoard').style.gridTemplateColumns = 'repeat(' + CFG.stages.length + ',minmax(150px,1fr))';
@@ -219,11 +220,31 @@ function renderCrm(){
   }
   $('leadList').innerHTML = ls.slice(0, 500).map(function(l){
     return '<div class="lead' + (l.id === CUR ? ' active' : '') + (l.waiting ? ' wait' : '') + '" data-lead="' + l.id + '"><div class="nm"><span>' + esc(l.name) + (l.username ? ' <span class="hint">@' + esc(l.username) + '</span>' : '') + '</span>' +
-      (l.unread ? '<span class="badge">' + l.unread + '</span>' : l.waiting ? '<span class="badge">ждёт ' + ago(l.last_at) + '</span>' : '') + '</div>' +
+      slaBadge(l) + '</div>' +
       '<div class="src"><span class="chip ' + STAGE_COL[l.stage] + '">' + esc(l.stage) + '</span> ' + esc(chanName(l.channel)) + (l.source ? ' · ' + esc(l.source) : '') + '</div>' +
       (l.task && !l.task_done ? '<div class="task">' + (l.task_overdue ? '⚠️ ' : '📌 ') + esc(l.task) + (l.task_due ? ' · ' + esc(l.task_due) : '') + '</div>' : '') +
       (l.last_text ? '<div class="last">' + (l.waiting ? '💬 ' : '↩️ ') + esc(l.last_text) + '</div>' : '') + '</div>';
   }).join('') || '<p class="note" style="padding:12px">Никого не нашлось</p>';
+}
+var SLA_MIN = 10;
+function slaBadge(l){
+  if(l.sla_since){ var m = Math.floor((Date.now() - l.sla_since) / 60000); return '<span class="badge' + (m >= SLA_MIN ? '' : ' cnt') + '">' + (m >= SLA_MIN ? '🔴 ' : '⏱ ') + m + ' мин</span>'; }
+  return l.unread ? '<span class="badge">' + l.unread + '</span>' : '';
+}
+function secs(n){ return n < 60 ? n + ' с' : n < 3600 ? Math.round(n / 60) + ' мин' : (Math.round(n / 360) / 10) + ' ч'; }
+function showKpi(days){
+  modal('<p class="note">Загрузка…</p>');
+  api('kpi?days=' + days).then(function(k){
+    SLA_MIN = k.cfg.minutes;
+    $('tboxContent').innerHTML = '<div class="between"><h3>KPI поддержки</h3><span class="periods">' + [1, 7, 30].map(function(d){ return '<span class="per' + (d === days ? ' active' : '') + '" data-kd="' + d + '">' + (d === 1 ? '24 ч' : d + ' дн') + '</span>'; }).join('') + '</span></div>' +
+      '<p class="note">Норма ответа — ' + k.cfg.minutes + ' мин. Напоминание на ' + k.cfg.remind + '-й минуте, просрочка на ' + k.cfg.minutes + '-й. Время считается от первого сообщения ученика до ответа менеджера.</p>' +
+      '<div class="convrow" style="grid-template-columns:repeat(3,1fr)"><div class="cv"><div class="t">Ответов</div><div class="v">' + k.total.n + '</div></div><div class="cv"><div class="t">Среднее время</div><div class="v">' + secs(k.total.avg) + '</div></div><div class="cv"><div class="t">В норму</div><div class="v">' + k.total.pct + '%</div></div></div>' +
+      '<table style="margin-top:10px"><tr><th>Менеджер</th><th>Ответов</th><th>Среднее</th><th>В норму</th><th>Просрочено</th><th>Худшее</th></tr>' +
+      (k.managers.map(function(m){ return '<tr><td>' + esc(m.by) + '</td><td class="mono">' + m.n + '</td><td class="mono">' + secs(m.avg) + '</td><td class="mono"><span class="chip ' + (m.pct >= 90 ? 'c-green' : m.pct >= 70 ? 'c-yellow' : 'c-red') + '">' + m.pct + '%</span></td><td class="mono">' + (m.n - m.ontime) + '</td><td class="mono">' + secs(m.worst) + '</td></tr>'; }).join('') || '<tr><td colspan="6" class="note">Ответов за период пока нет</td></tr>') + '</table>' +
+      '<h3 style="margin-top:14px">Ждут ответа сейчас (' + k.waiting.length + ')</h3>' + (k.waiting.map(function(w){ var m = Math.floor((Date.now() - w.since) / 60000); return '<div class="logrow"><span class="chip ' + (m >= k.cfg.minutes ? 'c-red' : 'c-yellow') + '">' + m + ' мин</span> ' + esc(w.name || w.user_id) + (w.username ? ' @' + esc(w.username) : '') + '</div>'; }).join('') || '<p class="note">Никто не ждёт 👍</p>') +
+      '<div class="actions"><button class="btn ghost" data-mclose>Закрыть</button></div>';
+    $('tboxContent').querySelector('.periods').onclick = function(e){ var b = e.target.closest('[data-kd]'); if(b) showKpi(Number(b.dataset.kd)); };
+  }).catch(fail);
 }
 main.addEventListener('click', function(e){ var l = e.target.closest('[data-lead]'); if(l && VIEW === 'crm'){ if(BOARD){ BOARD = false; } openLead(Number(l.dataset.lead)); } });
 function openLead(id, keepScroll){
@@ -243,8 +264,7 @@ function drawCard(j){
     '<div class="sect"><div class="st">Счёт у брокера</div><div class="kv" style="margin:4px 0"><span class="k">Номер</span> <b class="mono">' + esc(u.broker_id || '—') + '</b> <span class="chip ' + ({ pending:'c-yellow', approved:'c-green', rejected:'c-red' }[gate] || 'c-grey') + '">' + RU.gate[gate] + '</span>' + (u.gate_at ? ' <span class="hint">' + dt(u.gate_at) + '</span>' : '') + '</div>' +
       '<div class="actions" style="margin:0">' + (gate !== 'approved' && u.broker_id ? '<button class="btn ok-btn" data-gate="approved">✅ Подтвердить — открыть академию</button>' : '') +
       (gate === 'pending' ? '<button class="btn ghost" data-gate="rejected">❌ Отклонить</button>' : '') +
-      (gate === 'approved' ? '<button class="btn rw" data-vip="1">' + (u.vip_at ? '💎 VIP-ссылка выдана — выдать ещё раз' : '💎 Депозит внесён → выдать VIP') + '</button>' : '') +
-      (u.vip_joined ? '<span class="chip c-violet">в VIP-канале</span>' : '') + '</div></div>' +
+      '</div></div>' + depositBlock(u) +
     /* stage */
     '<div class="sect"><div class="st">Этап и депозит</div><div class="actions" style="margin:0">Авто: <span class="chip ' + STAGE_COL[j.auto_stage] + '">' + esc(j.auto_stage) + '</span> Ручной: <select id="cStage"><option value="">авто</option>' +
       CFG.manualStages.map(function(s){ return '<option' + (c.stage === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
@@ -274,6 +294,11 @@ function drawCard(j){
   box.onclick = function(e){
     var g = e.target.closest('[data-gate]');
     if(g){ var st = g.dataset.gate; if(st === 'rejected' && !confirm('Отклонить счёт? Ученик получит сообщение.')) return; g.disabled = true; api('gate', { id:id, status:st }).then(function(){ toast(st === 'approved' ? 'Подтверждено — ученику ушло сообщение' : 'Отклонено'); openLead(id, true); loadCrm(true); }).catch(fail); return; }
+    var dp = e.target.closest('[data-dep]');
+    if(dp){ var yes = dp.dataset.dep === '1'; if(!confirm(yes ? 'Подтвердить депозит? Ученику откроются клуб и полный курс.' : 'Отклонить депозит? Ученик получит сообщение.')) return; dp.disabled = true;
+      api('deposit', { id:id, ok:yes }).then(function(r){ toast(yes ? (r.vip ? 'Готово: курс открыт, пропуск в клуб отправлен' : 'Курс открыт. Пропуск в VIP не выдан: ' + (r.vipError === 'vip_not_connected' ? 'VIP-канал не подключён' : r.vipError)) : 'Отклонено'); openLead(id, true); loadCrm(true); }).catch(fail); return; }
+    var ph = e.target.closest('[data-depphoto]');
+    if(ph){ fetch(API + '/admin/deposit-photo?id=' + id, { headers:{ 'x-session':TOKEN } }).then(function(r){ if(!r.ok) throw new Error('Скриншот недоступен'); return r.blob(); }).then(function(b){ $('depImg').innerHTML = '<img src="' + URL.createObjectURL(b) + '" style="max-width:100%;max-height:420px;border-radius:9px;margin:6px 0;border:1px solid var(--line)">'; }).catch(fail); return; }
     if(e.target.closest('[data-vip]')){ if(!confirm('Отправить ученику ссылку в VIP-канал?')) return; api('vip', { id:id }).then(function(r){ toast(r.ok ? 'VIP-ссылка отправлена' : 'Не получилось: ' + (r.error === 'vip_not_connected' ? 'VIP-канал не подключён' : r.error)); openLead(id, true); }).catch(fail); return; }
     var q = e.target.closest('[data-qual]');
     if(q){ var on = c.quals.slice(), i = on.indexOf(q.dataset.qual); if(i === -1) on.push(q.dataset.qual); else on.splice(i, 1); upd({ quals:on }); return; }
@@ -286,6 +311,15 @@ function drawCard(j){
     if(e.target.id === 'cSend') sendReply(id);
   };
   $('cReply').onkeydown = function(e){ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendReply(id); };
+}
+function depositBlock(u){
+  var c = u.dep_claim ? JSON.parse(u.dep_claim) : null, ok = u.dep_ok_at || u.vip_at, st = ok ? 'confirmed' : (u.dep_status || 'none');
+  var lbl = { none:['c-grey','не сообщал'], pending:['c-yellow','на проверке'], rejected:['c-red','отклонён'], confirmed:['c-green','подтверждён'] }[st];
+  return '<div class="sect"><div class="st">Депозит → клуб и полный курс</div><div class="kv" style="margin:4px 0"><span class="chip ' + lbl[0] + '">' + lbl[1] + '</span>' +
+    (u.dep_claim_at ? ' <span class="hint">заявка ' + dt(u.dep_claim_at) + '</span>' : '') + (c && c.acc ? ' <span><span class="k">Счёт</span> <b class="mono">' + esc(c.acc) + '</b></span>' : '') +
+    (c && c.photo ? ' <span class="ilink" data-depphoto="' + u.id + '">🖼 Скриншот пополнения</span>' : c && c.hasImage ? ' <span class="hint">скриншот не дошёл до Telegram (чат менеджеров не подключён)</span>' : '') +
+    (u.vip_joined ? ' <span class="chip c-violet">в VIP-канале</span>' : '') + '</div><div id="depImg"></div>' +
+    '<div class="actions" style="margin:0">' + (!ok ? '<button class="btn ok-btn" data-dep="1">💰 Депозит подтверждён → клуб + полный курс</button>' + (st === 'pending' ? '<button class="btn ghost" data-dep="0">❌ Не подтверждён</button>' : '') : '<button class="btn rw" data-vip="1">💎 Выдать пропуск в VIP ещё раз</button>') + '</div></div>';
 }
 function sendReply(id){
   var t = $('cReply').value.trim(); if(!t) return;
@@ -433,7 +467,15 @@ function viewSettings(){
       card(s.webhook.ok && !s.webhook.lastError, 'Бот', 'Вебхук ' + (s.webhook.ok ? 'установлен' : 'НЕ установлен') + ', в очереди ' + s.webhook.pending + (s.webhook.lastError ? ' · последняя ошибка: ' + esc(s.webhook.lastError) : '') + ' <button class="btn ghost" id="hook">Переустановить</button>') +
       card(s.pixel && s.capi, 'Meta Pixel и Conversions API', 'Пиксель: ' + (s.pixel ? 'есть' : 'нет (PIXEL_ID)') + ' · CAPI: ' + (s.capi ? 'есть' : 'нет (CAPI_TOKEN)') + '. Задаются в Cloudflare → Workers → jason-academy-bot → Settings → Variables.') +
       card(!!s.manager, 'Менеджер для ручной связи', s.manager ? '@' + esc(s.manager) : 'не задан (переменная MANAGER)') +
-      (s.salesChat ? '<div class="actions"><button class="btn ghost" id="sr">Отвязать чат менеджеров</button></div>' : '');
+      (s.salesChat ? '<div class="actions"><button class="btn ghost" id="sr">Отвязать чат менеджеров</button></div>' : '') +
+      '<h2>Регламент ответа поддержки (KPI)</h2><div class="box" id="slaBox"><p class="note">Загрузка…</p></div>';
+    api('sla-settings').then(function(c){
+      $('slaBox').innerHTML = '<div class="actions" style="margin:0">Норма ответа <input type="number" id="slaMin" value="' + c.minutes + '" style="width:70px"> мин · напоминание на <input type="number" id="slaRem" value="' + c.remind + '" style="width:70px"> мин</div>' +
+        '<div class="actions">Уведомления: <select id="slaTarget"><option value="sales"' + (c.target === 'sales' ? ' selected' : '') + '>в чат менеджеров</option><option value="chat"' + (c.target === 'chat' ? ' selected' : '') + '>в другой чат (id)</option></select><input type="text" id="slaChat" placeholder="chat id, напр. -100…" value="' + esc(c.chat || '') + '" style="width:190px"></div>' +
+        '<div class="actions">Часы работы: <input type="text" id="slaHours" placeholder="пусто = круглосуточно, напр. 9-21" value="' + esc(c.hours || '') + '" style="width:230px"> часовой пояс UTC+<input type="number" id="slaTz" value="' + c.tz + '" style="width:60px"> <button class="btn ok-btn" id="slaSave">Сохранить</button></div>' +
+        '<p class="note">Таймер запускается с первого сообщения ученика и останавливается на ответе менеджера (в CRM или реплаем в Telegram). Вне рабочих часов уведомления не отправляются. Ответить можно реплаем прямо на уведомление.</p>';
+      $('slaSave').onclick = function(){ api('sla-settings', { minutes:$('slaMin').value, remind:$('slaRem').value, target:$('slaTarget').value, chat:$('slaChat').value, hours:$('slaHours').value, tz:$('slaTz').value }).then(function(){ toast('Сохранено'); }).catch(fail); };
+    }).catch(fail);
     if($('hook')) $('hook').onclick = function(){ api('setup-webhook', {}).then(function(r){ toast(r.ok ? 'Вебхук установлен' : 'Не получилось'); viewSettings(); }).catch(fail); };
     if($('sr')) $('sr').onclick = function(){ if(confirm('Отвязать чат менеджеров?')) api('sales-reset', {}).then(viewSettings).catch(fail); };
   }).catch(fail);
