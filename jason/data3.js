@@ -5,7 +5,7 @@ var COURSE_PLAN = { id:'plan', blockId:'system', icon:'plan', name:'Your Trading
   { title:'The pre-trade checklist', min:4, body:[
     'Pilots run a checklist before every take-off, no matter how many thousands of hours they have. Not because they forget — because pressure makes everyone skip steps. Trading is the same.',
     {h:'A checklist you can copy'},
-    {formula:'□ Higher-timeframe trend / bias noted\n□ Price at a marked level (not in the middle of nowhere)\n□ Setup matches my playbook (which one?)\n□ Confirmation candle closed\n□ No high-impact news in the next 30 min\n□ Stop beyond structure + ATR buffer\n□ Target gives at least 1:2\n□ Size from calculator — risk ≤ 1%\n□ Total open risk within my limit\n□ I am calm, not chasing or revenge-trading', label:'Pre-trade checklist', copy:true},
+    {formula:'□ Higher-timeframe trend / bias noted\n□ Price at a marked level (not in the middle of nowhere)\n□ Setup matches my playbook (which one?)\n□ Confirmation candle closed\n□ No high-impact news in the next 30 min\n□ Stop beyond structure + ATR buffer\n□ Target gives at least 1:2\n□ Lot by project rules: 0.03 per $250, stop ≤ $2\n□ Total open risk within my limit\n□ I am calm, not chasing or revenge-trading', label:'Pre-trade checklist', copy:true},
     'If one box is empty, there is no trade. It sounds rigid. It is supposed to be — the checklist is you, calm, protecting you, excited.',
     {note:'Most of your edge comes from the trades you <b>don\'t</b> take. The checklist is a filter that removes the worst 50% of impulses.'},
     {task:'Copy the checklist into your notes app and edit it to fit your style. Use it on every demo trade this week — including the ones you decide to skip.'}

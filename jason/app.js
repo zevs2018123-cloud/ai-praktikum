@@ -669,7 +669,7 @@
   }
   document.querySelectorAll('#toolSeg button').forEach(function(b){ b.addEventListener('click', function(){ if(window.TG) TG.haptic('select'); selectTool(b.dataset.tool); }); });
 
-  var VOL = C.VOLUMES || { 250:0.01, 1000:0.03, 10000:0.3 };
+  var VOL = C.VOLUMES || { 250:0.03, 1000:0.12, 10000:1.2 };
   function projectLot(bal){
     var tiers = Object.keys(VOL).map(Number).sort(function(a,b){ return a-b; });
     if(VOL[bal]) return VOL[bal];
@@ -697,7 +697,7 @@
       '<div><div class="k">' + T('kProfit') + '</div><div class="v ok">' + (reward ? '+' + money(reward) : '—') + '</div></div>' +
       '<div><div class="k">' + T('kRR') + '</div><div class="v ' + (rr ? (rr >= 2 ? 'ok' : rr >= 1 ? '' : 'bad') : '') + '">' + (rr ? '1 : ' + rr.toFixed(1) : '—') + '</div></div>';
     var parts = [];
-    if(riskPct > 2){ msg.className = 'calc-msg bad'; parts.push(T('sizeWide', { p: riskPct.toFixed(1) })); }
+    if(riskPct > (C.MAX_RISK_PCT || 2.5)){ msg.className = 'calc-msg bad'; parts.push(T('sizeWide', { p: riskPct.toFixed(1) })); }
     else if(rr && rr < 1) parts.push(T('sizeRRlow'));
     else parts.push(T('sizeOk', { p: riskPct.toFixed(1) }));
     msg.textContent = parts.join(' ');
@@ -890,7 +890,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610090110';
+  var BUILD = '202610090124';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){

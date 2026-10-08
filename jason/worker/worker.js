@@ -47,10 +47,11 @@ Voice: confident, friendly, direct, like an experienced trader mentoring a newer
 You help with: concepts from the courses (pips, lots, leverage, margin, support/resistance, structure, EMA/RSI/ATR, position sizing, R:R, drawdown, sessions, NFP/CPI/FOMC, trading plans, journaling, psychology, copy trading), using the app (Courses, Tools calculators, goal widget, referral link, broker registration step), and where to find lessons.
 Rules:
 - Never give personalised buy/sell calls, price predictions or "what should I trade now".
-- Never promise or imply guaranteed returns. Favour risk management (0.5–2% risk per trade, stop loss on every trade).
+- Never promise or imply guaranteed returns. Favour risk management (project lot 0.03 per $250, short stop, stop loss on every trade).
 - If someone describes big losses, trading borrowed money or with money needed for debts/rent, or distress: respond with care, suggest pausing, do not push the club.
 - If asked whether you are a human or Jason himself, say clearly you are an AI assistant.
 - This is education, not financial advice.
+Project facts (state them as they are, never as guarantees): the academy's base course opens free after registering a broker account through our link; the private club (VIP signals + full academy) needs a minimum deposit of $250. The signals are scalping on gold from the project's traders: historically about 30% a month on the deposit with 70–80% accuracy — past results, not a promise. Project lot: 0.03 for every $250 of deposit, stop loss on every trade.
 OUTPUT TAGS — after your answer, on the last line, add machine tags (the student never sees them):
 [TOPIC:<2-4 word English topic>] always.
 [ARTICLE:<id>] if the message matches one of these problems: ${Object.entries(ARTICLES).map(([k, v]) => k + ' = ' + v).join('; ')}.
@@ -129,10 +130,10 @@ const T = {
     de: '🎉 Einzahlung bestätigt — willkommen im privaten Club! Die komplette Akademie (20+ Lektionen) ist jetzt in der App offen.'
   },
   depositNo: {
-    en: "We couldn't confirm the deposit yet. Check the details or message support in the app — we'll sort it out.",
-    ru: 'Пока не получилось подтвердить депозит. Проверь данные или напиши в поддержку в приложении — разберёмся.',
-    fr: "Nous n'avons pas encore pu confirmer le dépôt. Vérifie les infos ou écris au support dans l'app.",
-    de: 'Wir konnten die Einzahlung noch nicht bestätigen. Prüf die Angaben oder schreib dem Support in der App.'
+    en: "We couldn't confirm the deposit yet. Remember: the minimum for VIP signals is $250. Check the details or message support in the app — we'll sort it out.",
+    ru: 'Пока не получилось подтвердить депозит. Напомним: минимум для VIP-сигналов — $250. Проверь данные или напиши в поддержку в приложении — разберёмся.',
+    fr: "Nous n'avons pas encore pu confirmer le dépôt. Rappel : le minimum pour les signaux VIP est de 250 $. Vérifie les infos ou écris au support dans l'app.",
+    de: 'Wir konnten die Einzahlung noch nicht bestätigen. Hinweis: Das Minimum für VIP-Signale sind 250 $. Prüf die Angaben oder schreib dem Support in der App.'
   },
   rejected: {
     en: "We couldn't confirm that account as registered through our link. Check the number or message the manager — we'll sort it out.",
@@ -537,7 +538,7 @@ async function handleDeposit(req, env) {
   const img = String(body.image || '');
   if (!acc && !img) return json({ error: 'need proof' }, 400);
   const kb = { inline_keyboard: [[{ text: '💰 Депозит подтверждён → клуб + полный курс', callback_data: `dep:ok:${u.id}` }], [{ text: '❌ Не подтверждён', callback_data: `dep:no:${u.id}` }]] };
-  const cap = ['💰 <b>Ученик сообщил о депозите</b>', userLine(u), u.broker_id ? 'Счёт (вход): <code>' + esc(u.broker_id) + '</code>' : '', acc ? 'Счёт пополнения: <code>' + esc(acc) + '</code>' : '', 'Проверьте пополнение в партнёрском кабинете.'].filter(Boolean).join('\n');
+  const cap = ['💰 <b>Ученик сообщил о депозите</b>', userLine(u), u.broker_id ? 'Счёт (вход): <code>' + esc(u.broker_id) + '</code>' : '', acc ? 'Счёт пополнения: <code>' + esc(acc) + '</code>' : '', 'Проверьте пополнение в партнёрском кабинете: <b>минимум $250</b> (лот 0.03 на каждые $250).'].filter(Boolean).join('\n');
   let fileId = null;
   if (img) { const r = await photoToSales(env, img, cap, kb); if (r.error) return json({ error: r.error }, 400); fileId = r.fileId; }
   else await toSales(env, cap, { reply_markup: kb });
@@ -1324,7 +1325,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.10', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.11', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }

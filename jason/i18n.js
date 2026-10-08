@@ -129,13 +129,13 @@ Object.assign(I18N.en.ui, {
   fDeposit:'Your deposit', optCustom:'Other amount', fStopD:'Stop distance, $', fTpD:'Target distance, $',
   kProjLot:'Project lot', kPerDollar:'Per $1 gold move', kProfit:'Profit at target',
   sizeIntro2:'Lot sizes follow the project’s volumes for your deposit. Set how far your stop and target are — see exactly what’s at stake.',
-  sizeWide:'At the project lot this stop risks {p}% of your deposit — above 2%. Use a tighter, logical stop or skip the trade.',
+  sizeWide:'At the project lot this stop risks {p}% of your deposit — above 2.5%. For scalping keep the stop within $1.5–2 per 0.03 lot, or skip the trade.',
   sizeOk:'This stop risks {p}% of your deposit — within the project’s risk rules.', volFoot:'XAUUSD, 100 oz per lot. Project volumes:',
   artLbl:'Quick guide', artOpen:'Open lesson: {l}',
   hoLbl:'Personal help', hoTitle:'Let’s sort this out together', hoText:'Looks like the platform part is tricky. Our manager will walk you through it personally.',
   art_losing_streak_q:'I keep losing', art_losing_streak_t:'Several losses in a row?', art_losing_streak_b:'Losing streaks happen to every trader — even a good strategy has 5–8 losses in a row. Cut your risk to 0.5–1% per trade, stop after two losses a day, and review the last 10 trades in your journal before the next one.',
   art_stop_hit_q:'My stop always gets hit', art_stop_hit_t:'Stop hit, then price reverses?', art_stop_hit_b:'Usually the stop is too tight for gold’s normal noise, or sits right at an obvious level. Place it beyond structure plus 0.5–1× ATR — and shrink the lot so the dollar risk stays the same.',
-  art_how_much_q:'How much to start with?', art_how_much_t:'How much should I start with?', art_how_much_b:'Only money you can afford to lose. What matters more than the amount is the rule: risk 1% per trade. The calculator shows the project lot for $250, $1,000 and $10,000.',
+  art_how_much_q:'How much to start with?', art_how_much_t:'How much should I start with?', art_how_much_b:'The minimum deposit for VIP signals is $250: with it you trade 0.03 lot (another 0.03 for every extra $250). And only money you can afford to lose. The calculator shows the project lot for $250, $1,000 and $10,000.',
   art_margin_call_q:'Margin call / stop out', art_margin_call_t:'Margin call or stop out?', art_margin_call_b:'It means the position was too big for the account. Leverage isn’t the problem — size is. Size every trade from your stop and 1% risk, and never have more than ~3% at risk at once.',
   art_revenge_q:'I want to win it back', art_revenge_t:'Want to win it back right now?', art_revenge_b:'That’s revenge trading — the fastest way from −1R to −8R. Close the platform for today. The market will be there tomorrow; your capital needs to be too.',
   art_overtrading_q:'I trade too much', art_overtrading_t:'Trading too often?', art_overtrading_b:'Cap it at 3 trades a day, trade only in your window (London / New York open), and use price alerts instead of staring at the chart.',
@@ -161,9 +161,9 @@ Object.assign(I18N.en.ui, {
 });
 Object.assign(I18N.en.ui, {
   clubLockedCta:'Club', baseDoneCta:'Join the club →',
-  clubBannerTitle:'Full academy — in the private club', clubBannerSub:'20+ lessons, Jason’s signals and trade breakdowns. Built by the head strategist and the best students.', clubBannerBtn:'How to join',
-  depTitle:'Join the private club', depText:'The club opens the full academy (20+ lessons from the basics to a complete trading system), Jason’s signals and live trade breakdowns. To get in, top up your broker account with any amount.',
-  depStep1:'Top up your broker account — any amount', depOpenBroker:'Open {b} →', depStep2:'Send us the proof',
+  clubBannerTitle:'Full academy — in the private club', clubBannerSub:'VIP signals (70–80% accuracy), 20+ lessons and trade breakdowns. Entry from $250.', clubBannerBtn:'How to join',
+  depTitle:'Join the private club', depText:'The club is the VIP signals (scalping on gold, on average ~30% a month, 70–80% accuracy), live trade breakdowns and the full academy of 20+ lessons. Minimum deposit: $250 — with it you trade the signals at 0.03 lot.',
+  depStep1:'Top up your broker account — at least $250', depOpenBroker:'Open {b} →', depStep2:'Send us the proof',
   depShot:'Screenshot', depAcc:'Account number', depShotPick:'Choose a screenshot of the top-up', depShotReady:'Screenshot attached', depShotBad:'Couldn’t read the image — try another one',
   gStep2:'Send a screenshot of your account or its number', gShotPick:'Choose a screenshot of your {b} account', gPendShot:'A manager is checking your screenshot — usually within 1 hour. You’ll get a message in the bot as soon as the academy opens.',
   proofReplace:'Replace', proofHint:'The account number should be visible. Crop out balances if you like.',
@@ -171,8 +171,8 @@ Object.assign(I18N.en.ui, {
   depPendTitle:'Checking your deposit', depPendSub:'Usually within 1 hour — we’ll message you in the bot.', depPendText:'A manager is checking your deposit — usually within 1 hour. As soon as it’s confirmed, the club and the full academy open.',
   depRejected:'We couldn’t confirm the deposit. Check the details or write to support.', depOkTitle:'You’re in the club', depOkText:'The full academy is open. Welcome!',
   onbTargetPh:'or enter your own amount',
-  pathEyebrow:'Your path', pathTitle:'Goal: {t}', pathStart:'Start', pathGoal:'Goal', pathMult:'Growth', pathAt:'At {r}% a month', pathMonths:'~{n} mo', pathYears:'~{n} years',
+  pathEyebrow:'Your path', pathTitle:'Goal: {t}', pathStart:'Start', pathGoal:'Goal', pathMult:'Growth', pathAt:'Time at ~{r}% a month', pathMonths:'~{n} mo', pathYears:'~{n} years',
   pathJason:'Jason is walking the ×100 path in public — from $10,000 to $1,000,000, trade by trade. Your goal works by the same rules.',
-  pathReal:'This path is real when you trade by the rules: 1–2% risk per trade, a stop on every trade, no revenge trading. You don’t have to follow this pace — what matters is not to blow the deposit on day one and to keep trading for the long run.',
-  pathGo:'Start my path →', pathRisk:'Examples, not a promise of results. Trading with leverage carries a high risk of loss.'
+  pathReal:'Calculated at our signals’ average return, ~30% a month. This path is real when you trade by the rules: 0.03 lot per $250, a stop on every trade, no revenge trading. You don’t have to follow this pace — what matters is not to blow the deposit on day one and to keep trading for the long run.',
+  pathGo:'Start my path →', pathRisk:'Past signal statistics, not a promise of results. Trading with leverage carries a high risk of loss.'
 });

@@ -14,7 +14,12 @@ var CONFIG = {
   MANAGER: '',
 
   /* Project lot sizes per deposit (XAUUSD). Other amounts scale from the nearest lower tier. */
-  VOLUMES: { 250: 0.01, 1000: 0.03, 10000: 0.3 },   // TODO: confirm with the team
+  VOLUMES: { 250: 0.03, 1000: 0.12, 10000: 1.2 },   // 0.03 lot per every $250 (scalping signals)
+
+  /* VIP signals: minimum deposit and the average monthly return used on the "Your path" screen */
+  MIN_DEPOSIT: 250,
+  SIGNAL_MONTHLY: 0.30,
+  MAX_RISK_PCT: 2.5,   // calculator warns above this (0.03 lot on $250 with a $2 stop = 2.4%)
 
   /* Referral prizes per number of confirmed friends ({en, ru, fr, de} or one string) */
   PRIZES: {

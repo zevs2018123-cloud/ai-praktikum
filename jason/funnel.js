@@ -368,8 +368,7 @@ var FUNNEL = (function(){
       '<div class="path-card"><div class="path-row"><span>' + T('pathStart') + '</span><b>' + fmt(start) + '</b></div>' +
         '<div class="path-row"><span>' + T('pathGoal') + '</span><b>' + fmt(target) + '</b></div>' +
         '<div class="path-row big"><span>' + T('pathMult') + '</span><b>×' + x + '</b></div>' +
-        '<div class="path-row"><span>' + T('pathAt', { r: 5 }) + '</span><b>' + yrs(monthsTo(mult, 0.05)) + '</b></div>' +
-        '<div class="path-row"><span>' + T('pathAt', { r: 10 }) + '</span><b>' + yrs(monthsTo(mult, 0.10)) + '</b></div></div>' +
+        '<div class="path-row"><span>' + T('pathAt', { r: Math.round((C.SIGNAL_MONTHLY || 0.3) * 100) }) + '</span><b>' + yrs(monthsTo(mult, C.SIGNAL_MONTHLY || 0.3)) + '</b></div></div>' +
       '<p>' + T('pathJason') + '</p><p class="muted">' + T('pathReal') + '</p>' +
       '<div class="onb-actions"><span></span><button type="button" class="btn primary" data-path-go>' + T('pathGo') + '</button></div>' +
       '<p class="faint" style="font-size:10.5px;margin-top:6px">' + T('pathRisk') + '</p>';

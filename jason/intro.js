@@ -22,7 +22,7 @@ var INTRO = {
         {h:'Who this academy is for'},
         'We don’t work with people who just want to watch. This academy is for those who want to <b>actually earn</b> — learn the system, open an account and trade it.',
         {list:[
-          '<b>Starting from $250</b> — try it, learn the basics and get a feel for real trading.',
+          '<b>Starting from $250</b> — the minimum for VIP signals: lot 0.03, learn the basics and get a feel for real trading.',
           '<b>Starting from $1,000</b> — work towards your first $100,000.',
           '<b>Starting from $10,000</b> — follow my path towards the million.'
         ]},
@@ -48,7 +48,7 @@ var INTRO = {
         {h:'Для кого эта академия'},
         'Мы не работаем с теми, кто хочет просто посмотреть. Академия — для тех, кто хочет <b>именно зарабатывать</b>: выучить систему, открыть счёт и торговать по ней.',
         {list:[
-          '<b>Старт от $250</b> — попробовать, разобраться в базе и почувствовать реальную торговлю.',
+          '<b>Старт от $250</b> — минимум для VIP-сигналов: лот 0.03, разобраться в базе и почувствовать реальную торговлю.',
           '<b>Старт от $1 000</b> — идти к первым $100 000.',
           '<b>Старт от $10 000</b> — повторить мой путь к миллиону.'
         ]},
