@@ -162,7 +162,7 @@ Object.assign(I18N.en.ui, {
 Object.assign(I18N.en.ui, {
   clubLockedCta:'Club', baseDoneCta:'Join the club →',
   clubBannerTitle:'Full academy — in the private club', clubBannerSub:'VIP signals (70–80% accuracy), 20+ lessons and trade breakdowns. Entry from $250.', clubBannerBtn:'How to join',
-  depTitle:'Join the private club', depText:'The club is the VIP signals (scalping on gold, on average ~30% a month, 70–80% accuracy), live trade breakdowns and the full academy of 20+ lessons. Minimum deposit: $250 — with it you trade the signals at 0.03 lot.',
+  depTitle:'Join the private club', depText:'The club is the VIP signals (scalping on gold, on average ~30% a month, 70–80% accuracy), live trade breakdowns and the full academy of 20+ lessons. Minimum deposit: $250.',
   depStep1:'Top up your broker account — at least $250', depOpenBroker:'Open {b} →', depStep2:'Send us the proof',
   depShot:'Screenshot', depAcc:'Account number', depShotPick:'Choose a screenshot of the top-up', depShotReady:'Screenshot attached', depShotBad:'Couldn’t read the image — try another one',
   gStep2:'Send a screenshot of your account or its number', gShotPick:'Choose a screenshot of your {b} account', gPendShot:'A manager is checking your screenshot — usually within 1 hour. You’ll get a message in the bot as soon as the academy opens.',
