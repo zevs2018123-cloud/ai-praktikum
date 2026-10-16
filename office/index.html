@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+<title>Контент для офисной мебели</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column like a spec sheet; every section opens with a dimension-style label, the interactive blocks sit on plain panels */
+:root{
+  --bg:#EDEFEC;        /* light grey board */
+  --panel:#F8F9F7;
+  --ink:#1E2321;       /* graphite */
+  --muted:#5D6662;
+  --line:#CBD1CC;
+  --felt:#2E6A5C;      /* acoustic felt green */
+  --felt-soft:#DCE8E3;
+  --tape:#D9A520;      /* measuring tape yellow */
+  --display:"Unbounded", "Golos Text", system-ui, sans-serif;
+  --body:"Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161A19;--panel:#1F2422;--ink:#E6EAE7;--muted:#9AA39F;--line:#333B38;
+  --felt:#6FBCA7;--felt-soft:#22352F;--tape:#E9BC45;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161A19;--panel:#1F2422;--ink:#E6EAE7;--muted:#9AA39F;--line:#333B38;
+  --felt:#6FBCA7;--felt-soft:#22352F;--tape:#E9BC45;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:40px 64px;display:grid;gap:56px}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,6vw,46px);letter-spacing:-.01em}
+h2{font-size:clamp(21px,3.6vw,28px)}
+h3{font-size:16px;font-weight:500}
+p{margin:0;max-width:65ch}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px}
+.label::after{content:"";flex:1;height:1px;background:var(--line)}
+section{display:grid;gap:18px}
+.lead{color:var(--muted);font-size:17px}
+
+/* hero */
+.hero{display:grid;gap:20px}
+.plate{display:flex;flex-wrap:wrap;gap:8px 24px;font-family:var(--mono);font-size:13px;color:var(--muted);border-top:2px solid var(--ink);padding-top:14px}
+.plate b{color:var(--ink);font-weight:500}
+.dim{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--tape)}
+.dim i{flex:1;height:0;border-top:1px dashed var(--tape);position:relative}
+.dim i::before,.dim i::after{content:"";position:absolute;top:-5px;width:1px;height:9px;background:var(--tape)}
+.dim i::before{left:0}.dim i::after{right:0}
+
+/* topic switcher */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;display:grid;gap:16px;min-width:0}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button,.chips button{font:inherit;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:8px 14px;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font-size:13px;padding:6px 11px}
+.chips button[aria-pressed="true"]{background:var(--felt);border-color:var(--felt);color:var(--panel)}
+button:focus-visible,input:focus-visible+span{outline:2px solid var(--tape);outline-offset:2px}
+.card{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:16px;min-width:0}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.meta div{display:grid;gap:2px}
+.meta span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.meta b{font-weight:500;font-size:15px}
+.quote{font-size:17px;background:var(--felt-soft);border-radius:4px;padding:14px 16px}
+.uniq{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.bar{flex:1;min-width:120px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--felt);border-radius:3px}
+
+/* steps */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:s}
+.steps li{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--display);font-size:20px;color:var(--felt)}
+.steps p{color:var(--muted);font-size:15px}
+.shots{display:grid;gap:8px}
+.shot{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.shot input{position:absolute;opacity:0}
+.shot span.box{flex:none;width:20px;height:20px;border:1.5px solid var(--muted);border-radius:4px;margin-top:2px;display:grid;place-items:center}
+.shot input:checked+span.box{background:var(--felt);border-color:var(--felt)}
+.shot input:checked+span.box::after{content:"";width:6px;height:10px;border:solid var(--panel);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.shot input:checked~span.t{color:var(--muted);text-decoration:line-through}
+.shot small{font-family:var(--mono);color:var(--muted);font-size:12px;display:block}
+.count{font-family:var(--mono);font-size:13px;color:var(--felt)}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.day{border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:4px;align-content:start;background:var(--panel)}
+.day span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--tape)}
+.day b{font-weight:600;font-size:15px}
+.day p{font-size:14px;color:var(--muted)}
+
+/* formats */
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.fmt{display:grid;gap:8px;padding:16px 0;border-top:2px solid var(--ink)}
+.fmt .len{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.fmt p{font-size:15px}
+.fmt .hook{color:var(--felt);font-weight:500}
+
+/* metrics */
+.metrics{width:100%;border-collapse:collapse;font-size:15px}
+.tbl{overflow-x:auto}
+.metrics th,.metrics td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.metrics th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.metrics td:first-child{font-weight:500;white-space:nowrap}
+
+.contact{display:grid;gap:10px;border-top:2px solid var(--ink);padding-top:18px}
+.contact .row{display:flex;flex-wrap:wrap;gap:8px 20px;font-family:var(--mono);font-size:14px}
+.contact a{color:var(--felt)}
+.copy{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:4px;padding:3px 8px;cursor:pointer;margin-left:6px}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="dim"><i></i>план работы<i></i></div>
+    <h1>Как я буду вести контент вашей мебельной компании</h1>
+    <p class="lead">Я Владимир Григорьев, SMM-специалист и контент-маркетолог. Собрал эту страницу, чтобы показать на примерах, как одна тема превращается в 10 разных публикаций, как я руковожу съёмкой сборки удалённо и что вы получаете каждую неделю.</p>
+    <div class="plate">
+      <span>Площадок: <b>10</b></span>
+      <span>Тем в день: <b>1</b></span>
+      <span>Уникальность на text.ru: <b>от 90%</b></span>
+      <span>Формат: <b>удалённо</b></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="label">Одна тема → 10 площадок</div>
+    <h2>Каждой площадке свой угол подачи</h2>
+    <p class="lead">Выберите тему и площадку. Тема одна, но для Дзена это история клиента, для Telegram цифры, для сайта ответы на вопросы. Поэтому тексты получаются разными по сути, и уникальность держится без переписывания одних и тех же слов.</p>
+    <div class="panel">
+      <div class="seg" id="topics" role="group" aria-label="Тема"></div>
+      <div class="chips" id="platforms" role="group" aria-label="Площадка"></div>
+      <div class="card" id="card" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Съёмка сборки без выезда</div>
+    <h2>Снимает бригада, режиссирую я</h2>
+    <p class="lead">Приезжать на объекты я не смогу, поэтому съёмку веду удалённо. Я уже так работал на нескольких проектах. Монтажникам не нужно уметь снимать, им нужен понятный список кадров.</p>
+    <ol class="steps">
+      <li><div><h3>Сценарий и список кадров</h3><p>За день до сборки отправляю бригадиру короткий план: какие кадры, с какой точки, сколько секунд.</p></div></li>
+      <li><div><h3>Созвон в начале съёмки</h3><p>По видеосвязи смотрим помещение, выбираем точку для таймлапса и ставим телефон.</p></div></li>
+      <li><div><h3>Контроль по ходу</h3><p>Бригада скидывает кадры в общий чат, я сразу говорю, что переснять, пока мебель не убрали.</p></div></li>
+      <li><div><h3>Монтаж и упаковка</h3><p>Из одной сборки делаю несколько роликов под разные площадки и фото для постов.</p></div></li>
+    </ol>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+        <h3>Список кадров для бригады</h3><span class="count" id="shotCount"></span>
+      </div>
+      <div class="shots" id="shots"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Неделя контента</div>
+    <h2>Рубрики, чтобы темы были из одной вселенной</h2>
+    <div class="week">
+      <div class="day"><span>Пн</span><b>Кейс недели</b><p>Готовый проект: задача клиента, сроки, что поставили.</p></div>
+      <div class="day"><span>Вт</span><b>Ошибка выбора</b><p>Одна частая ошибка при покупке офисной мебели и как её избежать.</p></div>
+      <div class="day"><span>Ср</span><b>Сборка за 30 секунд</b><p>Таймлапс с объекта: пустое помещение и готовый офис.</p></div>
+      <div class="day"><span>Чт</span><b>Вопрос клиента</b><p>Реальный вопрос из заявок, ответ попадает и на сайт в раздел вопросов.</p></div>
+      <div class="day"><span>Пт</span><b>Цифры</b><p>Сколько стоит рабочее место, сколько метров на человека, сроки поставки.</p></div>
+      <div class="day"><span>Сб</span><b>До и после</b><p>Фото одного офиса до ремонта и после расстановки мебели.</p></div>
+      <div class="day"><span>Вс</span><b>Подборка</b><p>Три решения для одной задачи, например кабинет руководителя.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Форматы роликов</div>
+    <h2>Что снимать, чтобы досматривали</h2>
+    <div class="formats">
+      <div class="fmt"><h3>Офис с нуля</h3><span class="len">20–30 сек · таймлапс</span><p class="hook">«Здесь был голый бетон. Смотрите, что стало через 3 дня»</p><p>Первый кадр пустое помещение, последний готовый офис. Зритель досматривает, чтобы увидеть результат.</p></div>
+      <div class="fmt"><h3>Деталь крупно</h3><span class="len">10–15 сек · макро</span><p class="hook">«Вот почему этот стол не шатается через год»</p><p>Крупный план крепежа, кромки, механизма кресла. Показывает качество без слов.</p></div>
+      <div class="fmt"><h3>Сколько стоит</h3><span class="len">30–40 сек · голос + цифры</span><p class="hook">«Собрали рабочее место за 25 тысяч и за 80. Найдите разницу»</p><p>Два варианта рядом и честное сравнение. Такие ролики сохраняют и пересылают.</p></div>
+      <div class="fmt"><h3>Ошибка клиента</h3><span class="len">20–30 сек · сценка</span><p class="hook">«Купили 20 столов и не влезли в кабинет»</p><p>Короткая история с понятной болью и решением. Приводит заявки.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Руководитель в кадре</div>
+    <h2>Контент, после которого вам доверяют до звонка</h2>
+    <p class="lead">Так ведут соцсети Белёвская пастила, мясокомбинат Мизелини и «Чистая линия»: в кадре руководители и живое производство. В офисной мебели так почти никто не делает, можно занять это место первыми.</p>
+    <ol class="steps">
+      <li><div><h3>Охват</h3><p>Краш-тесты кресел, звуки сборки крупным планом, юмор про офисную жизнь. Это смотрят даже те, кому мебель сейчас не нужна.</p></div></li>
+      <li><div><h3>Доверие</h3><p>Раз в неделю руководитель показывает склад, объясняет разницу в цене, отвечает на неудобные вопросы из комментариев. Бригадир и дизайнер становятся узнаваемыми героями.</p></div></li>
+      <li><div><h3>Заявка</h3><p>В каждом ролике понятный шаг: бесплатная планировка, расчёт рабочего места или чек-лист срочного переезда через бота в Telegram или MAX.</p></div></li>
+      <li><div><h3>Повторные продажи</h3><p>Отзывы клиентов в их новых офисах и визит через полгода: как мебель выглядит после использования.</p></div></li>
+    </ol>
+    <div class="panel">
+      <h3>Сериал «Офис за 14 дней»</h3>
+      <p>Один реальный заказ по сериям: звонок, планировка, споры о бюджете, доставка, сборка, переезд команды. Люди ждут продолжения, а в финале видят результат.</p>
+      <p style="color:var(--muted)">Руководителю не нужно становиться блогером. Я пишу сценарии, раз в неделю созваниваемся на полчаса, он записывает несколько коротких кусков на телефон, а я делаю из них контент на неделю для всех площадок.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Отчёт по итогам недели</div>
+    <h2>Что я смотрю и что меняю</h2>
+    <div class="tbl">
+      <table class="metrics">
+        <thead><tr><th>Показатель</th><th>Где смотрю</th><th>Что делаю, если просел</th></tr></thead>
+        <tbody>
+          <tr><td>Удержание 3 сек</td><td>Reels, Клипы</td><td>Меняю первый кадр и хук, тестирую 2 варианта начала</td></tr>
+          <tr><td>Досмотры</td><td>Все ролики</td><td>Сокращаю, убираю паузы, ставлю результат ближе к концу</td></tr>
+          <tr><td>Дочитывания</td><td>Дзен, сайт</td><td>Переставляю главное в начало, дроблю длинные абзацы</td></tr>
+          <tr><td>ER</td><td>ВК, Telegram, Instagram</td><td>Добавляю вопрос в конце, опросы, сравнения</td></tr>
+          <tr><td>Уникальность</td><td>text.ru</td><td>Не публикую ниже 90%, меняю угол подачи</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="contact">
+    <h2>Давайте обсудим</h2>
+    <p>Могу сделать тестовую тему под ваш реальный объект и показать все 10 версий.</p>
+    <div class="row">
+      <span>Telegram: <a href="https://t.me/Desanji">@Desanji</a></span>
+      <span id="phone">+373 778 954 72</span><button class="copy" id="copyPhone" type="button">Скопировать</button>
+    </div>
+    <div class="row"><a href="https://www.instagram.com/education_masters/">Мои рилсы в Ed Masters</a></div>
+  </footer>
+</div>
+
+<script>
+const topics = {
+  office: {
+    name: "Офис на 20 человек за 14 дней",
+    items: [
+      ["Дзен","Статья-история","История клиента от первого звонка до переезда","Компания из 20 человек позвонила нам за две недели до переезда. Мебели не было, планировки тоже.","3000–4000 знаков",94],
+      ["ВКонтакте","Пост + карусель","Фото по этапам и список, что поставили","День 1 — пустой этаж. День 14 — 20 рабочих мест, переговорка и кухня. Листайте по шагам.","800 знаков",92],
+      ["ВК Клипы","Вертикальное видео","Таймлапс сборки","Здесь был голый бетон. Через 14 дней сюда пришли работать 20 человек.","25 сек",100],
+      ["Telegram","Короткий пост","Цифры проекта","20 рабочих мест, 14 дней, 3 выезда бригады. Рассказываем, как уложились в срок.","600 знаков",93],
+      ["Instagram Reels","Рилс","Офис до и после","Пустое помещение и готовый офис в одном ролике. Смотрите до конца.","20 сек",100],
+      ["Instagram Stories","Серия сторис","Опрос и закулисье","Как думаете, сколько времени нужно, чтобы обставить офис на 20 человек?","4 экрана",100],
+      ["MAX","Пост в канал","Практический совет","Если переезд через две недели, вот что стоит заказать в первую очередь.","500 знаков",91],
+      ["Сайт: блог","SEO-статья","Чек-лист срочной обстановки офиса","Срочная обстановка офиса: что заказывать в первые 3 дня, чтобы успеть к переезду.","5000 знаков",95],
+      ["Сайт: кейсы","Страница кейса","Задача, решение, сроки, состав заказа","Задача: обставить офис на 20 рабочих мест за 14 дней без остановки работы компании.","1500 знаков",93],
+      ["Сайт: вопросы","Вопрос-ответ","Возражение «не успеете»","Можно ли обставить офис за две недели? Да, если мебель в наличии на складе и планировку утвердили в первые 2 дня.","400 знаков",96]
+    ]
+  },
+  noise: {
+    name: "Опен-спейс без шума",
+    items: [
+      ["Дзен","Статья-разбор","Почему в открытом офисе падает продуктивность","Через три месяца после переезда половина команды работает в наушниках. Дело редко в самом опен-спейсе.","3500 знаков",93],
+      ["ВКонтакте","Пост + фото","Пять решений для тишины","Пять вещей, которые гасят шум в открытом офисе. Последняя самая недорогая.","700 знаков",92],
+      ["ВК Клипы","Вертикальное видео","Звук до и после","Включите звук. Так звучал офис до перегородок. А теперь послушайте после.","15 сек",100],
+      ["Telegram","Короткий пост","Цифра + вывод","Одна акустическая кабина освобождает переговорку на несколько часов в день. Считаем, сколько это экономит.","500 знаков",94],
+      ["Instagram Reels","Рилс","Боль сотрудника","Когда коллега в третий раз за час говорит по громкой связи.","12 сек",100],
+      ["Instagram Stories","Серия сторис","Опрос аудитории","Что вас больше всего отвлекает в офисе? Голоса, звонки или проходящие мимо люди?","3 экрана",100],
+      ["MAX","Пост в канал","Совет руководителю","Прежде чем ставить перегородки, спросите команду, кому нужна тишина, а кому общение.","450 знаков",91],
+      ["Сайт: блог","SEO-статья","Акустика в офисе: что работает","Акустика в открытом офисе: стеллажи, кабины и перегородки. Что выбрать под ваш бюджет.","5000 знаков",95],
+      ["Сайт: каталог","Описание категории","Акустические кабины под задачи","Кабины на одного человека для звонков и на двоих для коротких встреч. Ставятся за один день.","1200 знаков",92],
+      ["Сайт: вопросы","Вопрос-ответ","Возражение «это дорого»","Сколько стоит сделать опен-спейс тише? Начать можно со стеллажей-перегородок, это дешевле стен.","400 знаков",96]
+    ]
+  }
+};
+let tKey = "office", pIdx = 0;
+const $ = s => document.querySelector(s);
+function renderTopics(){
+  $("#topics").innerHTML = Object.entries(topics).map(([k,t]) =>
+    `<button type="button" data-k="${k}" aria-pressed="${k===tKey}">${t.name}</button>`).join("");
+}
+function renderPlatforms(){
+  $("#platforms").innerHTML = topics[tKey].items.map((it,i) =>
+    `<button type="button" data-i="${i}" aria-pressed="${i===pIdx}">${it[0]}</button>`).join("");
+}
+function renderCard(){
+  const [pl,fmt,angle,line,len,u] = topics[tKey].items[pIdx];
+  $("#card").innerHTML = `
+    <div class="meta">
+      <div><span>Площадка</span><b>${pl}</b></div>
+      <div><span>Формат</span><b>${fmt}</b></div>
+      <div><span>Объём</span><b>${len}</b></div>
+    </div>
+    <div class="meta"><div><span>Угол подачи</span><b>${angle}</b></div></div>
+    <div class="quote">${line}</div>
+    <div class="uniq">Уникальность, цель <div class="bar"><i style="width:${u}%"></i></div> ${u}%</div>`;
+}
+$("#topics").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  tKey = b.dataset.k; pIdx = 0; renderTopics(); renderPlatforms(); renderCard();
+});
+$("#platforms").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  pIdx = +b.dataset.i; renderPlatforms(); renderCard();
+});
+renderTopics(); renderPlatforms(); renderCard();
+
+const shots = [
+  ["Общий план пустого помещения","с порога, телефон горизонтально, 10 сек"],
+  ["Таймлапс всей сборки","телефон на штативе в углу, не трогать до конца"],
+  ["Распаковка первой коробки","крупно, руки и упаковка, 5 сек"],
+  ["Сборка стола","средний план, 3 коротких куска по 5 сек"],
+  ["Крепёж и кромка","макро, 2–3 сек каждая деталь"],
+  ["Расстановка кресел","проход камерой вдоль ряда, 8 сек"],
+  ["Готовый офис","тот же угол, что и первый кадр, 10 сек"],
+  ["Фото для постов","5 фото готовых зон при дневном свете"]
+];
+let done = [];
+try { done = JSON.parse(localStorage.getItem("shots") || "[]"); } catch(e) {}
+function renderShots(){
+  $("#shots").innerHTML = shots.map((s,i) => `
+    <label class="shot" for="sh${i}">
+      <input type="checkbox" id="sh${i}" data-i="${i}" ${done.includes(i)?"checked":""}>
+      <span class="box"></span>
+      <span class="t">${s[0]}<small>${s[1]}</small></span>
+    </label>`).join("");
+  $("#shotCount").textContent = `снято ${done.length} из ${shots.length}`;
+}
+$("#shots").addEventListener("change", e => {
+  const i = +e.target.dataset.i;
+  done = e.target.checked ? [...done, i] : done.filter(x => x !== i);
+  try { localStorage.setItem("shots", JSON.stringify(done)); } catch(err) {}
+  $("#shotCount").textContent = `снято ${done.length} из ${shots.length}`;
+  e.target.closest(".shot").querySelector(".t").style.color = "";
+});
+renderShots();
+
+$("#copyPhone").addEventListener("click", () => {
+  const t = $("#phone").textContent, b = $("#copyPhone");
+  navigator.clipboard.writeText(t).then(() => { b.textContent = "Скопировано"; })
+  .catch(() => { const r = document.createRange(); r.selectNodeContents($("#phone")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Выделено"; });
+});
+</script>
+
+</body>
+</html>
