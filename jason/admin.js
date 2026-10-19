@@ -276,9 +276,10 @@ function drawCard(j){
     '<div class="taskbar"><input type="text" id="cTask" placeholder="Следующее касание: позвонить, напомнить про счёт…" value="' + esc(c.task_done ? '' : c.task_text || '') + '"><input type="date" id="cDue" value="' + esc(c.task_done ? '' : c.task_due || '') + '">' +
       '<button class="btn rw" id="cTaskSave">Поставить</button>' + (c.task_text && !c.task_done ? '<button class="btn ok-btn" id="cTaskDone">Выполнено</button><button class="btn ghost" id="cTaskDel">Снять</button>' : '') + '</div>' +
     /* support chat */
-    '<div class="sect"><div class="st">Поддержка в приложении</div><div class="chat" id="cChat">' + (j.support.length ? j.support.map(function(m){
-      return '<div class="msg ' + (m.sender === 'manager' ? 'us' : 'them') + '">' + esc(m.text) + '<small>' + (m.sender === 'manager' ? esc(m.by || 'менеджер') + ' · ' : '') + dt(m.at) + '</small></div>'; }).join('') : '<p class="note">Ученик ещё не писал в поддержку. Можно написать первым — сообщение придёт ему в бот и в приложение.</p>') + '</div>' +
-      '<div class="actions"><textarea id="cReply" placeholder="Ответ ученику — придёт в бот и в чат приложения (Ctrl+Enter — отправить)"></textarea><button class="btn ok-btn" id="cSend">Отправить</button></div></div>' +
+    '<div class="sect"><div class="st">Переписка (приложение · бот · аккаунт Джейсона)</div><div class="chat" id="cChat">' + (j.support.length ? j.support.map(function(m){
+      var via = { app:'📱 приложение', bot:'🤖 бот', jason:'👤 аккаунт Джейсона' }[m.via] || '';
+      return '<div class="msg ' + (m.sender === 'manager' ? 'us' : 'them') + '">' + esc(m.text) + '<small>' + (m.sender === 'manager' ? esc(m.by || 'менеджер') + ' · ' : '') + (via ? via + ' · ' : '') + dt(m.at) + '</small></div>'; }).join('') : '<p class="note">Ученик ещё не писал. Можно написать первым — сообщение придёт ему в бот.</p>') + '</div>' +
+      '<div class="actions"><textarea id="cReply" placeholder="Ответ уйдёт туда, куда человек писал последним: в бот, в приложение или от аккаунта Джейсона (Ctrl+Enter — отправить)"></textarea><button class="btn ok-btn" id="cSend">Отправить</button></div></div>' +
     /* questionnaire + goal */
     '<div class="sect"><div class="st">Анкета и цель</div>' + (ob ? '<div class="kv" style="margin:4px 0"><span><span class="k">Опыт</span> ' + esc(RU.exp[ob.exp] || ob.exp || '—') + '</span><span><span class="k">Торговал</span> ' + esc((ob.markets || []).map(function(x){ return RU.markets[x] || x; }).join(', ') || '—') + '</span><span><span class="k">Мешает</span> ' + esc(RU.problem[ob.problem] || ob.problem || '—') + '</span><span><span class="k">Время</span> ' + esc(RU.time[ob.time] || ob.time || '—') + '</span></div>' : '<p class="note">Анкету ещё не проходил</p>') +
       '<div class="kv" style="margin:4px 0"><span><span class="k">Старт</span> ' + money(u.tier) + '</span><span><span class="k">Цель</span> ' + esc(u.goal_text || '—') + ' · ' + money(u.goal_target) + '</span>' +
@@ -325,7 +326,7 @@ function depositBlock(u){
 function sendReply(id){
   var t = $('cReply').value.trim(); if(!t) return;
   $('cSend').disabled = true;
-  api('support-reply', { id:id, text:t }).then(function(r){ toast(r.delivered ? 'Отправлено' : 'Сохранено в приложении (в бот не доставлено — ученик мог его заблокировать)'); openLead(id, true); loadCrm(true); })
+  api('support-reply', { id:id, text:t }).then(function(r){ toast(r.delivered ? (r.via === 'jason' ? 'Отправлено от аккаунта Джейсона' : 'Отправлено') : 'Сохранено в CRM, но не доставлено — человек мог заблокировать бота'); openLead(id, true); loadCrm(true); })
     .catch(function(e){ $('cSend').disabled = false; fail(e); });
 }
 

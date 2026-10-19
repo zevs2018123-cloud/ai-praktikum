@@ -78,6 +78,7 @@ const T = {
     fr: "Je suis Jason 👋\n\nJe trade l'or. En ce moment je mène un challenge public sur mon canal : faire passer 10 000 $ à 1 000 000 $ en direct. Chaque trade est publié, gains et pertes. Le but : montrer que c'est possible avec la bonne stratégie et les bons outils.\n\nMon académie est gratuite : des leçons de base, de ton premier graphique à mon propre système. Je ne gagne pas d'argent en vendant des cours. Je construis une équipe de traders qui tradent avec moi, et mon équipe et moi sommes toujours joignables.\n\nÀ faire maintenant : ouvre un compte chez notre broker avec le bouton ci-dessous. Aucun dépôt nécessaire, les premières leçons sont gratuites. Une fois inscrit, le bot te donne la leçon 1.",
     de: "Ich bin Jason 👋\n\nIch trade Gold. Gerade läuft in meinem Kanal eine öffentliche Challenge: Ich mache live aus 10.000 $ eine Million. Jeder Trade ist öffentlich, Gewinne und Verluste. Der Punkt: zeigen, dass es mit der richtigen Strategie und den richtigen Tools machbar ist.\n\nMeine Akademie ist kostenlos: Grundlagen-Lektionen vom ersten Chart bis zu meinem eigenen System. Ich verdiene kein Geld mit Kursen. Ich baue ein Team von Tradern auf, die mit mir zusammen traden, und mein Team und ich sind immer erreichbar.\n\nJetzt zu tun: Eröffne über den Button unten ein Konto bei unserem Broker. Keine Einzahlung nötig, die ersten Lektionen sind kostenlos. Sobald du registriert bist, gibt dir der Bot Lektion eins."
   },
+  gotIt: { en:"Got it 👍 A manager will reply here soon.", ru:'Принято 👍 Менеджер скоро ответит здесь.', fr:'Bien reçu 👍 Un manager te répond ici très vite.', de:'Angekommen 👍 Ein Manager antwortet dir hier gleich.' },
   promoBtn: { en:'▶️ Who is Jason', ru:'▶️ Кто такой Джейсон', fr:'▶️ Qui est Jason', de:'▶️ Wer ist Jason' },
   brokerBtn: { en:'📝 Open a broker account', ru:'📝 Открыть счёт у брокера', fr:'📝 Ouvrir un compte broker', de:'📝 Broker-Konto eröffnen' },
   teamBtn: { en:'💬 Message Jason', ru:'💬 Написать Джейсону', fr:'💬 Écrire à Jason', de:'💬 Jason schreiben' },
@@ -248,6 +249,7 @@ async function ensureSchema(env) {
   for (const q of SCHEMA) await env.DB.prepare(q).run();
   for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await env.DB.prepare('ALTER TABLE fb_clicks ADD COLUMN join_link TEXT').run(); } catch (e) {}
+  try { await env.DB.prepare('ALTER TABLE support ADD COLUMN via TEXT').run(); } catch (e) {}
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -296,6 +298,7 @@ const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: 
 // team DM + academy: the main CTA is the manager's DM, the mini app is the extra
 const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}` }]] : [];
 const welcomeKb = (env, lang) => ({ inline_keyboard: [...teamRow(env, lang), [{ text: tt('courseBtn', lang), web_app: { url: env.APP_URL } }]] });
+const WEBHOOK_UPDATES = ['message', 'callback_query', 'my_chat_member', 'chat_member', 'chat_join_request', 'channel_post', 'business_connection', 'business_message', 'edited_business_message'];
 const REF_LINK_DEFAULT = 'https://direct.fxpro.partners/click?pid=8030&offer_id=149&l=1766563852';
 // greeting from the bot; the button starts the bot (so it can keep writing) and shows the promo
 async function greetKb(env, lang) {
@@ -532,14 +535,14 @@ async function setGate(env, id, status, by) {
 }
 
 /* ---------------- support chat ---------------- */
-const supportMsgs = async (env, uid) => ((await env.DB.prepare('SELECT id, sender, text, by, at FROM support WHERE user_id = ? ORDER BY id DESC LIMIT 100').bind(uid).all()).results || []).reverse();
+const supportMsgs = async (env, uid) => ((await env.DB.prepare('SELECT id, sender, text, by, at, via FROM support WHERE user_id = ? ORDER BY id DESC LIMIT 100').bind(uid).all()).results || []).reverse();
 async function handleSupport(req, env) {
   const { body, u, error } = await authed(req, env); if (error) return error;
   const text = String(body.text || '').trim().slice(0, 1000);
   if (text) {
     const hour = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'user' AND at > ?`).bind(u.id, Date.now() - HOUR).first())?.n || 0;
     if (hour >= 30) return json({ error: 'rate', msgs: await supportMsgs(env, u.id) }, 429);
-    await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at) VALUES (?, 'user', ?, ?)`).bind(u.id, text, Date.now()).run();
+    await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at, via) VALUES (?, 'user', ?, ?, 'app')`).bind(u.id, text, Date.now()).run();
     await env.DB.prepare('INSERT OR IGNORE INTO support_sla (user_id, since) VALUES (?, ?)').bind(u.id, Date.now()).run();
     const gate = { none: 'счёт не отправлен', pending: `${u.broker_id ? 'счёт ' + esc(u.broker_id) : 'скриншот счёта'} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
     const r = await toSales(env, ['🆘 <b>Поддержка</b>', userLine(u), gate ? 'Статус: ' + gate : '', '', esc(text), '', '↩️ <i>Ответьте реплаем на это сообщение — ответ придёт ученику в приложение и в бот.</i>'].filter((x, i) => x || i === 3 || i === 5).join('\n'));
@@ -549,6 +552,46 @@ async function handleSupport(req, env) {
   const lastMgr = msgs.filter(m => m.sender === 'manager').pop();
   if (lastMgr && lastMgr.id > (u.support_seen || 0)) await env.DB.prepare('UPDATE users SET support_seen = ? WHERE id = ?').bind(lastMgr.id, u.id).run();
   return json({ ok: true, msgs, online: !!(await setting(env, 'sales_chat')) });
+}
+/* ---- one inbox for the app chat, the bot chat and Jason's work account (Telegram Business) ---- */
+const VIA_LABEL = { app: 'чат в приложении', bot: 'чат бота', jason: 'аккаунт Джейсона' };
+function msgPayload(m) {
+  // what a Telegram message carries: text for the inbox + the media to show the managers
+  const cap = (m.caption || '').trim();
+  const media = m.photo ? { kind: 'photo', file_id: m.photo[m.photo.length - 1].file_id, label: '📷 фото' }
+    : m.video ? { kind: 'video', file_id: m.video.file_id, label: '🎬 видео' }
+    : m.voice ? { kind: 'voice', file_id: m.voice.file_id, label: '🎙 голосовое' }
+    : m.video_note ? { kind: 'video_note', file_id: m.video_note.file_id, label: '⏺ кружок' }
+    : m.audio ? { kind: 'audio', file_id: m.audio.file_id, label: '🎵 аудио' }
+    : m.document ? { kind: 'document', file_id: m.document.file_id, label: '📎 ' + (m.document.file_name || 'файл') }
+    : m.sticker ? { kind: 'sticker', file_id: m.sticker.file_id, label: (m.sticker.emoji || '') + ' стикер' } : null;
+  const text = (m.text || '').trim() || [media && media.label, cap].filter(Boolean).join(' ') || '';
+  return { text: text.slice(0, 2000), media };
+}
+async function sendMediaTo(env, chatId, media, extra) {
+  const method = { photo: 'sendPhoto', video: 'sendVideo', voice: 'sendVoice', video_note: 'sendVideoNote', audio: 'sendAudio', document: 'sendDocument', sticker: 'sendSticker' }[media.kind];
+  return method ? tg(env, method, { chat_id: chatId, [media.kind]: media.file_id, ...(extra || {}) }) : null;
+}
+async function inboundSupport(env, u, text, via, media) {
+  if (!text) return { ok: false };
+  const hour = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM support WHERE user_id = ? AND sender = 'user' AND at > ?`).bind(u.id, Date.now() - HOUR).first())?.n || 0;
+  if (hour >= 30) return { ok: false, rate: true };
+  await env.DB.prepare(`INSERT INTO support (user_id, sender, text, at, via) VALUES (?, 'user', ?, ?, ?)`).bind(u.id, text, Date.now(), via).run();
+  await env.DB.prepare('INSERT OR IGNORE INTO support_sla (user_id, since) VALUES (?, ?)').bind(u.id, Date.now()).run();
+  const gate = { none: 'счёт не отправлен', pending: `${u.broker_id ? 'счёт ' + esc(u.broker_id) : 'скриншот счёта'} на проверке`, approved: 'доступ открыт', rejected: 'счёт отклонён' }[u.gate || 'none'] || '';
+  const head = via === 'jason' ? '💬 <b>Написали в аккаунт Джейсона</b>' : via === 'bot' ? '💬 <b>Написали в бот</b>' : '🆘 <b>Поддержка (приложение)</b>';
+  const hint = via === 'jason' ? '↩️ <i>Ответьте реплаем или в CRM — ответ уйдёт от аккаунта Джейсона.</i>' : '↩️ <i>Ответьте реплаем или в CRM — ответ придёт в бот.</i>';
+  const r = await toSales(env, [head, userLine(u), gate ? 'Статус: ' + gate : '', '', esc(text), '', hint].filter((x, i) => x || i === 3 || i === 5).join('\n'));
+  const map = (res) => res && res.ok ? env.DB.prepare('INSERT OR REPLACE INTO support_map (chat_id, msg_id, user_id) VALUES (?, ?, ?)').bind(String(res.result.chat.id), res.result.message_id, u.id).run() : null;
+  await map(r);
+  if (media && r && r.ok) await map(await sendMediaTo(env, r.result.chat.id, media, { reply_to_message_id: r.result.message_id }));
+  return { ok: true };
+}
+async function bizConn(env) { return JSON.parse((await setting(env, 'biz_conn')) || 'null'); }
+// the channel the manager's answer goes back through = where the person wrote last
+async function replyVia(env, uid) {
+  const last = await env.DB.prepare(`SELECT via FROM support WHERE user_id = ? AND sender = 'user' ORDER BY id DESC LIMIT 1`).bind(uid).first();
+  return (last && last.via) || 'app';
 }
 async function supportReply(env, uid, text, by) {
   const u = await getUser(env, uid); if (!u) return { ok: false, error: 'no user' };
@@ -561,9 +604,15 @@ async function supportReply(env, uid, text, by) {
     await env.DB.prepare('INSERT INTO support_kpi (user_id, by, since, answered_at, secs, ontime) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, String(by || '?').slice(0, 64), sla.since, now, secs, secs <= limit ? 1 : 0).run();
     await env.DB.prepare('DELETE FROM support_sla WHERE user_id = ?').bind(uid).run();
   }
-  const lang = pickLang(u.lang);
-  const r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
-  return { ok: true, delivered: !!(r && r.ok) };
+  const lang = pickLang(u.lang), via = await replyVia(env, uid);
+  let r = null;
+  if (via === 'jason') {
+    const bc = await bizConn(env);
+    if (bc && bc.enabled && bc.can_reply) r = await tg(env, 'sendMessage', { business_connection_id: bc.id, chat_id: uid, text });
+  } else if (via === 'bot') r = await tg(env, 'sendMessage', { chat_id: uid, text });
+  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
+  await env.DB.prepare('UPDATE support SET via = ? WHERE id = (SELECT MAX(id) FROM support WHERE user_id = ? AND sender = ?)').bind(via, uid, 'manager').run();
+  return { ok: true, delivered: !!(r && r.ok), via };
 }
 
 /* ---------------- support SLA (response-time KPI) ----------------
@@ -756,6 +805,38 @@ async function showClubWelcome(env, chatId, userId, lang, msgId) {
 
 async function handleWebhook(req, env) {
   const upd = await req.json().catch(() => ({}));
+  // Jason's work account connected to the bot (Telegram Business): its chats land in the CRM inbox
+  if (upd.business_connection) {
+    const bc = upd.business_connection;
+    const canReply = bc.rights ? !!bc.rights.can_reply : !!bc.can_reply;
+    if (bc.is_enabled) {
+      await setting(env, 'biz_conn', JSON.stringify({ id: bc.id, user_id: bc.user.id, username: bc.user.username || '', name: bc.user.first_name || '', can_reply: canReply, enabled: true }));
+      await toSales(env, `🔗 Аккаунт ${bc.user.username ? '@' + esc(bc.user.username) : esc(bc.user.first_name || '')} подключён к боту: переписка с ним теперь падает сюда и в CRM.` + (canReply ? '' : '\n⚠️ Боту не дали права отвечать — включите «Отвечать на сообщения» в Настройки → Telegram для бизнеса → Чат-боты.'));
+    } else {
+      await setting(env, 'biz_conn', null);
+      await toSales(env, `⚠️ Аккаунт ${bc.user.username ? '@' + esc(bc.user.username) : ''} отключён от бота — переписка в CRM больше не приходит.`);
+    }
+    return new Response('ok');
+  }
+  if (upd.business_message) {
+    const bm = upd.business_message, bc = await bizConn(env);
+    if (!bc || bm.business_connection_id !== bc.id || bm.chat.type !== 'private') return new Response('ok');
+    const p = msgPayload(bm);
+    if (bm.from && bm.from.id === bc.user_id) {
+      // a manager wrote straight from Jason's account → keep the CRM history complete, close the SLA timer
+      if (p.text) {
+        await env.DB.prepare(`INSERT INTO support (user_id, sender, text, by, at, via) VALUES (?, 'manager', ?, ?, ?, 'jason')`).bind(bm.chat.id, p.text, 'аккаунт Джейсона', Date.now()).run();
+        await env.DB.prepare('DELETE FROM support_sla WHERE user_id = ?').bind(bm.chat.id).run();
+      }
+      return new Response('ok');
+    }
+    const existed = await getUser(env, bm.from.id);
+    const u = await upsertUser(env, bm.from);
+    if (!existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind('jason_dm', u.id).run();
+    await inboundSupport(env, await getUser(env, u.id), p.text, 'jason', p.media);
+    return new Response('ok');
+  }
+  if (upd.edited_business_message || upd.deleted_business_messages) return new Response('ok');
   // bot was made admin of a channel/group → remember it as the private club (unless it's the managers' chat)
   if (upd.my_chat_member) {
     const mc = upd.my_chat_member, st = mc.new_chat_member && mc.new_chat_member.status;
@@ -890,6 +971,19 @@ async function handleWebhook(req, env) {
         reply_markup: { inline_keyboard: [[{ text: '📢 Вход — подписка', callback_data: 'setch:club' }], [{ text: '💎 VIP — после депозита', callback_data: 'setch:vip' }]] } });
     } else {
       await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `Бот не админ в канале «${fwd.title || ''}». Сделайте его администратором с правом «Пригласительные ссылки» и перешлите пост снова.` });
+    }
+    return new Response('ok');
+  }
+  if (m && m.chat && m.chat.type === 'private' && m.from && !m.from.is_bot && !(m.text || '').trim().startsWith('/')) {
+    const p = msgPayload(m);
+    if (p.text) {
+      const existed = await getUser(env, m.from.id);
+      const u = await upsertUser(env, m.from);
+      if (!existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind('bot_dm', u.id).run();
+      await env.DB.prepare('UPDATE users SET chat_ok = 1 WHERE id = ?').bind(u.id).run();
+      const prev = await env.DB.prepare(`SELECT at FROM support WHERE user_id = ? AND sender = 'user' ORDER BY id DESC LIMIT 1`).bind(u.id).first();
+      const res = await inboundSupport(env, await getUser(env, u.id), p.text, 'bot', p.media);
+      if (res.ok && (!prev || Date.now() - prev.at > 30 * 60e3)) await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('gotIt', pickLang(u.lang || m.from.language_code)) });
     }
     return new Response('ok');
   }
@@ -1406,7 +1500,7 @@ async function admin(req, env, url) {
     return json({ ok: true });
   }
   if (p === 'setup-webhook') {
-    const r = await tg(env, 'setWebhook', { url: url.origin + '/webhook', allowed_updates: ['message', 'callback_query', 'my_chat_member', 'chat_member', 'chat_join_request'] });
+    const r = await tg(env, 'setWebhook', { url: url.origin + '/webhook', allowed_updates: WEBHOOK_UPDATES });
     return json({ ok: !!r.ok, r });
   }
   if (p === 'sales-reset') { await setting(env, 'sales_chat', null); return json({ ok: true }); }
@@ -1440,8 +1534,13 @@ export default {
       if (url.pathname.startsWith('/admin/')) return await admin(req, env, url);
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
-        const w = wi.result || {};
-        return json({ version: 'v2.13', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        let w = wi.result || {};
+        // self-heal: make sure Telegram sends every update type the worker handles (business chats included)
+        if (w.url && WEBHOOK_UPDATES.some(t => !(w.allowed_updates || []).includes(t))) {
+          await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
+          w = (await tg(env, 'getWebhookInfo', {})).result || w;
+        }
+        return json({ version: 'v2.14', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
