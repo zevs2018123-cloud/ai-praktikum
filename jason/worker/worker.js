@@ -67,12 +67,20 @@ const T = {
     de: "Hey, hier ist Jason 👋\n\nIch bringe ein Trading-Konto von 10.000 $ auf 1.000.000 $, und jeder Trade geht live in meinen Kanal. Gewinne und Verluste.\n\nKeine 10k? Die meisten starten mit 1.000 $. Mein Team zeigt dir, wie du mit dem Geld, das du hast, mit mir zusammen tradest.\n\nErst die Grundlagen? Mein kostenloser Gold-Kurs ist unten."
   },
   joinWelcome: {
-    en: "Hey, it's Jason 👋 You're in the channel.\n\nI'm taking a trading account from $10,000 to $1,000,000, and every trade goes out there live. Wins and losses.\n\nNo $10k? Most people start with $1,000. Message my team and they'll show you how to trade alongside me with what you have.\n\nWant the basics first? Grab my free gold course 👇",
-    ru: "Привет, это Джейсон 👋 Ты в канале.\n\nЯ разгоняю торговый счёт с $10 000 до $1 000 000, и каждая сделка выходит там в прямом эфире. И плюсовые, и минусовые.\n\nНет $10k? Большинство начинает с $1 000. Напиши моей команде, покажут, как торговать вместе со мной с той суммой, что есть.\n\nХочешь сначала основы? Забирай мой бесплатный курс по золоту 👇",
-    fr: "Salut, c'est Jason 👋 Tu es dans le canal.\n\nJe fais passer un compte de trading de 10 000 $ à 1 000 000 $, et chaque trade y est publié en direct. Gains et pertes.\n\nPas 10k ? La plupart commencent avec 1 000 $. Écris à mon équipe, elle te montre comment trader avec moi avec ce que tu as.\n\nD'abord les bases ? Prends mon cours gratuit sur l'or 👇",
-    de: "Hey, hier ist Jason 👋 Du bist im Kanal.\n\nIch bringe ein Trading-Konto von 10.000 $ auf 1.000.000 $, und jeder Trade geht dort live raus. Gewinne und Verluste.\n\nKeine 10k? Die meisten starten mit 1.000 $. Schreib meinem Team, es zeigt dir, wie du mit deinem Geld mit mir zusammen tradest.\n\nErst die Grundlagen? Hol dir meinen kostenlosen Gold-Kurs 👇"
+    en: "Hi! This is the bot of Jason's Trading Academy. Jason is the trader whose channel you just joined. Congrats, you're on the team now and one step closer to making money from trading.\n\nYou probably can't trust us right away. Honestly, I wouldn't either. So here's what happens next: in the next message Jason explains who he is, what he's doing here and how you can join in.\n\nGot questions? Write here, I'll help. If I can't solve it, message Jason personally. He'll always help you out.",
+    ru: "Привет! Это бот академии Джейсона, трейдера, на чей канал ты только что подписался. Поздравляю, ты в команде и уже на шаг ближе к тому, чтобы начать зарабатывать на трейдинге.\n\nПонятно, что сразу довериться ты не сможешь. Я бы тоже не стал. Поэтому вот что будет дальше: в следующем сообщении Джейсон расскажет, кто он, что здесь делает и как ты можешь к этому подключиться.\n\nЕсть вопросы? Пиши сюда, помогу. Если я не смогу решить, напиши лично Джейсону. Он всегда подскажет и поможет.",
+    fr: "Salut ! Ici le bot de l'académie de trading de Jason, le trader dont tu viens de rejoindre le canal. Félicitations, tu fais partie de l'équipe et tu es déjà un pas plus près de gagner de l'argent avec le trading.\n\nTu ne peux sûrement pas nous faire confiance tout de suite. Franchement, moi non plus. Alors voilà la suite : dans le prochain message, Jason explique qui il est, ce qu'il fait ici et comment tu peux t'y joindre.\n\nDes questions ? Écris ici, je t'aide. Si je ne peux pas, écris directement à Jason. Il t'aidera toujours.",
+    de: "Hi! Das ist der Bot von Jasons Trading-Akademie. Jason ist der Trader, dessen Kanal du gerade beigetreten bist. Glückwunsch, du bist jetzt im Team und schon einen Schritt näher daran, mit Trading Geld zu verdienen.\n\nDu kannst uns wahrscheinlich nicht sofort vertrauen. Ehrlich gesagt, ich auch nicht. Deshalb passiert jetzt Folgendes: In der nächsten Nachricht erklärt Jason, wer er ist, was er hier macht und wie du mitmachen kannst.\n\nFragen? Schreib hier, ich helfe. Wenn ich nicht weiterkomme, schreib Jason direkt. Er hilft dir immer."
   },
-  teamBtn: { en:'💬 Message my team', ru:'💬 Написать моей команде', fr:'💬 Écrire à mon équipe', de:'💬 Meinem Team schreiben' },
+  promoText: {
+    en: "I'm Jason 👋\n\nI trade gold. Right now I'm running a public challenge in my channel: taking $10,000 to $1,000,000 live. Every trade goes out in the open, wins and losses. The point is to show it can be done with the right strategy and tools.\n\nMy academy is free: base lessons from your first chart to my own system. I don't make money selling courses. I'm building a team of traders to trade alongside me, and my team and I are always in touch.\n\nWhat to do now: open an account with our broker via the button below. No deposit needed, the first lessons open for free. Once you're registered, the bot gives you lesson one.",
+    ru: "Я Джейсон 👋\n\nЯ торгую золотом. Сейчас в моём канале идёт публичный челлендж: на ваших глазах делаю из $10 000 один миллион. Каждая сделка в открытую, и плюсовые, и минусовые. Смысл простой: показать, что это реально, если есть правильная стратегия и инструменты.\n\nМоя академия бесплатная: базовые уроки от первого графика до моей собственной системы. Я не зарабатываю на продаже курсов. Я собираю команду трейдеров, которые будут торговать вместе со мной, и мы с командой всегда на связи.\n\nЧто сделать сейчас: открой счёт у нашего брокера по кнопке ниже. Пополнять не нужно, первые уроки открываются бесплатно. Как только зарегистрируешься, бот выдаст тебе первый урок.",
+    fr: "Je suis Jason 👋\n\nJe trade l'or. En ce moment je mène un challenge public sur mon canal : faire passer 10 000 $ à 1 000 000 $ en direct. Chaque trade est publié, gains et pertes. Le but : montrer que c'est possible avec la bonne stratégie et les bons outils.\n\nMon académie est gratuite : des leçons de base, de ton premier graphique à mon propre système. Je ne gagne pas d'argent en vendant des cours. Je construis une équipe de traders qui tradent avec moi, et mon équipe et moi sommes toujours joignables.\n\nÀ faire maintenant : ouvre un compte chez notre broker avec le bouton ci-dessous. Aucun dépôt nécessaire, les premières leçons sont gratuites. Une fois inscrit, le bot te donne la leçon 1.",
+    de: "Ich bin Jason 👋\n\nIch trade Gold. Gerade läuft in meinem Kanal eine öffentliche Challenge: Ich mache live aus 10.000 $ eine Million. Jeder Trade ist öffentlich, Gewinne und Verluste. Der Punkt: zeigen, dass es mit der richtigen Strategie und den richtigen Tools machbar ist.\n\nMeine Akademie ist kostenlos: Grundlagen-Lektionen vom ersten Chart bis zu meinem eigenen System. Ich verdiene kein Geld mit Kursen. Ich baue ein Team von Tradern auf, die mit mir zusammen traden, und mein Team und ich sind immer erreichbar.\n\nJetzt zu tun: Eröffne über den Button unten ein Konto bei unserem Broker. Keine Einzahlung nötig, die ersten Lektionen sind kostenlos. Sobald du registriert bist, gibt dir der Bot Lektion eins."
+  },
+  promoBtn: { en:'▶️ Who is Jason', ru:'▶️ Кто такой Джейсон', fr:'▶️ Qui est Jason', de:'▶️ Wer ist Jason' },
+  brokerBtn: { en:'📝 Open a broker account', ru:'📝 Открыть счёт у брокера', fr:'📝 Ouvrir un compte broker', de:'📝 Broker-Konto eröffnen' },
+  teamBtn: { en:'💬 Message Jason', ru:'💬 Написать Джейсону', fr:'💬 Écrire à Jason', de:'💬 Jason schreiben' },
   courseBtn: { en:'🎓 Free gold course', ru:'🎓 Бесплатный курс по золоту', fr:'🎓 Cours gratuit sur l’or', de:'🎓 Kostenloser Gold-Kurs' },
   clubInvite: {
     en: "🔐 Here's your personal pass to Jason's private channel — tap the button to join. The link works once and expires in 24 hours.",
@@ -238,7 +246,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await env.DB.prepare('ALTER TABLE fb_clicks ADD COLUMN join_link TEXT').run(); } catch (e) {}
   schemaReady = true;
 }
@@ -288,6 +296,30 @@ const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: 
 // team DM + academy: the main CTA is the manager's DM, the mini app is the extra
 const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}` }]] : [];
 const welcomeKb = (env, lang) => ({ inline_keyboard: [...teamRow(env, lang), [{ text: tt('courseBtn', lang), web_app: { url: env.APP_URL } }]] });
+const REF_LINK_DEFAULT = 'https://direct.fxpro.partners/click?pid=8030&offer_id=149&l=1766563852';
+// greeting from the bot; the button starts the bot (so it can keep writing) and shows the promo
+async function greetKb(env, lang) {
+  return { inline_keyboard: [[{ text: tt('promoBtn', lang), url: `https://t.me/${await botUsername(env)}?start=promo` }], ...teamRow(env, lang)] };
+}
+const promoKb = (env, lang) => ({ inline_keyboard: [
+  [{ text: tt('brokerBtn', lang), url: env.REF_LINK || REF_LINK_DEFAULT }],
+  [{ text: tt('openBtn', lang), web_app: { url: env.APP_URL } }],
+  ...teamRow(env, lang)] });
+// promo: the video set with /setpromo (caption = promo text when it fits), else the text placeholder
+async function sendPromo(env, chatId, userId, lang) {
+  const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
+  const text = tt('promoText', lang), reply_markup = promoKb(env, lang);
+  let r = null;
+  if (v && v.file_id) {
+    const method = v.type === 'video_note' ? 'sendVideoNote' : v.type === 'animation' ? 'sendAnimation' : 'sendVideo';
+    const key = v.type === 'video_note' ? 'video_note' : v.type === 'animation' ? 'animation' : 'video';
+    if (method !== 'sendVideoNote' && text.length <= 1000) r = await tg(env, method, { chat_id: chatId, [key]: v.file_id, caption: text, reply_markup });
+    else { await tg(env, method, { chat_id: chatId, [key]: v.file_id }); }
+  }
+  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
+  if (userId) await env.DB.prepare('UPDATE users SET promo_at = COALESCE(promo_at, ?) WHERE id = ?').bind(Date.now(), userId).run();
+  return r;
+}
 async function sendCircle(env, chatId) {
   const fid = await setting(env, 'welcome_circle');
   if (fid) await tg(env, 'sendVideoNote', { chat_id: chatId, video_note: fid });
@@ -714,10 +746,11 @@ async function sendSubGate(env, chatId, userId, lang) {
 // Turn the subscription-gate message into the "You're in" message in place (keeps the chat clean).
 // Falls back to a new message if the gate message is gone or can't be edited.
 async function showClubWelcome(env, chatId, userId, lang, msgId) {
-  const text = tt('clubWelcome', lang), reply_markup = welcomeKb(env, lang);
+  const text = tt('joinWelcome', lang), reply_markup = { inline_keyboard: teamRow(env, lang) };
   let r = msgId ? await tg(env, 'editMessageText', { chat_id: chatId, message_id: msgId, text, reply_markup }) : null;
   if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
   await env.DB.prepare('UPDATE users SET gate_msg = NULL WHERE id = ?').bind(userId).run();
+  await sendPromo(env, chatId, userId, lang);
   return r;
 }
 
@@ -780,7 +813,7 @@ async function handleWebhook(req, env) {
       // the bot may DM the requester only until the request is processed → welcome first, approve after
       const dm = jr.user_chat_id || jr.from.id;
       await sendCircle(env, dm);
-      await tg(env, 'sendMessage', { chat_id: dm, text: tt('joinWelcome', lang), reply_markup: welcomeKb(env, lang) });
+      await tg(env, 'sendMessage', { chat_id: dm, text: tt('joinWelcome', lang), reply_markup: await greetKb(env, lang) });
       await tg(env, 'approveChatJoinRequest', { chat_id: jr.chat.id, user_id: jr.from.id });
       if (cm) {
         const cid = cleanCid(cm[1]);
@@ -876,6 +909,17 @@ async function handleWebhook(req, env) {
     else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setcircle на кружок (видеосообщение), который бот должен отправлять новым людям. Убрать: /nocircle' });
     return new Response('ok');
   }
+  if (/^\/setpromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    const rm = m.reply_to_message || {};
+    const v = rm.video ? { type: 'video', file_id: rm.video.file_id } : rm.video_note ? { type: 'video_note', file_id: rm.video_note.file_id } : rm.animation ? { type: 'animation', file_id: rm.animation.file_id } : rm.document && /^video\//.test(rm.document.mime_type || '') ? { type: 'video', file_id: rm.document.file_id } : null;
+    if (v) { await setting(env, 'promo_video', JSON.stringify(v)); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Промо-ролик сохранён: бот отправляет его вторым сообщением, текст промо идёт подписью.' }); }
+    else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setpromo на видео с промо-роликом. Убрать и вернуть текстовую заглушку: /nopromo' });
+    return new Response('ok');
+  }
+  if (/^\/nopromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    await setting(env, 'promo_video', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Промо-ролик убран, бот шлёт текстовую заглушку.' });
+    return new Response('ok');
+  }
   if (/^\/nocircle(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
     await setting(env, 'welcome_circle', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Кружок убран.' });
     return new Response('ok');
@@ -913,7 +957,11 @@ async function handleWebhook(req, env) {
       await sendSubGate(env, m.chat.id, u.id, lang);
     } else {
       if (!u.sub) await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
-      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: welcomeKb(env, lang) });
+      if (/^\/start\s+promo\b/.test(text)) await sendPromo(env, m.chat.id, u.id, lang);
+      else {
+        await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('joinWelcome', lang), reply_markup: { inline_keyboard: teamRow(env, lang) } });
+        await sendPromo(env, m.chat.id, u.id, lang);
+      }
     }
   }
   return new Response('ok');
@@ -1393,7 +1441,7 @@ export default {
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.12', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.13', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
