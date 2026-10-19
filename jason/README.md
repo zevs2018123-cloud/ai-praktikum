@@ -70,3 +70,10 @@ Based on LeadCenter (funnel · CRM · team tasks · users), rebuilt on the worke
 - **Managers group**: add the bot to the group and send `/setsales` once.
 - **Palettes**: `config.js → THEME` = royal | emerald | violet (preview any with `?pal=emerald`).
 - **Calculator** uses `config.js → VOLUMES` (project lot per deposit).
+
+## v2.12 — landing straight into the channel
+- Landing (`GET /` on jetsjaisontraider.com) asks `GET /join?cid=…` for a join-request link to the entry channel (one per ad click, name `c_<cid>`; shared `landing` link if Telegram refuses) and opens it. No bot step before the channel.
+- On the join request the bot DMs the welcome first (optional video circle + "Message my team" + "Free gold course"), then approves, marks the user subscribed, sets `src` (meta_ads / landing / channel) and sends CAPI `CompleteRegistration` for the click.
+- Revert to the old "landing → bot" path: setting `landing_mode = bot` (D1 `settings` table).
+- Welcome circle: in the managers' group reply `/setcircle` to a video note; `/nocircle` removes it. Sent before the bot's first message.
+- First messages rewritten around the $10k → $1M challenge; the main button is the team's DM, the mini app is the second button.

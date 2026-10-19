@@ -9,11 +9,11 @@ export function landingHtml({ pixelId = '', bot = 'JasonProTreid_bot' } = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jason Trade Academy</title>
-<meta name="description" content="Learn to trade gold — risk first. 10 short courses, quizzes, streaks and a position-size calculator.">
+<meta name="description" content="Jason is taking a trading account from $10,000 to $1,000,000. Every trade goes out live in his Telegram channel.">
 <meta property="og:title" content="Jason Trade Academy">
-<meta property="og:description" content="Learn to trade gold — risk first. Free short courses in Telegram.">
+<meta property="og:description" content="$10,000 to $1,000,000, every trade live in Telegram. Free gold course inside.">
 <script>
-const CONFIG = { PIXEL_ID: '${px}', BOT: '${bot}', TRACK: '/track', DELAY: 1200 };
+const CONFIG = { PIXEL_ID: '${px}', BOT: '${bot}', TRACK: '/track', JOIN: '/join', DELAY: 1200 };
 </script>
 <script>
 if (CONFIG.PIXEL_ID) {
@@ -52,16 +52,16 @@ fbq('init', CONFIG.PIXEL_ID); fbq('track', 'PageView');
 <body>
 <main>
   <div class="brand">Jason Trade Academy</div>
-  <h1>Learn to trade like a pro — risk first</h1>
-  <p class="sub">Short lessons, a quiz after every course, and tools you'll actually use on a live chart.</p>
+  <h1>$10,000 → $1,000,000. Every trade live.</h1>
+  <p class="sub">Watch how I trade gold in my Telegram channel, wins and losses. Start with $1,000 and trade alongside me.</p>
   <div class="stats">
-    <div class="stat"><b>10</b><span>courses</span></div>
-    <div class="stat"><b>30</b><span>lessons</span></div>
-    <div class="stat"><b>3</b><span>calculators</span></div>
+    <div class="stat"><b>Live</b><span>trades</span></div>
+    <div class="stat"><b>$1k</b><span>to start</span></div>
+    <div class="stat"><b>Free</b><span>gold course</span></div>
   </div>
   <div class="status" id="status"><div class="spin"></div>Opening Telegram…</div>
-  <a id="go" class="btn" href="https://t.me/${bot}">Start learning free</a>
-  <p class="hint">Tap <b>Start</b> when the chat opens.</p>
+  <a id="go" class="btn" href="https://t.me/${bot}">Join the channel</a>
+  <p class="hint" id="hint">Tap <b>Join</b> when Telegram opens.</p>
 </main>
 <footer>Educational content, not financial advice. Trading CFDs and forex with leverage carries a high risk of losing money. Past results don't guarantee future returns. Never trade money you can't afford to lose.</footer>
 <script>
@@ -86,11 +86,20 @@ fbq('init', CONFIG.PIXEL_ID); fbq('track', 'PageView');
   }
   btn.addEventListener('click', track);
   var mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  setTimeout(function(){
+  // main path: straight into the channel via a join-request link (the bot approves it and DMs a welcome);
+  // fallback: the bot, as before
+  var ready = fetch(CONFIG.JOIN + '?cid=' + encodeURIComponent(cid)).then(function(r){ return r.json(); }).then(function(j){
+    var m = j && j.url && /^https:\\/\\/t\\.me\\/\\+([\\w-]+)$/.exec(j.url);
+    if (m) { webLink = j.url; appLink = 'tg://join?invite=' + m[1]; btn.href = webLink; }
+    else { btn.textContent = 'Open in Telegram'; document.getElementById('hint').innerHTML = 'Tap <b>Start</b> when the chat opens.'; }
+  }).catch(function(){});
+  var timer = new Promise(function(res){ setTimeout(res, CONFIG.DELAY); });
+  var cap = new Promise(function(res){ setTimeout(res, 3000); });
+  Promise.race([Promise.all([ready, timer]), cap]).then(function(){
     track();
     location.href = mobile ? appLink : webLink;
     setTimeout(function(){ if (!document.hidden) { document.getElementById('status').textContent = 'Didn\\u2019t open? Tap the button below.'; location.href = webLink; } }, 1500);
-  }, CONFIG.DELAY);
+  });
 })();
 </script>
 </body>

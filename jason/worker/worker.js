@@ -61,11 +61,19 @@ const HANDOFF_WORDS = /manager|human|support|real person|doesn'?t work|not worki
 
 const T = {
   start: {
-    en: "Welcome to Jason Trade Academy 📈\n\n10 short courses — from your first chart to trading gold — with quizzes, streaks and a position-size calculator.\n\nRisk first. Tap below to start.",
-    ru: "Добро пожаловать в Jason Trade Academy 📈\n\n10 коротких курсов — от первого графика до торговли золотом — с квизами, сериями и калькулятором размера позиции.\n\nРиск прежде всего. Жми ниже, чтобы начать.",
-    fr: "Bienvenue à la Jason Trade Academy 📈\n\n10 cours courts — de ton premier graphique au trading de l’or — avec quiz, séries et calculateur de taille de position.\n\nLe risque d’abord. Appuie ci-dessous pour commencer.",
-    de: "Willkommen in der Jason Trade Academy 📈\n\n10 kurze Kurse — vom ersten Chart bis zum Goldhandel — mit Quizzen, Serien und Positionsgrößen-Rechner.\n\nRisiko zuerst. Tippe unten, um zu starten."
+    en: "Hey, it's Jason 👋\n\nI'm taking a trading account from $10,000 to $1,000,000, and every trade goes out live in my channel. Wins and losses.\n\nNo $10k? Most people start with $1,000. My team will show you how to trade alongside me with what you have.\n\nWant the basics first? My free gold course is below.",
+    ru: "Привет, это Джейсон 👋\n\nЯ разгоняю торговый счёт с $10 000 до $1 000 000, и каждая сделка выходит в моём канале. И плюсовые, и минусовые.\n\nНет $10k? Большинство начинает с $1 000. Моя команда покажет, как торговать вместе со мной с той суммой, что есть.\n\nХочешь сначала разобраться в основах? Мой бесплатный курс по золоту ниже.",
+    fr: "Salut, c'est Jason 👋\n\nJe fais passer un compte de trading de 10 000 $ à 1 000 000 $, et chaque trade est publié en direct sur mon canal. Gains et pertes.\n\nPas 10k ? La plupart commencent avec 1 000 $. Mon équipe te montre comment trader avec moi avec ce que tu as.\n\nTu veux d'abord les bases ? Mon cours gratuit sur l'or est juste en dessous.",
+    de: "Hey, hier ist Jason 👋\n\nIch bringe ein Trading-Konto von 10.000 $ auf 1.000.000 $, und jeder Trade geht live in meinen Kanal. Gewinne und Verluste.\n\nKeine 10k? Die meisten starten mit 1.000 $. Mein Team zeigt dir, wie du mit dem Geld, das du hast, mit mir zusammen tradest.\n\nErst die Grundlagen? Mein kostenloser Gold-Kurs ist unten."
   },
+  joinWelcome: {
+    en: "Hey, it's Jason 👋 You're in the channel.\n\nI'm taking a trading account from $10,000 to $1,000,000, and every trade goes out there live. Wins and losses.\n\nNo $10k? Most people start with $1,000. Message my team and they'll show you how to trade alongside me with what you have.\n\nWant the basics first? Grab my free gold course 👇",
+    ru: "Привет, это Джейсон 👋 Ты в канале.\n\nЯ разгоняю торговый счёт с $10 000 до $1 000 000, и каждая сделка выходит там в прямом эфире. И плюсовые, и минусовые.\n\nНет $10k? Большинство начинает с $1 000. Напиши моей команде, покажут, как торговать вместе со мной с той суммой, что есть.\n\nХочешь сначала основы? Забирай мой бесплатный курс по золоту 👇",
+    fr: "Salut, c'est Jason 👋 Tu es dans le canal.\n\nJe fais passer un compte de trading de 10 000 $ à 1 000 000 $, et chaque trade y est publié en direct. Gains et pertes.\n\nPas 10k ? La plupart commencent avec 1 000 $. Écris à mon équipe, elle te montre comment trader avec moi avec ce que tu as.\n\nD'abord les bases ? Prends mon cours gratuit sur l'or 👇",
+    de: "Hey, hier ist Jason 👋 Du bist im Kanal.\n\nIch bringe ein Trading-Konto von 10.000 $ auf 1.000.000 $, und jeder Trade geht dort live raus. Gewinne und Verluste.\n\nKeine 10k? Die meisten starten mit 1.000 $. Schreib meinem Team, es zeigt dir, wie du mit deinem Geld mit mir zusammen tradest.\n\nErst die Grundlagen? Hol dir meinen kostenlosen Gold-Kurs 👇"
+  },
+  teamBtn: { en:'💬 Message my team', ru:'💬 Написать моей команде', fr:'💬 Écrire à mon équipe', de:'💬 Meinem Team schreiben' },
+  courseBtn: { en:'🎓 Free gold course', ru:'🎓 Бесплатный курс по золоту', fr:'🎓 Cours gratuit sur l’or', de:'🎓 Kostenloser Gold-Kurs' },
   clubInvite: {
     en: "🔐 Here's your personal pass to Jason's private channel — tap the button to join. The link works once and expires in 24 hours.",
     ru: '🔐 Твой личный пропуск в закрытый канал Джейсона — жми кнопку, чтобы вступить. Ссылка одноразовая и действует 24 часа.',
@@ -74,19 +82,19 @@ const T = {
   },
   clubBtn: { en:'🔓 Join the private channel', ru:'🔓 Вступить в закрытый канал', fr:'🔓 Rejoindre le canal privé', de:'🔓 Privatem Kanal beitreten' },
   clubWelcome: {
-    en: "✅ You're in! As promised — here's your access to my academy. Tap below 👇",
-    ru: '✅ Ты в канале! Как и обещал — вот доступ к моей академии. Жми ниже 👇',
-    fr: '✅ Tu es dedans ! Comme promis — voici ton accès à mon académie. Appuie ci-dessous 👇',
-    de: '✅ Du bist drin! Wie versprochen — hier ist dein Zugang zu meiner Akademie. Tipp unten 👇'
+    en: "✅ You're in. Every trade goes out in the channel.\n\nReady to trade alongside me? Message my team. Want the basics first? Open the free course.",
+    ru: '✅ Ты в канале. Все сделки выходят там.\n\nГотов торговать вместе со мной? Напиши моей команде. Хочешь сначала основы? Открывай бесплатный курс.',
+    fr: "✅ Tu es dedans. Chaque trade est publié sur le canal.\n\nPrêt à trader avec moi ? Écris à mon équipe. D'abord les bases ? Ouvre le cours gratuit.",
+    de: '✅ Du bist drin. Jeder Trade geht in den Kanal.\n\nBereit, mit mir zu traden? Schreib meinem Team. Erst die Grundlagen? Öffne den kostenlosen Kurs.'
   },
   subGate: {
-    en: "Hey! 👋 I'm Jason.\n\nSubscribe to my private channel — and I'll give you access to my trading academy: 10 courses, quizzes and calculators, all free.\n\n1️⃣ Tap «Subscribe»\n2️⃣ Come back and tap «I've subscribed»",
-    ru: "Привет! 👋 Я Джейсон.\n\nПодпишись на мой закрытый канал — и я дам тебе доступ к своей академии трейдинга: 10 курсов, квизы и калькуляторы, всё бесплатно.\n\n1️⃣ Жми «Подписаться»\n2️⃣ Вернись и нажми «Я подписался»",
-    fr: "Salut ! 👋 C'est Jason.\n\nAbonne-toi à mon canal privé — et je te donne accès à mon académie de trading : 10 cours, quiz et calculateurs, tout gratuit.\n\n1️⃣ Appuie sur « S'abonner »\n2️⃣ Reviens et appuie sur « Je suis abonné »",
-    de: "Hey! 👋 Ich bin Jason.\n\nAbonniere meinen privaten Kanal — und ich gebe dir Zugang zu meiner Trading-Akademie: 10 Kurse, Quizze und Rechner, alles kostenlos.\n\n1️⃣ Tippe auf «Abonnieren»\n2️⃣ Komm zurück und tippe auf «Ich habe abonniert»"
+    en: "Hey, it's Jason 👋\n\nI'm taking a trading account from $10,000 to $1,000,000, and every trade goes out live in my channel. Wins and losses.\n\nJoin the channel to watch it happen. You also get my free gold course.",
+    ru: "Привет, это Джейсон 👋\n\nЯ разгоняю торговый счёт с $10 000 до $1 000 000, и каждая сделка выходит в моём канале. И плюсовые, и минусовые.\n\nВступай в канал и смотри, как это происходит. Плюс получишь мой бесплатный курс по золоту.",
+    fr: "Salut, c'est Jason 👋\n\nJe fais passer un compte de trading de 10 000 $ à 1 000 000 $, et chaque trade est publié en direct sur mon canal. Gains et pertes.\n\nRejoins le canal pour suivre ça. Tu as aussi mon cours gratuit sur l'or.",
+    de: "Hey, hier ist Jason 👋\n\nIch bringe ein Trading-Konto von 10.000 $ auf 1.000.000 $, und jeder Trade geht live in meinen Kanal. Gewinne und Verluste.\n\nTritt dem Kanal bei und schau zu. Dazu bekommst du meinen kostenlosen Gold-Kurs."
   },
-  subBtn: { en:'📢 Subscribe', ru:'📢 Подписаться', fr:"📢 S'abonner", de:'📢 Abonnieren' },
-  checkBtn: { en:"✅ I've subscribed", ru:'✅ Я подписался', fr:'✅ Je suis abonné', de:'✅ Ich habe abonniert' },
+  subBtn: { en:'📢 Join the channel', ru:'📢 Вступить в канал', fr:'📢 Rejoindre le canal', de:'📢 Kanal beitreten' },
+  checkBtn: { en:"✅ I've joined", ru:'✅ Я вступил', fr:"✅ J'ai rejoint", de:'✅ Bin beigetreten' },
   notYet: { en:"I don't see your subscription yet — join the channel first, then tap again.", ru:'Пока не вижу подписку — сначала вступи в канал, потом нажми ещё раз.', fr:"Je ne vois pas encore ton abonnement — rejoins d'abord le canal, puis réessaie.", de:'Ich sehe dein Abo noch nicht — tritt zuerst dem Kanal bei und tippe dann nochmal.' },
   vipInvite: {
     en: "💰 Deposit confirmed — welcome to the VIP signals group! Here's your personal pass (works once, valid 7 days):",
@@ -231,6 +239,7 @@ async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
   for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  try { await env.DB.prepare('ALTER TABLE fb_clicks ADD COLUMN join_link TEXT').run(); } catch (e) {}
   schemaReady = true;
 }
 const getUser = (env, id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
@@ -276,6 +285,38 @@ async function toSales(env, text, extra) {
   return tg(env, 'sendMessage', { chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true, ...(extra || {}) });
 }
 const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: env.APP_URL } }]] });
+// team DM + academy: the main CTA is the manager's DM, the mini app is the extra
+const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}` }]] : [];
+const welcomeKb = (env, lang) => ({ inline_keyboard: [...teamRow(env, lang), [{ text: tt('courseBtn', lang), web_app: { url: env.APP_URL } }]] });
+async function sendCircle(env, chatId) {
+  const fid = await setting(env, 'welcome_circle');
+  if (fid) await tg(env, 'sendVideoNote', { chat_id: chatId, video_note: fid });
+}
+// join-request link to the entry channel for the landing; one per ad click (name c_<cid>) so the join is attributed.
+// Falls back to one shared link if Telegram refuses (rate limit).
+async function joinLink(env, cid) {
+  const chat = await setting(env, 'club_chat'); if (!chat) return null;
+  if (cid) {
+    const ex = await env.DB.prepare('SELECT join_link FROM fb_clicks WHERE cid = ?').bind(cid).first();
+    if (ex && ex.join_link) return ex.join_link;
+    const r = await tg(env, 'createChatInviteLink', { chat_id: chat, name: ('c_' + cid).slice(0, 32), creates_join_request: true, expire_date: Math.floor(Date.now() / 1000) + 7 * 86400 });
+    if (r.ok) {
+      await env.DB.prepare('INSERT INTO fb_clicks (cid, ts, join_link) VALUES (?, ?, ?) ON CONFLICT(cid) DO UPDATE SET join_link = excluded.join_link').bind(cid, Math.floor(Date.now() / 1000), r.result.invite_link).run();
+      return r.result.invite_link;
+    }
+  }
+  const shared = await setting(env, 'join_link_shared');
+  if (shared && (await setting(env, 'join_link_chat')) === chat) return shared;
+  const r = await tg(env, 'createChatInviteLink', { chat_id: chat, name: 'landing', creates_join_request: true });
+  if (!r.ok) return null;
+  await setting(env, 'join_link_shared', r.result.invite_link); await setting(env, 'join_link_chat', chat);
+  return r.result.invite_link;
+}
+async function handleJoin(req, env, url) {
+  if ((await setting(env, 'landing_mode')) === 'bot') return json({ url: null });
+  const link = await joinLink(env, cleanCid(url.searchParams.get('cid')));
+  return json({ url: link });
+}
 const mgrButton = (env, lang) => env.MANAGER ? { inline_keyboard: [[{ text: tt('mgrBtn', lang), url: `https://t.me/${env.MANAGER}` }]] } : undefined;
 
 async function isSubscribed(env, userId) {
@@ -665,14 +706,15 @@ async function sendSubGate(env, chatId, userId, lang) {
   if (prev && prev.gate_msg) await tg(env, 'deleteMessage', { chat_id: chatId, message_id: prev.gate_msg });
   const link = (await clubInvite(env, userId)) || env.CHANNEL_LINK;
   const row = link ? [[{ text: tt('subBtn', lang), url: link }]] : [];
-  const r = await tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }]] } });
+  if (!prev || !prev.gate_msg) await sendCircle(env, chatId);
+  const r = await tg(env, 'sendMessage', { chat_id: chatId, text: tt('subGate', lang), reply_markup: { inline_keyboard: [...row, [{ text: tt('checkBtn', lang), callback_data: 'subchk' }], ...teamRow(env, lang)] } });
   if (r && r.ok) await env.DB.prepare('UPDATE users SET gate_msg = ? WHERE id = ?').bind(r.result.message_id, userId).run();
   return r;
 }
 // Turn the subscription-gate message into the "You're in" message in place (keeps the chat clean).
 // Falls back to a new message if the gate message is gone or can't be edited.
 async function showClubWelcome(env, chatId, userId, lang, msgId) {
-  const text = tt('clubWelcome', lang), reply_markup = openButton(env, tt('openBtn', lang));
+  const text = tt('clubWelcome', lang), reply_markup = welcomeKb(env, lang);
   let r = msgId ? await tg(env, 'editMessageText', { chat_id: chatId, message_id: msgId, text, reply_markup }) : null;
   if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
   await env.DB.prepare('UPDATE users SET gate_msg = NULL WHERE id = ?').bind(userId).run();
@@ -728,8 +770,23 @@ async function handleWebhook(req, env) {
   if (upd.chat_join_request) {
     const jr = upd.chat_join_request;
     if (String(jr.chat.id) === (await setting(env, 'club_chat'))) {
-      await upsertUser(env, jr.from);
+      const existed = await getUser(env, jr.from.id);
+      const u = await upsertUser(env, jr.from), lang = pickLang(u.lang || jr.from.language_code);
+      const name = (jr.invite_link && jr.invite_link.name) || '';
+      const cm = /^c_([a-z0-9]{4,30})$/i.exec(name);
+      if (!existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind(cm ? 'meta_ads' : (name === 'landing' ? 'landing' : 'channel'), u.id).run();
+      // mark as subscribed before approving so the chat_member update doesn't send a second welcome
+      await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ?, club_joined = COALESCE(club_joined, ?) WHERE id = ?').bind(Date.now(), Date.now(), u.id).run();
+      // the bot may DM the requester only until the request is processed → welcome first, approve after
+      const dm = jr.user_chat_id || jr.from.id;
+      await sendCircle(env, dm);
+      await tg(env, 'sendMessage', { chat_id: dm, text: tt('joinWelcome', lang), reply_markup: welcomeKb(env, lang) });
       await tg(env, 'approveChatJoinRequest', { chat_id: jr.chat.id, user_id: jr.from.id });
+      if (cm) {
+        const cid = cleanCid(cm[1]);
+        const r = await env.DB.prepare('UPDATE fb_clicks SET tg_id = ? WHERE cid = ? AND tg_id IS NULL').bind(jr.from.id, cid).run();
+        if (r.meta && r.meta.changes) await sendCapi(env, cid, 'CompleteRegistration', { tgId: jr.from.id });
+      }
     }
     return new Response('ok');
   }
@@ -813,6 +870,16 @@ async function handleWebhook(req, env) {
       return new Response('ok');
     }
   }
+  if (/^\/setcircle(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    const vn = m.reply_to_message && m.reply_to_message.video_note;
+    if (vn) { await setting(env, 'welcome_circle', vn.file_id); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Кружок сохранён: бот будет отправлять его первым сообщением новым людям.' }); }
+    else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setcircle на кружок (видеосообщение), который бот должен отправлять новым людям. Убрать: /nocircle' });
+    return new Response('ok');
+  }
+  if (/^\/nocircle(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    await setting(env, 'welcome_circle', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Кружок убран.' });
+    return new Response('ok');
+  }
   if (/^\/setsales(@\w+)?$/.test(text) && m.chat.type !== 'private') {
     const cur = await setting(env, 'sales_chat');
     if (!cur) { await setting(env, 'sales_chat', String(m.chat.id)); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Этот чат подключён: сюда будут приходить анкеты, запросы доступа и обращения к менеджеру.' }); }
@@ -846,7 +913,7 @@ async function handleWebhook(req, env) {
       await sendSubGate(env, m.chat.id, u.id, lang);
     } else {
       if (!u.sub) await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
-      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
+      await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('start', lang), reply_markup: welcomeKb(env, lang) });
     }
   }
   return new Response('ok');
@@ -1321,11 +1388,12 @@ export default {
         if (url.pathname === '/webhook') return await handleWebhook(req, env);
         if (url.pathname === '/track') return await handleTrack(req, env, ctx);
       }
+      if (req.method === 'GET' && url.pathname === '/join') return await handleJoin(req, env, url);
       if (url.pathname.startsWith('/admin/')) return await admin(req, env, url);
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
         const w = wi.result || {};
-        return json({ version: 'v2.11', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.12', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
