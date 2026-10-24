@@ -2,7 +2,7 @@
   "use strict";
   var C = window.CONFIG || {};
   var CLUB_LINK = C.CLUB_LINK || '';
-  function clubDm(){ return C.JASON_DM ? 'https://t.me/' + C.JASON_DM + '?text=' + encodeURIComponent(T('clubDmText')) : CLUB_LINK; }
+  function clubDm(){ return C.JASON_DM ? 'https://t.me/' + C.JASON_DM + '?text=' + encodeURIComponent('Hi Jason! I want to join the club') : CLUB_LINK; }
   var API = (C.API_BASE || '').replace(/\/+$/, '');
   (function(){ var pal = (location.search.match(/[?&]pal=(\w+)/) || [])[1] || C.THEME || 'royal'; document.documentElement.setAttribute('data-palette', pal); })();
 
@@ -802,7 +802,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610241309';
+  var BUILD = '202610241312';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
