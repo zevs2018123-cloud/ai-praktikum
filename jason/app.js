@@ -2,6 +2,7 @@
   "use strict";
   var C = window.CONFIG || {};
   var CLUB_LINK = C.CLUB_LINK || '';
+  function clubDm(){ return C.JASON_DM ? 'https://t.me/' + C.JASON_DM + '?text=' + encodeURIComponent(T('clubDmText')) : CLUB_LINK; }
   var API = (C.API_BASE || '').replace(/\/+$/, '');
   (function(){ var pal = (location.search.match(/[?&]pal=(\w+)/) || [])[1] || C.THEME || 'royal'; document.documentElement.setAttribute('data-palette', pal); })();
 
@@ -161,7 +162,7 @@
     return '<div class="club"' + (id ? ' id="' + id + '" hidden' : '') + '><p class="eyebrow">' + esc(eyebrow || T('clubEyebrow')) + '</p>' +
       '<h3>' + esc(T('clubTitle')) + '</h3><p>' + esc(T('clubText')) + '</p>' +
       (C.CLUB_PRICE ? '<div class="price">' + esc(C.CLUB_PRICE) + '</div>' : '') +
-      '<button class="btn gold block" type="button" data-ext="' + esc(CLUB_LINK) + '">' + T('clubBtn') + '</button>' +
+      '<button class="btn gold block" type="button" data-ext="' + esc(clubDm()) + '">' + T('clubBtn') + '</button>' +
       '<p class="faint" style="font-size:10.5px; margin:9px 0 0; line-height:1.4;">' + T('clubRisk') + '</p></div>';
   }
   function brokerCardHtml(){
@@ -251,7 +252,7 @@
     if(CLUB_LINK){
       var clubMini = document.createElement('div'); clubMini.className = 'club-mini';
       clubMini.innerHTML = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + clubSvg + '</svg><span>' + T('clubMini') + '</span>';
-      clubMini.addEventListener('click', function(ev){ ev.stopPropagation(); openExternal(CLUB_LINK); });
+      clubMini.addEventListener('click', function(ev){ ev.stopPropagation(); openExternal(clubDm()); });
       list.appendChild(clubMini);
     }
     return wrap;
@@ -801,7 +802,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610241307';
+  var BUILD = '202610241309';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){

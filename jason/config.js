@@ -31,6 +31,7 @@ var CONFIG = {
   },   // TODO: confirm prizes
 
   /* Private club / VIP: where every "join the club" button leads (texts are in i18n.js / lang/*.js) */
+  JASON_DM: 'JasonProTraid',   // Jason's work account (managers): club buttons open a DM here
   CLUB_LINK: 'https://t.me/+lKjn6jFBql41ZThi',
   CLUB_PRICE: '',            // e.g. '$99 / month' — leave empty to hide the price line
 
