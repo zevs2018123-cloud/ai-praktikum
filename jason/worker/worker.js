@@ -247,7 +247,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER', 'flow TEXT', 'flow_step INTEGER DEFAULT 0', 'flow_next INTEGER', 'flow_start INTEGER', 'flow_prev TEXT', 'autopush_off INTEGER DEFAULT 0', 'last_touch INTEGER', 'broker_click INTEGER', 'await_acc INTEGER', 'traded_at INTEGER', 'vip_link TEXT', 'welcomed INTEGER DEFAULT 0']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER', 'flow TEXT', 'flow_step INTEGER DEFAULT 0', 'flow_next INTEGER', 'flow_start INTEGER', 'flow_prev TEXT', 'autopush_off INTEGER DEFAULT 0', 'last_touch INTEGER', 'broker_click INTEGER', 'await_acc INTEGER', 'traded_at INTEGER', 'vip_link TEXT', 'welcomed INTEGER DEFAULT 0', 'biz_last_msg INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await env.DB.prepare('ALTER TABLE fb_clicks ADD COLUMN join_link TEXT').run(); } catch (e) {}
   try { await env.DB.prepare('ALTER TABLE support ADD COLUMN via TEXT').run(); } catch (e) {}
   schemaReady = true;
@@ -619,7 +619,10 @@ async function supportReply(env, uid, text, by, forceVia) {
     let why = '';
     if (!bc || !bc.enabled) why = 'аккаунт Джейсона не подключён к боту';
     else if (!bc.can_reply) why = 'боту не дали право отвечать (Telegram для бизнеса → Чат-боты → «Отвечать на сообщения»)';
-    else { r = await tg(env, 'sendMessage', { business_connection_id: bc.id, chat_id: uid, text }); if (!r || !r.ok) why = (r && r.description) || 'Telegram не принял сообщение'; }
+    else {
+      // read the client's messages first, like a person would, then answer
+      if (u.biz_last_msg && bc.can_read !== false) await tg(env, 'readBusinessMessage', { business_connection_id: bc.id, chat_id: uid, message_id: u.biz_last_msg });
+      r = await tg(env, 'sendMessage', { business_connection_id: bc.id, chat_id: uid, text }); if (!r || !r.ok) why = (r && r.description) || 'Telegram не принял сообщение'; }
     if (why) await toSales(env, `❗ Ответ ${userLine(u)} не ушёл в личку Джейсона: ${esc(why)}.\nНапишите ему прямо из аккаунта Джейсона:\n\n${esc(text)}`);
     return { ok: true, delivered: !why, via, error: why || undefined };
   }
@@ -1118,9 +1121,10 @@ async function handleWebhook(req, env) {
   if (upd.business_connection) {
     const bc = upd.business_connection;
     const canReply = bc.rights ? !!bc.rights.can_reply : !!bc.can_reply;
+    const canRead = bc.rights ? !!bc.rights.can_read_messages : canReply;
     if (bc.is_enabled) {
-      await setting(env, 'biz_conn', JSON.stringify({ id: bc.id, user_id: bc.user.id, username: bc.user.username || '', name: bc.user.first_name || '', can_reply: canReply, enabled: true }));
-      await toSales(env, `🔗 Аккаунт ${bc.user.username ? '@' + esc(bc.user.username) : esc(bc.user.first_name || '')} подключён к боту: переписка с ним теперь падает сюда и в CRM.` + (canReply ? '' : '\n⚠️ Боту не дали права отвечать — включите «Отвечать на сообщения» в Настройки → Telegram для бизнеса → Чат-боты.'));
+      await setting(env, 'biz_conn', JSON.stringify({ id: bc.id, user_id: bc.user.id, username: bc.user.username || '', name: bc.user.first_name || '', can_reply: canReply, can_read: canRead, enabled: true }));
+      await toSales(env, `🔗 Аккаунт ${bc.user.username ? '@' + esc(bc.user.username) : esc(bc.user.first_name || '')} подключён к боту: переписка с ним теперь падает сюда и в CRM.` + (canReply ? '' : '\n⚠️ Боту не дали права отвечать — включите «Отвечать на сообщения» в Настройки → Telegram для бизнеса → Чат-боты.') + (canRead ? '' : '\n⚠️ Боту не дали права читать — включите «Читать сообщения», иначе перед ответом сообщения клиента не будут отмечаться прочитанными.'));
     } else {
       await setting(env, 'biz_conn', null);
       await toSales(env, `⚠️ Аккаунт ${bc.user.username ? '@' + esc(bc.user.username) : ''} отключён от бота — переписка в CRM больше не приходит.`);
@@ -1142,6 +1146,7 @@ async function handleWebhook(req, env) {
     const existed = await getUser(env, bm.from.id);
     const u = await upsertUser(env, bm.from);
     if (!existed) await env.DB.prepare('UPDATE users SET src = ? WHERE id = ?').bind('jason_dm', u.id).run();
+    await env.DB.prepare('UPDATE users SET biz_last_msg = ? WHERE id = ?').bind(bm.message_id, u.id).run();
     await inboundSupport(env, await getUser(env, u.id), p.text, 'jason', p.media);
     return new Response('ok');
   }
@@ -1881,7 +1886,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.18', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.19', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
