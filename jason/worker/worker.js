@@ -299,6 +299,7 @@ const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: 
 const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}?text=${encodeURIComponent(DM_TEXT[lang] || DM_TEXT.en)}` }]] : [];
 const welcomeKb = (env, lang) => ({ inline_keyboard: [...teamRow(env, lang), [{ text: tt('courseBtn', lang), web_app: { url: env.APP_URL } }]] });
 const WEBHOOK_UPDATES = ['message', 'callback_query', 'my_chat_member', 'chat_member', 'chat_join_request', 'channel_post', 'business_connection', 'business_message', 'edited_business_message'];
+const RESULTS_URL = 'https://zevs2018123-cloud.github.io/jt-pro-results/';
 const PUBLIC_ORIGIN = 'https://jetsjaisontraider.com';
 const REF_LINK_DEFAULT = 'https://direct.fxpro.partners/click?pid=8030&offer_id=149&l=1766563852';
 // greeting from the bot; the button starts the bot (so it can keep writing) and shows the promo
@@ -822,8 +823,8 @@ const FL_T = {
     ru: "Привет! 👋\n\nВижу, ты только что подписался на мой канал. Добро пожаловать!\n\nЭто мой основной канал. Здесь я в открытую веду челлендж: делаю из $10 000 один миллион, и каждая сделка выходит в канал, плюсовая или минусовая.\n\nНо у меня для тебя есть кое-что ценнее: бесплатный доступ в мою академию и систему X100, где цель — шаг за шагом сделать 100 иксов к своему депозиту. Там я показываю, как торгую золотом, и помогаю зайти в сделки вместе со мной, даже с небольшим депозитом.\n\nЧтобы забрать доступ, жми кнопку ниже 👇 или просто напиши «да»."
   },
   w2: {
-    en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nHere's my trading account in real time, every trade is visible: {MONITORING}",
-    ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЗдесь мой торговый счёт в реальном времени, каждая сделка видна: {MONITORING}"
+    en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nHere are all the accounts our signals run on, live, every trade visible: {MONITORING}",
+    ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЗдесь все счета, по которым идут сигналы, в реальном времени, каждая сделка видна: {MONITORING}"
   },
   w3: {
     en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker using the button below. No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
@@ -955,7 +956,7 @@ async function flowKb(env, u, keys, lang, origin) {
   return { inline_keyboard: rows };
 }
 function fillSlots(text, s) {
-  const map = { BALANCE: s.balance && s.balance.text, MONITORING: s.monitoring && s.monitoring.text, WEEK: s.week && s.week.text, MONTH: s.month && s.month.text,
+  const map = { BALANCE: s.balance && s.balance.text, MONITORING: (s.monitoring && s.monitoring.text) || RESULTS_URL, WEEK: s.week && s.week.text, MONTH: s.month && s.month.text,
     CASE: s.cases && s.cases.length ? s.cases[(Date.now() / DAY | 0) % s.cases.length].text : null };
   // a line whose slot is empty is dropped instead of showing a placeholder
   return text.split('\n').filter(l => { const m = l.match(/\{(\w+)\}/g); return !m || m.every(x => map[x.slice(1, -1)]); })
@@ -1089,7 +1090,7 @@ async function slotCommand(env, m, text) {
   const s = await slots(env); let msg = null;
   if (cmd === '/slots') {
     const ok = (x) => x ? '✅' : '—';
-    msg = `Слоты касаний:\n${ok(s.monitoring)} мониторинг — /set_monitoring <ссылка>\n${ok(s.balance)} баланс — /set_balance <текст>\n${ok(s.week)} итог недели — ответить на скрин: /slot_week <итог>\n${ok(s.month)} итог месяца — /set_month <текст>\n${ok(s.result)} результат дня — ответить на скрин: /slot_result\n${(s.reviews || []).length} отзывов — ответить на скрин: /slot_review (/clear_reviews)\n${(s.cases || []).length} кейсов — ответить на скрин: /slot_case <история> (/clear_cases)`;
+    msg = `Слоты касаний:\n✅ мониторинг — ${s.monitoring ? s.monitoring.text : 'сайт статистики (по умолчанию)'} · сменить: /set_monitoring <ссылка>\n${ok(s.balance)} баланс — /set_balance <текст>\n${ok(s.week)} итог недели — ответить на скрин: /slot_week <итог>\n${ok(s.month)} итог месяца — /set_month <текст>\n${ok(s.result)} результат дня — ответить на скрин: /slot_result\n${(s.reviews || []).length} отзывов — ответить на скрин: /slot_review (/clear_reviews)\n${(s.cases || []).length} кейсов — ответить на скрин: /slot_case <история> (/clear_cases)`;
   } else if (cmd === '/set_monitoring' && arg) { s.monitoring = { text: arg }; msg = '✅ Мониторинг сохранён'; }
   else if (cmd === '/set_balance' && arg) { s.balance = { text: arg }; msg = '✅ Баланс сохранён'; }
   else if (cmd === '/set_month' && arg) { s.month = { text: arg }; msg = '✅ Итог месяца сохранён'; }

@@ -55,7 +55,7 @@ var I18N = { en: { ui: {
   lessonsOf:'{r} of {t} lessons read', quizzesLbl:'quizzes: {v}', noAnswers:'no answers yet',
   stNew:'not started', stDone:'completed', stProgress:'in progress', current:'current',
   linksLbl:'Links from this lesson', open:'Open ↗', practice:'Practice', copy:'Copy', copied:'Copied', selectCopy:'Select the text and copy',
-  openCalc:'Open the calculator', watchVideo:'Watch the video', openYt:'Open on YouTube ↗',
+  openCalc:'Open the calculator', openResults:'Open the signals calculator ↗', pathStats:'See the signal stats ↗', watchVideo:'Watch the video', openYt:'Open on YouTube ↗',
   lessonKicker:'{c} · lesson {i}/{n}', minRead:'{n} min read', nextLesson:'Next lesson →', doneToQuiz:'Done → course quiz',
   quizHead:'{name} — {n} questions', correctPfx:'✓ Correct. ', wrongPfx:'✕ Not quite. ',
   quizDoneBtn:'Quiz done ({c}/{t}) · continue', answerAllN:'Answer all questions ({a}/{t})', quizToast:'Quiz complete · {c}/{t} correct',

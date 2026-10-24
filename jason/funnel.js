@@ -338,6 +338,7 @@ var FUNNEL = (function(){
       }
       var tg = ev.target.closest('[data-tgt]');
       if(tg){ $('onbTarget').value = tg.dataset.tgt; document.querySelectorAll('[data-tgt]').forEach(function(x){ x.classList.toggle('sel', x === tg); }); if(window.TG) TG.haptic('select'); return; }
+      if(ev.target.closest('[data-path-stats]')){ APP.openExternal(C.RESULTS_URL + '#accounts'); return; }
       if(ev.target.closest('[data-path-go]')){ ov.hidden = true; if(APP.openIntro) APP.openIntro(); else if(locked()) showGate(); return; }
       var gc = ev.target.closest('[data-goalchip]');
       if(gc){ $('onbGoalText').value = T('gc_' + gc.dataset.goalchip); return; }
@@ -371,6 +372,7 @@ var FUNNEL = (function(){
         '<div class="path-row"><span>' + T('pathAt', { r: Math.round((C.SIGNAL_MONTHLY || 0.3) * 100) }) + '</span><b>' + yrs(monthsTo(mult, C.SIGNAL_MONTHLY || 0.3)) + '</b></div></div>' +
       '<p>' + T('pathJason') + '</p><p class="muted">' + T('pathReal') + '</p>' +
       '<div class="onb-actions"><span></span><button type="button" class="btn primary" data-path-go>' + T('pathGo') + '</button></div>' +
+      (C.RESULTS_URL ? '<button type="button" class="btn ghost block" data-path-stats>' + T('pathStats') + '</button>' : '') +
       '<p class="faint" style="font-size:10.5px;margin-top:6px">' + T('pathRisk') + '</p>';
   }
   function saveGoalFields(){

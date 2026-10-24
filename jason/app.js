@@ -458,6 +458,7 @@
       if(p.task) return '<div class="lsn-task"><span class="lbl">' + T('practice') + '</span>' + p.task + '</div>';
       if(p.links) return linksCardHtml(p.links);
       if(p.table) return '<div class="card" style="padding:12px 13px; box-shadow:none;">' + tableHtml(p.table) + '</div>';
+      if(p.tool) return C.RESULTS_URL ? '<button class="btn block" type="button" data-open-results>' + T('openResults') + '</button>' : '';
       if(p.formula){
         var i = copyStore.push(p.formula) - 1;
         return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') + '<pre>' + esc(p.formula) + '</pre>' +
@@ -467,6 +468,7 @@
     }).join('');
   }
   function bindLessonExtras(root){
+    root.querySelectorAll('[data-open-results]').forEach(function(btn){ btn.addEventListener('click', function(){ openExternal(C.RESULTS_URL + '#calculator'); }); });
     root.querySelectorAll('.copy-prompt').forEach(function(btn){
       btn.addEventListener('click', function(){
         var text = copyStore[Number(btn.dataset.pi)]; if(!text) return;
@@ -799,7 +801,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610241217';
+  var BUILD = '202610241255';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){

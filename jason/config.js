@@ -8,6 +8,7 @@ var CONFIG = {
 
   /* Broker referral link — the courses unlock only after the student registers through it
      and a manager confirms the account number. Empty = no gate. */
+  RESULTS_URL: 'https://zevs2018123-cloud.github.io/jt-pro-results/',   // JT PRO track record + returns calculator (separate site)
   REF_LINK: 'https://direct.fxpro.partners/click?pid=8030&offer_id=149&l=1766563852',
 
   /* Manager username (without @) for hand-offs — also set MANAGER in the worker */

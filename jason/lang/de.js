@@ -42,7 +42,7 @@ ui: {
   lessonsOf:'{r} von {t} Lektionen gelesen', quizzesLbl:'Quizze: {v}', noAnswers:'noch keine Antworten',
   stNew:'nicht begonnen', stDone:'abgeschlossen', stProgress:'in Arbeit', current:'aktuell',
   linksLbl:'Links aus der Lektion', open:'Öffnen ↗', practice:'Praxis', copy:'Kopieren', copied:'Kopiert', selectCopy:'Text markieren und kopieren',
-  openCalc:'Rechner öffnen', watchVideo:'Video ansehen', openYt:'Auf YouTube öffnen ↗',
+  openCalc:'Rechner öffnen', openResults:'Signal-Rechner öffnen ↗', pathStats:'Signal-Statistik ansehen ↗', watchVideo:'Video ansehen', openYt:'Auf YouTube öffnen ↗',
   lessonKicker:'{c} · Lektion {i}/{n}', minRead:'{n} Min. Lesezeit', nextLesson:'Nächste Lektion →', doneToQuiz:'Fertig → Kursquiz',
   quizHead:'{name} — {n} Fragen', correctPfx:'✓ Richtig. ', wrongPfx:'✕ Nicht ganz. ',
   quizDoneBtn:'Quiz erledigt ({c}/{t}) · weiter', answerAllN:'Beantworte alle Fragen ({a}/{t})', quizToast:'Quiz abgeschlossen · {c}/{t} richtig',

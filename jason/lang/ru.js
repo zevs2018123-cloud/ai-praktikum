@@ -42,7 +42,7 @@ ui: {
   lessonsOf:'Прочитано {r} из {t} уроков', quizzesLbl:'квизы: {v}', noAnswers:'пока нет ответов',
   stNew:'не начат', stDone:'пройден', stProgress:'в процессе', current:'текущий',
   linksLbl:'Ссылки из урока', open:'Открыть ↗', practice:'Практика', copy:'Скопировать', copied:'Скопировано', selectCopy:'Выдели текст и скопируй',
-  openCalc:'Открыть калькулятор', watchVideo:'Смотреть видео', openYt:'Открыть на YouTube ↗',
+  openCalc:'Открыть калькулятор', openResults:'Открыть калькулятор доходности ↗', pathStats:'Смотреть статистику сигналов ↗', watchVideo:'Смотреть видео', openYt:'Открыть на YouTube ↗',
   lessonKicker:'{c} · урок {i}/{n}', minRead:'{n} мин чтения', nextLesson:'Следующий урок →', doneToQuiz:'Готово → квиз курса',
   quizHead:'{name} — {n} вопросов', correctPfx:'✓ Верно. ', wrongPfx:'✕ Не совсем. ',
   quizDoneBtn:'Квиз пройден ({c}/{t}) · дальше', answerAllN:'Ответь на все вопросы ({a}/{t})', quizToast:'Квиз пройден · {c}/{t} верно',
