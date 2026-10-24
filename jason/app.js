@@ -78,6 +78,7 @@
   window.addEventListener('orientationchange', function(){ setTimeout(syncChatHeight, 60); });
 
   function showScreen(name){
+    if(!document.getElementById('screen-' + name)) name = 'start';
     closeLesson(); closeQuiz();
     screens.forEach(function(sc){ sc.hidden = (sc.id !== 'screen-' + name); });
     tabs.forEach(function(t){ t.setAttribute('aria-current', String(t.dataset.screen === name)); });
@@ -345,7 +346,6 @@
     { id:'gold',    ico:'🥇', name:'Gold bug',       desc:'Completed Trading Gold',            test:function(){ return goldCourseDone(); } },
     { id:'sniper',  ico:'🎯', name:'Sniper entry',   desc:'A course quiz with zero mistakes',  test:function(x){ return x.perfect >= 1; } },
     { id:'nomiss',  ico:'💎', name:'Diamond hands',  desc:'3 perfect course quizzes',          test:function(x){ return x.perfect >= 3; } },
-    { id:'tools',   ico:'🧮', name:'Numbers first',  desc:'Used all three trading tools',      test:function(x){ return x.tools >= 3; } },
     { id:'streak7', ico:'🔥', name:'7-day streak',   desc:'Studied 7 days in a row',           test:function(x){ return x.streakBest >= 7; } },
     { id:'block',   ico:'🧩', name:'Block cleared',  desc:'Every course in a block completed', test:function(x){ return x.blocksDone >= 1; } },
     { id:'all',     ico:'👑', name:'Graduate',       desc:'Every course in the academy done',  test:function(x){ return x.totalCourses && x.coursesDone >= x.totalCourses; } }
@@ -463,7 +463,6 @@
         return '<div class="lsn-prompt">' + (p.label ? '<span class="lbl">' + p.label + '</span>' : '') + '<pre>' + esc(p.formula) + '</pre>' +
           (p.copy ? '<button class="btn ghost sm copy-prompt" data-pi="' + i + '" type="button">' + T('copy') + '</button>' : '') + '</div>';
       }
-      if(p.tool) return '<button class="btn block" type="button" data-open-tool="' + p.tool + '">' + (p.t || T('openCalc')) + ' →</button>';
       return '';
     }).join('');
   }
@@ -474,9 +473,6 @@
         try{ navigator.clipboard.writeText(text).then(function(){ toast(T('copied')); if(window.TG) TG.haptic('light'); }).catch(function(){ toast(T('selectCopy')); }); }
         catch(e){ toast(T('selectCopy')); }
       });
-    });
-    root.querySelectorAll('[data-open-tool]').forEach(function(btn){
-      btn.addEventListener('click', function(){ showScreen('toolkit'); selectTool(btn.dataset.openTool); });
     });
   }
 
@@ -654,93 +650,6 @@
     renderAll();
   }
 
-  /* ---------- tools ---------- */
-  function num(id){ var v = parseFloat(String(document.getElementById(id).value).replace(',', '.')); return isFinite(v) ? v : NaN; }
-  function money(v){ return '$' + (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2)); }
-  function markToolUsed(t){
-    var used = storeGet('toolsUsed', []);
-    if(used.indexOf(t) === -1){ used.push(t); storeSet('toolsUsed', used); var st = checkAchievements(false); renderGamification(st); }
-  }
-  var toolTouched = {};
-  function selectTool(t){
-    document.querySelectorAll('#toolSeg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.tool === t)); });
-    ['size','dd','comp'].forEach(function(x){ document.getElementById('tool-' + x).hidden = x !== t; });
-    storeSet('activeTool', t);
-  }
-  document.querySelectorAll('#toolSeg button').forEach(function(b){ b.addEventListener('click', function(){ if(window.TG) TG.haptic('select'); selectTool(b.dataset.tool); }); });
-
-  var VOL = C.VOLUMES || { 250:0.03, 1000:0.12, 10000:1.2 };
-  function projectLot(bal){
-    var tiers = Object.keys(VOL).map(Number).sort(function(a,b){ return a-b; });
-    if(VOL[bal]) return VOL[bal];
-    var base = tiers[0]; tiers.forEach(function(t){ if(bal >= t) base = t; });
-    return Math.max(0.01, Math.floor(VOL[base] * bal / base * 100) / 100);
-  }
-  function syncTierField(){
-    var t = document.getElementById('cTier').value, bal = document.getElementById('cBal');
-    if(t !== 'custom'){ bal.value = t; bal.readOnly = true; } else { bal.readOnly = false; bal.focus(); }
-  }
-  document.getElementById('cTier').addEventListener('change', function(){ syncTierField(); calcSize(true); });
-  function calcSize(user){
-    var bal = num('cBal'), dist = num('cStopD'), tpd = num('cTpD');
-    var out = document.getElementById('sizeOut'), msg = document.getElementById('sizeMsg');
-    msg.className = 'calc-msg';
-    if(!(bal > 0) || !(dist > 0)){ out.innerHTML = ''; msg.textContent = T('sizeFill'); return; }
-    var lot = projectLot(bal);
-    var perDollar = lot * 100;              // $ per $1 gold move
-    var risk = dist * perDollar, riskPct = 100 * risk / bal;
-    var reward = tpd > 0 ? tpd * perDollar : null, rr = tpd > 0 ? tpd / dist : null;
-    out.innerHTML =
-      '<div><div class="k">' + T('kProjLot') + '</div><div class="v acc">' + lot.toFixed(2) + '</div></div>' +
-      '<div><div class="k">' + T('kPerDollar') + '</div><div class="v">' + money(perDollar) + '</div></div>' +
-      '<div><div class="k">' + T('kRisk') + '</div><div class="v bad">' + money(risk) + ' <span style="font-size:12px;">(' + riskPct.toFixed(1) + '%)</span></div></div>' +
-      '<div><div class="k">' + T('kProfit') + '</div><div class="v ok">' + (reward ? '+' + money(reward) : '—') + '</div></div>' +
-      '<div><div class="k">' + T('kRR') + '</div><div class="v ' + (rr ? (rr >= 2 ? 'ok' : rr >= 1 ? '' : 'bad') : '') + '">' + (rr ? '1 : ' + rr.toFixed(1) : '—') + '</div></div>';
-    var parts = [];
-    if(riskPct > (C.MAX_RISK_PCT || 2.5)){ msg.className = 'calc-msg bad'; parts.push(T('sizeWide', { p: riskPct.toFixed(1) })); }
-    else if(rr && rr < 1) parts.push(T('sizeRRlow'));
-    else parts.push(T('sizeOk', { p: riskPct.toFixed(1) }));
-    msg.textContent = parts.join(' ');
-    if(user) markToolUsed('size');
-  }
-  ['cBal','cStopD','cTpD'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcSize(true); }); });
-  function volumesFoot(){ var ks = Object.keys(VOL).map(Number).sort(function(a,b){ return a-b; }); return T('volFoot') + ' ' + ks.map(function(k){ return money(k).replace('.00','') + ' → ' + VOL[k]; }).join(' · '); }
-  function presetCalcFromGoal(){
-    var m = window.FUNNEL && FUNNEL.me(); if(!m || !m.tier || storeGet('calcTouched', false)) return;
-    var sel = document.getElementById('cTier'); sel.value = String(m.tier); syncTierField(); calcSize(false);
-  }
-
-  function calcDD(user){
-    var loss = num('dLoss'), bal = num('dBal');
-    var out = document.getElementById('ddOut');
-    if(!(loss > 0 && loss < 100) || !(bal > 0)){ out.innerHTML = '<div class="calc-msg" style="grid-column:1/-1;">' + T('ddEnter') + '</div>'; }
-    else {
-      var need = 100 * loss / (100 - loss);
-      out.innerHTML = '<div><div class="k">' + T('kBalAfter') + '</div><div class="v bad">' + money(bal * (1 - loss/100)) + '</div></div>' +
-        '<div><div class="k">' + T('kNeed') + '</div><div class="v acc">+' + need.toFixed(1) + '%</div></div>';
-    }
-    var rows = [5,10,20,30,40,50,75];
-    document.getElementById('ddTable').innerHTML = '<tr><th>' + T('thLoss') + '</th><th>' + T('thNeed') + '</th></tr>' + rows.map(function(l){
-      var n = 100 * l / (100 - l);
-      return '<tr><td>−' + l + '%</td><td>+' + (n % 1 ? n.toFixed(1) : n) + '%<div class="dd-bar" style="width:' + Math.min(100, n/3) + '%; margin-left:auto;"></div></td></tr>';
-    }).join('');
-    if(user) markToolUsed('dd');
-  }
-  ['dLoss','dBal'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcDD(true); }); });
-
-  function calcComp(user){
-    var a = num('gStart'), b = num('gTarget'), r = num('gRate');
-    var out = document.getElementById('compOut'), msg = document.getElementById('compMsg');
-    if(!(a > 0) || !(b > a) || !(r > 0)){ out.innerHTML = ''; msg.textContent = T('compFill'); return; }
-    var months = Math.log(b / a) / Math.log(1 + r/100);
-    var yearly = (Math.pow(1 + r/100, 12) - 1) * 100;
-    out.innerHTML = '<div><div class="k">' + T('kTime') + '</div><div class="v acc">' + (months < 24 ? Math.ceil(months) + ' ' + T('mo') : (months/12).toFixed(1) + ' ' + T('yrs')) + '</div></div>' +
-      '<div><div class="k">' + T('kYearly') + '</div><div class="v">' + (yearly > 10000 ? '>10,000%' : '+' + Math.round(yearly).toLocaleString('en-US') + '%') + '</div></div>';
-    msg.textContent = T('compMsg',{r:r});
-    if(user) markToolUsed('comp');
-  }
-  ['gStart','gTarget','gRate'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ calcComp(true); }); });
-
   /* ---------- daily tip ---------- */
   function renderTip(){
     var el = document.getElementById('dailyTip'); if(!el || !window.TIPS || !TIPS.length) return;
@@ -890,7 +799,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610090127';
+  var BUILD = '202610241217';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -960,15 +869,12 @@
     ['clubCardProfile'].forEach(function(id){ document.getElementById(id).innerHTML = clubCardHtml('Private club'); });
     document.getElementById('brokerCardStart').innerHTML = brokerCardHtml();
     renderTip();
-    syncTierField(); calcSize(false); calcDD(false); calcComp(false);
-    document.getElementById('volFoot').textContent = volumesFoot();
-    selectTool(storeGet('activeTool', 'size'));
     checkAchievements(true);
     bindGate();
     seedChat();
     renderAll();
     if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, openIntro:openIntro, introDone:introDone, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
-      onFunnelRender:function(){ renderBlocks(); presetCalcFromGoal(); } });
+      onFunnelRender:function(){ renderBlocks(); } });
     showScreen(storeGet('activeScreen', 'start'));
     pingOpen();
   }

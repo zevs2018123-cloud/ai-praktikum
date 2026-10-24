@@ -4,7 +4,7 @@ ui: {
   eyebrowLearn:'Lernen', eyebrowKit:'Trader-Toolkit', eyebrowYou:'Du', eyebrowAssistant:'Assistent',
   heroHey:'Hey 👋', heroHeyName:'Hey, {name} 👋',
   heroTitle:'Trade wie ein Profi — Risiko zuerst',
-  heroText:'Kurze Lektionen, ein Quiz nach jedem Kurs und Tools, die du am Live-Chart wirklich nutzt.',
+  heroText:'Kurze Lektionen, ein Quiz nach jedem Kurs und Regeln, die du am Live-Chart wirklich nutzt.',
   pickCourse:'Kurs wählen', yourProgress:'Dein Fortschritt', summary:'Übersicht', lessonsRead:'Lektionen gelesen', quizAccuracy:'Quiz-Trefferquote',
   riskNote:'Lerninhalt, keine Finanzberatung. Der Handel mit CFDs und Forex mit Hebel birgt ein hohes Verlustrisiko. Trade nie mit Geld, dessen Verlust du dir nicht leisten kannst.',
   coursesIntro:'Jede Lektion ist schnell gelesen. Das Kursquiz ist ein eigener Button — alle Fragen auf einer Seite.',
@@ -72,7 +72,7 @@ blocks: {
   mindset:{ name:'Mindset & das lange Spiel', level:'Profi', soon:['Live-Trade-Analysen mit Jason','Prop-Firm-Challenges: Regeln & Risiko'] }
 },
 tips: [
-  ['Risiko wird vor dem Einstieg festgelegt','Stop nach dem Chart, Risiko in % nach deinen Regeln, Lotgröße nach dem Rechner. In dieser Reihenfolge.'],
+  ['Risiko wird vor dem Einstieg festgelegt','Stop nach dem Chart, Risiko in % nach deinen Regeln, Lotgröße aus diesen beiden. In dieser Reihenfolge.'],
   ['Stop nie ausweiten','Ein weiter weg geschobener Stop macht aus einem geplanten Verlust einen ungeplanten.'],
   ['Zuerst den Kalender prüfen','NFP, CPI und FOMC können Gold in einer Minute um 30 $ bewegen. Wisse vor dem Trade, wann sie kommen.'],
   ['Kein Setup, kein Trade','Eine verpasste Bewegung kostet nichts. Hinterherlaufen kostet Geld.'],
@@ -340,7 +340,7 @@ risk:{ name:'Risiko zuerst', lessons:[
   'Achte darauf: Den Stop bestimmt der Chart (wo deine Idee falsch ist), das Risiko bestimmt deine Regel, und die Lotgröße ist nur das Ergebnis. Du wählst nie zuerst die Lotgröße.',
   {tool:'size', t:'Positionsgrößen-Rechner öffnen'},
   {warn:'Liegt die korrekte Größe unter dem Minimum deines Brokers (meist 0,01 Lot), ist der Trade zu groß für dein Konto. Lass ihn aus — „runde“ dein Risiko nicht nach oben.'},
-  {task:'Nimm deinen geplanten Live-Kontostand. Berechne 1 % in Dollar. Nutze dann den Rechner für einen Gold-Trade mit 4-$- und mit 10-$-Stop. Notiere beide Lotgrößen.'}
+  {task:'Nimm deinen geplanten Live-Kontostand. Berechne 1 % in Dollar. Rechne dann aus, was ein Gold-Trade mit 4-$- und mit 10-$-Stop riskiert. Notiere beide Lotgrößen.'}
  ]},
  { title:'Stop-Loss und Chance-Risiko-Verhältnis', body:[
   'Ein Stop-Loss ist kein Eingeständnis einer Niederlage. Er ist der Kurs, an dem deine Trade-Idee widerlegt ist — und die Order, die dich automatisch rausholt, selbst wenn du schläfst oder erstarrt bist.',
@@ -474,7 +474,7 @@ playbook:{ name:'Gold-Setup-Playbook', lessons:[
   {step:2, t:'Auf die Ablehnung warten', d:'Suche im 15m–1H einen langen unteren Docht oder eine bullische Kerze, die wieder über der Zone schließt.'},
   {step:3, t:'Stop', d:'Unter der Zone / dem Rücksetzer-Tief plus kleiner ATR-Puffer.'},
   {step:4, t:'Ziel', d:'Zuerst das letzte Swing-Hoch. Mindestens 1:2 Chance zu Risiko — sonst Trade auslassen.'},
-  {step:5, t:'Größe', d:'Rechner: dein Risiko in %, dein Stop-Abstand. Fertig.'},
+  {step:5, t:'Größe', d:'Aus deinem Risiko in % und deinem Stop-Abstand. Fertig.'},
   {note:'„Kein Trade“ ist auch eine Position. Läuft der Rücksetzer ohne Ablehnung durch deine Zone, hat das Setup nicht stattgefunden. Das ist der Plan, der funktioniert — nicht der, der versagt.'},
   {task:'Finde 5 historische Trend-Rücksetzer-Setups im 4H-Goldchart. Markiere jeweils Einstieg, Stop und erstes Ziel. Wie viele erreichten 2R vor dem Stop?'}
  ]},

@@ -19,7 +19,7 @@ var COURSE_RISK = { id:'risk', blockId:'risk', icon:'shield', name:'Risk First',
     'Notice what happens: the stop is decided by the chart (where your idea is wrong), the risk is decided by your rule, and the lot size is just the result. You never pick the lot size first.',
     {tool:'size', t:'Open the position size calculator'},
     {warn:'If the correct size comes out below your broker\'s minimum (usually 0.01 lots), the trade is too big for your account. Skip it — don\'t "round up" your risk.'},
-    {task:'Take your planned live balance. Calculate your 1% in dollars. Then use the calculator for a gold trade with a $4 stop and a $10 stop. Write down both lot sizes.'}
+    {task:'Take your planned live balance. Calculate your 1% in dollars. Then work out how much a gold trade with a $4 stop and a $10 stop would risk. Write down both lot sizes.'}
   ]},
 
   { title:'Stop losses and reward-to-risk', min:5, body:[
@@ -161,7 +161,7 @@ var COURSE_PLAYBOOK = { id:'playbook', blockId:'gold', icon:'candle', name:'Gold
     {step:2, t:'Wait for rejection', d:'On the 15m–1H, look for a long lower wick or a bullish candle closing back above the zone.'},
     {step:3, t:'Stop', d:'Below the zone / the pullback low, plus a small ATR buffer.'},
     {step:4, t:'Target', d:'The last swing high first. At least 1:2 reward-to-risk, or skip the trade.'},
-    {step:5, t:'Size', d:'Calculator: your risk %, your stop distance. Done.'},
+    {step:5, t:'Size', d:'From your risk % and your stop distance. Done.'},
     {note:'"No trade" is a position. If the pullback goes straight through your zone without a rejection, the setup didn\'t happen. That\'s the plan working, not failing.'},
     {task:'Find 5 historical trend-pullback setups on the 4H gold chart. For each, mark entry, stop and first target. How many reached 2R before the stop?'}
   ]},

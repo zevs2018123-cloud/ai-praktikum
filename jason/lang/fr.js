@@ -4,7 +4,7 @@ ui: {
   eyebrowLearn:'Apprendre', eyebrowKit:'Boîte à outils', eyebrowYou:'Toi', eyebrowAssistant:'Assistant',
   heroHey:'Salut 👋', heroHeyName:'Salut, {name} 👋',
   heroTitle:'Apprends à trader comme un pro — le risque d’abord',
-  heroText:'Des leçons courtes, un quiz après chaque cours et des outils que tu utiliseras vraiment sur un graphique en direct.',
+  heroText:'Des leçons courtes, un quiz après chaque cours et des règles que tu utiliseras vraiment sur un graphique en direct.',
   pickCourse:'Choisir un cours', yourProgress:'Ta progression', summary:'Résumé', lessonsRead:'leçons lues', quizAccuracy:'précision aux quiz',
   riskNote:'Contenu éducatif, pas un conseil financier. Le trading de CFD et de forex avec effet de levier comporte un risque élevé de perte. Ne trade jamais de l’argent que tu ne peux pas te permettre de perdre.',
   coursesIntro:'Chaque leçon se lit vite. Le quiz du cours est un bouton à part — toutes ses questions sur une seule page.',
@@ -72,7 +72,7 @@ blocks: {
   mindset:{ name:'Mental et long terme', level:'pro', soon:['Analyses de trades en direct avec Jason','Challenges prop firm : règles et risque'] }
 },
 tips: [
-  ['Le risque se décide avant l’entrée','Stop selon le graphique, risque en % selon tes règles, lot selon le calculateur. Dans cet ordre.'],
+  ['Le risque se décide avant l’entrée','Stop selon le graphique, risque en % selon tes règles, lot à partir de ces deux. Dans cet ordre.'],
   ['N’élargis jamais un stop','Un stop éloigné transforme une perte prévue en perte imprévue.'],
   ['Vérifie d’abord le calendrier','NFP, CPI et FOMC peuvent déplacer l’or de 30 $ en une minute. Sache quand ils tombent avant de trader.'],
   ['Pas de setup, pas de trade','Rater un mouvement ne coûte rien. Le courir coûte de l’argent.'],
@@ -340,7 +340,7 @@ risk:{ name:'Le risque d’abord', lessons:[
   'Remarque : le stop est décidé par le graphique (là où ton idée est fausse), le risque par ta règle, et la taille de lot n’est que le résultat. Tu ne choisis jamais le lot en premier.',
   {tool:'size', t:'Ouvrir le calculateur de taille de position'},
   {warn:'Si la bonne taille est inférieure au minimum du broker (souvent 0,01 lot), le trade est trop gros pour ton compte. Passe-le — n’« arrondis » pas ton risque vers le haut.'},
-  {task:'Prends ton futur solde réel. Calcule ton 1 % en dollars. Puis utilise le calculateur pour un trade sur l’or avec un stop à 4 $ et un stop à 10 $. Note les deux tailles de lot.'}
+  {task:'Prends ton futur solde réel. Calcule ton 1 % en dollars. Puis calcule ce que risque un trade sur l’or avec un stop à 4 $ et un stop à 10 $. Note les deux tailles de lot.'}
  ]},
  { title:'Stop loss et ratio gain/risque', body:[
   'Un stop loss n’est pas un aveu d’échec. C’est le prix auquel ton idée est prouvée fausse — et l’ordre qui te sort automatiquement, même si tu dors ou si tu es tétanisé.',
@@ -474,7 +474,7 @@ playbook:{ name:'Setups sur l’or', lessons:[
   {step:2, t:'Attends le rejet', d:'En 15m–1H, cherche une longue mèche basse ou une bougie haussière qui clôture de nouveau au-dessus de la zone.'},
   {step:3, t:'Stop', d:'Sous la zone / le plus bas du repli, plus une petite marge d’ATR.'},
   {step:4, t:'Objectif', d:'D’abord le dernier sommet de swing. Au moins 1:2 de gain/risque, sinon on passe.'},
-  {step:5, t:'Taille', d:'Calculateur : ton risque en %, ta distance de stop. C’est fait.'},
+  {step:5, t:'Taille', d:'À partir de ton risque en % et de ta distance de stop. C’est fait.'},
   {note:'« Pas de trade » est une position. Si le repli traverse ta zone sans rejet, le setup n’a pas eu lieu. C’est le plan qui fonctionne, pas qui échoue.'},
   {task:'Trouve 5 setups historiques de repli dans la tendance sur le 4H de l’or. Pour chacun, marque entrée, stop et premier objectif. Combien ont atteint 2R avant le stop ?'}
  ]},

@@ -192,7 +192,7 @@ var COURSES = [
 
 /* Home-screen "rule of the day" — rotates daily */
 var TIPS = [
-  { ico:'🛡️', t:'Risk is decided before entry', d:'Stop location from the chart, risk % from your rules, lot size from the calculator. In that order.' },
+  { ico:'🛡️', t:'Risk is decided before entry', d:'Stop location from the chart, risk % from your rules, lot size from those two. In that order.' },
   { ico:'🧯', t:'Never widen a stop', d:'A stop moved further away turns a planned loss into an unplanned one.' },
   { ico:'📅', t:'Check the calendar first', d:'NFP, CPI and FOMC can move gold $30 in a minute. Know when they are before you trade.' },
   { ico:'⏳', t:'No setup, no trade', d:'Missing a move costs nothing. Chasing one costs money.' },
