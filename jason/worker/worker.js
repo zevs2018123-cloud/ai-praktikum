@@ -599,7 +599,7 @@ async function replyVia(env, uid) {
   const last = await env.DB.prepare(`SELECT via FROM support WHERE user_id = ? AND sender = 'user' ORDER BY id DESC LIMIT 1`).bind(uid).first();
   return (last && last.via) || 'app';
 }
-async function supportReply(env, uid, text, by) {
+async function supportReply(env, uid, text, by, forceVia) {
   const u = await getUser(env, uid); if (!u) return { ok: false, error: 'no user' };
   text = String(text || '').trim().slice(0, 2000); if (!text) return { ok: false, error: 'empty' };
   const now = Date.now();
@@ -610,14 +610,21 @@ async function supportReply(env, uid, text, by) {
     await env.DB.prepare('INSERT INTO support_kpi (user_id, by, since, answered_at, secs, ontime) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, String(by || '?').slice(0, 64), sla.since, now, secs, secs <= limit ? 1 : 0).run();
     await env.DB.prepare('DELETE FROM support_sla WHERE user_id = ?').bind(uid).run();
   }
-  const lang = pickLang(u.lang), via = await replyVia(env, uid);
+  const lang = pickLang(u.lang), via = forceVia || await replyVia(env, uid);
   let r = null;
-  if (via === 'jason') {
-    const bc = await bizConn(env);
-    if (bc && bc.enabled && bc.can_reply) r = await tg(env, 'sendMessage', { business_connection_id: bc.id, chat_id: uid, text });
-  } else if (via === 'bot') r = await tg(env, 'sendMessage', { chat_id: uid, text });
-  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
   await env.DB.prepare('UPDATE support SET via = ? WHERE id = (SELECT MAX(id) FROM support WHERE user_id = ? AND sender = ?)').bind(via, uid, 'manager').run();
+  if (via === 'jason') {
+    // a conversation from Jason's DM is answered only from Jason's DM, never from the bot
+    const bc = await bizConn(env);
+    let why = '';
+    if (!bc || !bc.enabled) why = 'аккаунт Джейсона не подключён к боту';
+    else if (!bc.can_reply) why = 'боту не дали право отвечать (Telegram для бизнеса → Чат-боты → «Отвечать на сообщения»)';
+    else { r = await tg(env, 'sendMessage', { business_connection_id: bc.id, chat_id: uid, text }); if (!r || !r.ok) why = (r && r.description) || 'Telegram не принял сообщение'; }
+    if (why) await toSales(env, `❗ Ответ ${userLine(u)} не ушёл в личку Джейсона: ${esc(why)}.\nНапишите ему прямо из аккаунта Джейсона:\n\n${esc(text)}`);
+    return { ok: true, delivered: !why, via, error: why || undefined };
+  }
+  if (via === 'bot') r = await tg(env, 'sendMessage', { chat_id: uid, text });
+  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
   if (r && r.ok) await setFlow(env, uid, 'R6', { prev: u.flow || null });
   return { ok: true, delivered: !!(r && r.ok), via };
 }
@@ -1313,7 +1320,9 @@ async function handleWebhook(req, env) {
   if (m.reply_to_message && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
     const link = await env.DB.prepare('SELECT user_id FROM support_map WHERE chat_id = ? AND msg_id = ?').bind(String(m.chat.id), m.reply_to_message.message_id).first();
     if (link && !text.startsWith('/')) {
-      const r = await supportReply(env, link.user_id, text, m.from.username ? '@' + m.from.username : m.from.first_name);
+      const rt = m.reply_to_message.text || m.reply_to_message.caption || '';
+      const forced = /аккаунт Джейсона/.test(rt) ? 'jason' : /Написали в бот/.test(rt) ? 'bot' : null;
+      const r = await supportReply(env, link.user_id, text, m.from.username ? '@' + m.from.username : m.from.first_name, forced);
       await tg(env, 'setMessageReaction', { chat_id: m.chat.id, message_id: m.message_id, reaction: [{ type: 'emoji', emoji: r.delivered ? '👍' : '👀' }] });
       return new Response('ok');
     }
@@ -1872,7 +1881,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.17', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.18', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
