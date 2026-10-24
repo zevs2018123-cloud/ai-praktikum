@@ -267,6 +267,9 @@ function drawCard(j){
       (gate === 'pending' ? '<button class="btn ghost" data-gate="rejected">❌ Отклонить</button>' : '') +
       '</div></div>' + depositBlock(u) +
     /* stage */
+    (function(){ var FN = { W:'приветствие', R1:'прогрев', R2:'регистрация', R3:'депозит', R4:'вход в VIP', R5:'первая сделка', R6:'завис диалог', R7:'холодные' };
+      var st = u.autopush_off ? 'выключены вручную' : (u.flow ? (FN[u.flow] || u.flow) + ' · касание ' + ((u.flow_step || 0) + 1) + (u.flow_next ? ' · следующее ' + dt(u.flow_next) : '') : 'нет активного сценария');
+      return '<div class="sect"><div class="st">Автокасания бота</div><div class="actions" style="margin:0">' + esc(st) + ' <button class="btn ghost" data-flowoff="' + (u.autopush_off ? 0 : 1) + '">' + (u.autopush_off ? 'Включить' : 'Остановить') + '</button></div></div>'; })() +
     '<div class="sect"><div class="st">Этап и депозит</div><div class="actions" style="margin:0">Авто: <span class="chip ' + STAGE_COL[j.auto_stage] + '">' + esc(j.auto_stage) + '</span> Ручной: <select id="cStage"><option value="">авто</option>' +
       CFG.manualStages.map(function(s){ return '<option' + (c.stage === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
       '<input type="number" id="cAmount" placeholder="сумма депозита, $" style="width:170px" value="' + (c.amount || '') + '"><button class="btn ok-btn" id="cStageSave">Сохранить</button></div></div>' +
@@ -296,6 +299,8 @@ function drawCard(j){
   box.onclick = function(e){
     var g = e.target.closest('[data-gate]');
     if(g){ var st = g.dataset.gate; if(st === 'rejected' && !confirm('Отклонить счёт? Ученик получит сообщение.')) return; g.disabled = true; api('gate', { id:id, status:st }).then(function(){ toast(st === 'approved' ? 'Подтверждено — ученику ушло сообщение' : 'Отклонено'); openLead(id, true); loadCrm(true); }).catch(fail); return; }
+    var fo = e.target.closest('[data-flowoff]');
+    if(fo){ fo.disabled = true; api('flow-stop', { id:id, off: fo.dataset.flowoff === '1' }).then(function(){ toast(fo.dataset.flowoff === '1' ? 'Автокасания остановлены' : 'Автокасания включены'); openLead(id, true); }).catch(fail); return; }
     var dp = e.target.closest('[data-dep]');
     if(dp){ var yes = dp.dataset.dep === '1'; if(!confirm(yes ? 'Подтвердить депозит? Ученику откроются клуб и полный курс.' : 'Отклонить депозит? Ученик получит сообщение.')) return; dp.disabled = true;
       api('deposit', { id:id, ok:yes }).then(function(r){ toast(yes ? (r.vip ? 'Готово: курс открыт, пропуск в клуб отправлен' : 'Курс открыт. Пропуск в VIP не выдан: ' + (r.vipError === 'vip_not_connected' ? 'VIP-канал не подключён' : r.vipError)) : 'Отклонено'); openLead(id, true); loadCrm(true); }).catch(fail); return; }

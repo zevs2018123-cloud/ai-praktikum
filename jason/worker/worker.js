@@ -247,7 +247,7 @@ let schemaReady = false;
 async function ensureSchema(env) {
   if (schemaReady) return;
   for (const q of SCHEMA) await env.DB.prepare(q).run();
-  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['club_joined INTEGER', 'src TEXT', 'invite TEXT', 'invite_exp INTEGER', 'vip_at INTEGER', 'vip_joined INTEGER', 'gate_msg INTEGER', 'support_seen INTEGER DEFAULT 0', 'support_admin_seen INTEGER DEFAULT 0', 'greeted INTEGER DEFAULT 0', 'dep_claim_at INTEGER', 'dep_claim TEXT', 'dep_ok_at INTEGER', 'dep_status TEXT', 'broker_shot TEXT', 'promo_at INTEGER', 'flow TEXT', 'flow_step INTEGER DEFAULT 0', 'flow_next INTEGER', 'flow_start INTEGER', 'flow_prev TEXT', 'autopush_off INTEGER DEFAULT 0', 'last_touch INTEGER', 'broker_click INTEGER', 'await_acc INTEGER', 'traded_at INTEGER', 'vip_link TEXT', 'welcomed INTEGER DEFAULT 0']) { try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await env.DB.prepare('ALTER TABLE fb_clicks ADD COLUMN join_link TEXT').run(); } catch (e) {}
   try { await env.DB.prepare('ALTER TABLE support ADD COLUMN via TEXT').run(); } catch (e) {}
   schemaReady = true;
@@ -296,9 +296,10 @@ async function toSales(env, text, extra) {
 }
 const openButton = (env, text) => ({ inline_keyboard: [[{ text, web_app: { url: env.APP_URL } }]] });
 // team DM + academy: the main CTA is the manager's DM, the mini app is the extra
-const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}` }]] : [];
+const teamRow = (env, lang) => env.MANAGER ? [[{ text: tt('teamBtn', lang), url: `https://t.me/${env.MANAGER}?text=${encodeURIComponent(DM_TEXT[lang] || DM_TEXT.en)}` }]] : [];
 const welcomeKb = (env, lang) => ({ inline_keyboard: [...teamRow(env, lang), [{ text: tt('courseBtn', lang), web_app: { url: env.APP_URL } }]] });
 const WEBHOOK_UPDATES = ['message', 'callback_query', 'my_chat_member', 'chat_member', 'chat_join_request', 'channel_post', 'business_connection', 'business_message', 'edited_business_message'];
+const PUBLIC_ORIGIN = 'https://jetsjaisontraider.com';
 const REF_LINK_DEFAULT = 'https://direct.fxpro.partners/click?pid=8030&offer_id=149&l=1766563852';
 // greeting from the bot; the button starts the bot (so it can keep writing) and shows the promo
 async function greetKb(env, lang) {
@@ -467,6 +468,7 @@ async function handleOnboard(req, env) {
     ref ? `Пригласил: ${esc(ref.name || '')}${ref.username ? ' @' + esc(ref.username) : ''}` : ''
   ].filter(Boolean).join('\n'));
   if (first) await capiByUser(env, u.id, 'Lead');
+  if (first && (!u.gate || u.gate === 'none') && (!u.flow || u.flow === 'W' || u.flow === 'R1')) await setFlow(env, u.id, 'R2');
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
@@ -499,6 +501,7 @@ async function handleBroker(req, env) {
   await env.DB.prepare(`UPDATE users SET broker_id = ?, broker_shot = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc.length >= 4 ? acc : (u.broker_id || null), shot || u.broker_shot || null, Date.now(), u.id).run();
   await crmLog(env, u.id, 'ученик', 'прислал ' + (acc.length >= 4 ? 'счёт ' + acc : '') + (acc.length >= 4 && img ? ' и ' : '') + (img ? 'скриншот кабинета брокера' : ''));
   if (u.gate !== 'pending') await capiByUser(env, u.id, 'SubmitApplication');
+  await setFlow(env, u.id, null);
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 
@@ -519,6 +522,8 @@ async function setGate(env, id, status, by) {
   const u = await getUser(env, id); if (!u) return null;
   if (!['approved', 'rejected', 'pending', 'none'].includes(status)) return null;
   await env.DB.prepare('UPDATE users SET gate = ?, gate_at = ? WHERE id = ?').bind(status, Date.now(), id).run();
+  if (status === 'approved' && u.gate !== 'approved') await setFlow(env, id, 'R3');
+  if (status === 'rejected') await setFlow(env, id, 'R2');
   const lang = pickLang(u.lang);
   if (status === 'approved' && u.gate !== 'approved') {
     await tg(env, 'sendMessage', { chat_id: id, text: tt('approved', lang), reply_markup: openButton(env, tt('openBtn', lang)) });
@@ -612,6 +617,7 @@ async function supportReply(env, uid, text, by) {
   } else if (via === 'bot') r = await tg(env, 'sendMessage', { chat_id: uid, text });
   if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: uid, text: tt('supportReply', lang, { t: text }), reply_markup: openButton(env, tt('supportOpen', lang)) });
   await env.DB.prepare('UPDATE support SET via = ? WHERE id = (SELECT MAX(id) FROM support WHERE user_id = ? AND sender = ?)').bind(via, uid, 'manager').run();
+  if (r && r.ok) await setFlow(env, uid, 'R6', { prev: u.flow || null });
   return { ok: true, delivered: !!(r && r.ok), via };
 }
 
@@ -666,6 +672,7 @@ async function handleDeposit(req, env) {
   else await toSales(env, cap, { reply_markup: kb });
   await env.DB.prepare(`UPDATE users SET dep_claim_at = ?, dep_claim = ?, dep_status = 'pending' WHERE id = ?`).bind(Date.now(), JSON.stringify({ acc: acc || null, photo: fileId, hasImage: !!img }), u.id).run();
   await crmLog(env, u.id, 'ученик', 'сообщил о депозите' + (acc ? ', счёт ' + acc : '') + (img ? ', скриншот' : ''));
+  await setFlow(env, u.id, null);
   return json({ ok: true, me: await profile(env, await getUser(env, u.id)) });
 }
 async function confirmDeposit(env, id, ok, by) {
@@ -685,6 +692,7 @@ async function confirmDeposit(env, id, ok, by) {
     await capiByUser(env, id, 'Purchase', { value: c.amount || u.tier || 250, currency: 'USD' });
   }
   const vip = await grantVip(env, id, by);   // personal invite to the club, if the VIP channel is connected
+  await setFlow(env, id, vip.ok ? 'R4' : null);
   await crmLog(env, id, by, 'депозит подтверждён' + (vip.ok ? ', выдан пропуск в клуб' : ''));
   return { ok: true, vip: vip.ok, vipError: vip.ok ? null : vip.error };
 }
@@ -777,7 +785,7 @@ async function grantVip(env, id, by) {
   if (!r.ok) return { ok: false, error: 'invite_failed' };
   const lang = pickLang(u.lang);
   await tg(env, 'sendMessage', { chat_id: id, text: tt('vipInvite', lang), reply_markup: { inline_keyboard: [[{ text: tt('vipBtn', lang), url: r.result.invite_link }]] } });
-  await env.DB.prepare('UPDATE users SET vip_at = ? WHERE id = ?').bind(Date.now(), id).run();
+  await env.DB.prepare('UPDATE users SET vip_at = ?, vip_link = ? WHERE id = ?').bind(Date.now(), r.result.invite_link, id).run();
   await toSales(env, `💎 VIP-доступ выдан: ${userLine(u)} (выдал: ${esc(by || '—')})`);
   return { ok: true };
 }
@@ -795,12 +803,305 @@ async function sendSubGate(env, chatId, userId, lang) {
 // Turn the subscription-gate message into the "You're in" message in place (keeps the chat clean).
 // Falls back to a new message if the gate message is gone or can't be edited.
 async function showClubWelcome(env, chatId, userId, lang, msgId) {
-  const text = tt('joinWelcome', lang), reply_markup = { inline_keyboard: teamRow(env, lang) };
-  let r = msgId ? await tg(env, 'editMessageText', { chat_id: chatId, message_id: msgId, text, reply_markup }) : null;
-  if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
+  if (msgId) await tg(env, 'deleteMessage', { chat_id: chatId, message_id: msgId });
   await env.DB.prepare('UPDATE users SET gate_msg = NULL WHERE id = ?').bind(userId).run();
-  await sendPromo(env, chatId, userId, lang);
+  const u = await getUser(env, userId);
+  if (u && !u.welcomed) await startWelcome(env, u, chatId, PUBLIC_ORIGIN);
+  return { ok: true };
+}
+
+/* ================= Bot touch grid (W welcome + R1–R7 reactivation) =================
+   One scenario per user (users.flow / flow_step / flow_next / flow_start). runFlows() runs every minute
+   from the scheduler, sends due steps (10:00–21:00 client time, paused while a live dialog is going on),
+   and every client action is pushed to the managers' group. Texts: EN + RU (FR/DE fall back to EN).
+   Content slots (/slot … in the managers' group) feed the touches; a touch whose attachment slot is empty is skipped. */
+const DM_TEXT = { en: 'Hi Jason! I want to trade with you', ru: 'Привет, Джейсон! Хочу торговать вместе с тобой' };
+const FL_T = {
+  w1: {
+    en: "Hey! 👋\n\nI see you just joined my channel. Welcome!\n\nThis is my main channel. Here I run an open challenge: turning $10,000 into a million, and every trade goes out to the channel, win or loss.\n\nBut I've got something more valuable for you: free access to my academy. There I show how I trade gold and help you get into trades together with me, even with a small deposit.\n\nTo get access, tap the button below 👇 or just type \"yes\".",
+    ru: "Привет! 👋\n\nВижу, ты только что подписался на мой канал. Добро пожаловать!\n\nЭто мой основной канал. Здесь я в открытую веду челлендж: делаю из $10 000 один миллион, и каждая сделка выходит в канал, плюсовая или минусовая.\n\nНо у меня для тебя есть кое-что ценнее: бесплатный доступ в мою академию. Там я показываю, как торгую золотом, и помогаю зайти в сделки вместе со мной, даже с небольшим депозитом.\n\nЧтобы забрать доступ, жми кнопку ниже 👇 или просто напиши «да»."
+  },
+  w2: {
+    en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nHere's my trading account in real time, every trade is visible: {MONITORING}",
+    ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЗдесь мой торговый счёт в реальном времени, каждая сделка видна: {MONITORING}"
+  },
+  w3: {
+    en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker using the button below. No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
+    ru: "Чтобы попасть в академию и торговать вместе со мной, сделай одно из двух:\n\n1️⃣ Открой счёт у моего брокера по кнопке ниже. Пополнять пока не нужно, уроки откроются бесплатно.\n2️⃣ Или напиши мне в личку, если твой депозит больше $10 000: разберём, как зайти именно с твоей суммой, и добавлю тебя в VIP-группу."
+  },
+  w4: {
+    en: "Safety comes first in the academy.\n\nYour money stays in your own account with a regulated broker. I don't manage it and have no access to it. You withdraw whenever you want.\n\nAnd everything I post is backed by reviews from people who are already inside.\n\n👉 See for yourself 👆",
+    ru: "Безопасность — главное в академии.\n\nТвои деньги лежат на твоём счёте у регулируемого брокера. Я ими не управляю и доступа к ним у меня нет. Выводишь когда хочешь.\n\nА всё, что я публикую, подтверждают отзывы ребят, которые уже внутри.\n\n👉 Убедись сам 👆"
+  },
+  r1_1: { en: "Here's how we closed today's gold session 👇\nThis is what goes out in the channel every day: entry, stop, take profit, step by step.\nWant to know how to start with your amount? Message me.",
+          ru: "Вот как сегодня закрыли сессию по золоту 👇\nЭто то, что выходит в канале каждый день: вход, стоп, тейк, всё по шагам.\nХочешь понять, как зайти с твоей суммой? Напиши мне." },
+  r1_2: { en: "People often ask me why I give all this away for free when others sell the same for $500–1000 a month.\n\nHonest answer: I get a commission from the broker on trading volume. You pay me nothing. If you blow your account and leave, I earn nothing. If you're in profit and trade for years, we both earn.\n\nThat's why I don't sell courses, I build a team.",
+          ru: "Меня часто спрашивают: зачем я даю всё это бесплатно, если другие продают такое за $500–1000 в месяц.\n\nОтвечаю честно. Я получаю комиссию от брокера за торговый оборот. Ты мне ничего не платишь. Если ты сольёшь счёт и уйдёшь, я ничего не заработаю. Если ты в плюсе и торгуешь годами, зарабатываем оба.\n\nПоэтому я не продаю курсы, а собираю команду." },
+  r1_3: { en: "Just look at what people who are already inside are saying 👇\nWant the same? Message me, I'll walk you through it.",
+          ru: "Просто взгляни, что пишут ребята, которые уже внутри 👇\nЗахочешь так же, напиши мне, проведу по шагам." },
+  r1_4: { en: "People often tell me: \"I have a job, a family, no time for charts.\"\n\nThat's normal. Trading with me isn't hours at the screen. 2–5 trades a day, and for each one you see right away where to enter, where the stop is and where we take profit. Open, repeat, 3–5 minutes from your phone.\n\nThe market is closed on weekends, so you rest in peace.",
+          ru: "Мне часто пишут: «у меня работа, семья, нет времени на графики».\n\nЭто нормально. Трейдинг со мной не про часы у монитора. 2–5 сделок в день, по каждой сразу видно, где вход, где стоп и где забираем прибыль. Открыл, повторил, 3–5 минут с телефона.\n\nНа выходных рынок закрыт, отдыхаешь спокойно." },
+  r1_5: { en: "{CASE}\n\nNo luck involved: following the signals, risking 1–2%, 1–2 trades a day.\nIf you want to start the same way, message me and I'll show you how he started.",
+          ru: "{CASE}\n\nБез везения: по сигналам, с риском 1–2%, по 1–2 сделки в день.\nЕсли хочешь начать так же, напиши, покажу, как он заходил." },
+  r1_7: { en: "Let me ask straight: is this still on for you, or not the right time?\nThe challenge this week: {WEEK}. All trades are open: {MONITORING}\nIf you're interested, we'll start on a demo, no strings attached. If not now, tap \"Later\" and I won't bother you.",
+          ru: "Скажу прямо: тема ещё живая или сейчас не до этого?\nЧеллендж за неделю: {WEEK}, все сделки открыты: {MONITORING}\nЕсли интересно, начнём с демо, ни к чему не обязывает. Если не сейчас, нажми «Позже», я не буду дёргать." },
+  r1_8: { en: "This is the last time I write about this, I don't like to push.\nThe challenge goes on, results are in the channel every day. When you're ready, message me, I'm here. Good luck 🤝",
+          ru: "Последний раз пишу по этой теме, навязываться не люблю.\nЧеллендж идёт, результаты каждый день в канале. Когда будешь готов, напиши, я на связи. Удачи 🤝" },
+  r2_1: { en: "I see you've started registering 👍 It usually takes 5 minutes. If you got stuck somewhere (verification, documents, no code), message me and I'll walk you through it.\nOnce the account is open, send me its number and I'll open the first lessons.",
+          ru: "Вижу, ты начал регистрацию 👍 Обычно это 5 минут. Если где-то застрял (верификация, документы, не приходит код), напиши, проведу по шагам.\nКак откроешь счёт, пришли его номер мне, и я открою первые уроки." },
+  r2_2: { en: "What stopped you? Pick one and I'll sort it out right away 👇", ru: "Что остановило? Выбери, разберу сразу 👇" },
+  r2_3: { en: "That's how it went in the channel today. Reminder: you don't need to fund the account to get into the academy. Open an account through the link, send the number, get the lessons.",
+          ru: "Сегодня в канале вот так. Напомню: для входа в академию пополнять счёт не нужно. Открыл счёт по ссылке, прислал номер, получил уроки." },
+  r2_4: { en: "Why this broker: it's regulated, the money stays in your account, withdrawals any time. And only through our link can I see that you're with me and open the academy and support for you.",
+          ru: "Почему именно этот брокер: он регулируемый, деньги хранятся на твоём счёте, вывод в любой момент. И только по нашей ссылке я вижу, что ты со мной, и могу открыть тебе академию и сопровождение." },
+  r2_5: { en: "Last reminder about registration. The link works and your place in the academy is waiting. When you're ready, message me.",
+          ru: "Последнее напоминание по регистрации. Ссылка рабочая, место в академии за тобой. Когда будешь готов, напиши." },
+  r3_1: { en: "Your 4 lessons are already open. Waiting for you in the academy 🎓", ru: "Твои 4 урока уже открыты. Жду тебя в академии 🎓" },
+  r3_2: { en: "To trade together with me on the signals you need a working account. Minimum $250, and it's not a payment to me: the money stays in your account, you trade it and withdraw whenever you want.\nPeople who are still looking around start with $250. With $1,000 it's more comfortable to keep risk at 1–2%.",
+          ru: "Чтобы торговать вместе со мной по сигналам, нужен рабочий счёт. Минимум $250, и это не оплата мне: деньги лежат на твоём счёте, ты ими торгуешь и выводишь когда хочешь.\nС $250 начинают те, кто пока присматривается. С $1 000 работать комфортнее по риску 1–2%." },
+  r3_3: { en: "This is what happened in the VIP group today. Inside: the same breakdown of every trade and a curator who walks you into your first trade.",
+          ru: "Вот что сегодня было в VIP-группе. Внутри тот же разбор каждой сделки и куратор, который проведёт тебя в первую сделку." },
+  r3_5: { en: "Scared to start with real money? Your first trade is the minimum lot, with a curator next to you. It's more careful than it seems.",
+          ru: "Боишься начинать с реальными деньгами? Первая сделка с минимальным лотом, куратор рядом. Это осторожнее, чем кажется." },
+  r3_6: { en: "What's holding you back right now: the amount, the payment method or the format itself? Tell me honestly and I'll sort it out.",
+          ru: "Что сейчас держит: сумма, способ оплаты или сам формат? Скажи честно, разберу." },
+  r3_7: { en: "Last reminder: your account is open and the academy is waiting. When you're ready to fund it, message me and I'll connect you to VIP in 10 minutes.",
+          ru: "Последнее напоминание: счёт открыт, академия ждёт. Когда будешь готов пополнить, напиши, подключу к VIP за 10 минут." },
+  r4_1: { en: "Your VIP group pass hasn't been used yet. Today's signals are inside, come in 👇", ru: "Твой пропуск в VIP-группу ещё не использован. Внутри сигналы на сегодня, заходи 👇" },
+  r4_2: { en: "The pass is valid for 6 more days. If the link doesn't open, message me and I'll send a new one.", ru: "Пропуск действует ещё 6 дней. Если ссылка не открывается, напиши, пришлю новую." },
+  r5_1: { en: "Welcome 🤝 One rule: you trade only on the signals and with 1–2% risk per trade. Make your first trade with the minimum lot. The terminal guide is in the academy.",
+          ru: "Добро пожаловать 🤝 Правило одно: торгуешь только по сигналам и с риском 1–2% на сделку. Первую сделку делай минимальным лотом. Гайд по терминалу в академии." },
+  r5_2: { en: "Haven't made your first trade yet? That's normal. Message me and we'll go through the next signal together, on your account.",
+          ru: "Ещё не зашёл в первую сделку? Это нормально. Напиши, разберём следующий сигнал вместе, на твоём счёте." },
+  r5_3: { en: "How's it going? The goal isn't to copy forever, it's to understand why the entry is right here. If you want a breakdown of your trades, message me.",
+          ru: "Как идёт? Цель не вечно копировать, а понимать, почему вход именно здесь. Если хочешь разбор своих сделок, напиши." },
+  r6_1: { en: "Did you manage to sort it out? If you still have questions, ask, I'll help.", ru: "Получилось разобраться? Если остались вопросы, спрашивай, помогу." },
+  r6_2: { en: "Morning 👋 If you've made up your mind, message me and we'll pick up where we left off.", ru: "Доброе 👋 Если надумал, напиши, продолжим с того места, где остановились." },
+  r7_1: { en: "Hi! A month ago you looked at the academy. Since then the challenge has gone {MONTH}. If it's relevant again, message me and we'll pick up where you stopped.",
+          ru: "Привет! Месяц назад ты смотрел академию. За это время челлендж прошёл {MONTH}. Если тема снова актуальна, напиши, начнём с того места, где ты остановился." },
+  r7_2: { en: "A quick update from the challenge. The door is open 🤝", ru: "Короткий апдейт по челленджу. Дверь открыта 🤝" },
+  // replies to answer buttons
+  a_yes: { en: "Great! Jason's team will message you shortly. Want it faster? Write first 👇", ru: "Отлично! Команда Джейсона напишет тебе в ближайшее время. Хочешь быстрее? Напиши сам 👇" },
+  a_later: { en: "Got it, I won't bother you. When you're ready, just message me 🤝", ru: "Понял, не буду дёргать. Когда будешь готов, просто напиши 🤝" },
+  a_stuck: { en: "Here's how to register in 4 steps:\n1. Tap \"Open an account\" and fill in email and password.\n2. Confirm the email / phone code.\n3. Complete verification (ID + address), usually takes a few minutes.\n4. Send me the account number here.\n\nA manager will join within 15 minutes.",
+             ru: "Регистрация в 4 шага:\n1. Жми «Открыть счёт», укажи почту и пароль.\n2. Подтверди код из почты / СМС.\n3. Пройди верификацию (документ + адрес), обычно несколько минут.\n4. Пришли мне номер счёта сюда.\n\nМенеджер подключится в течение 15 минут." },
+  a_sendacc: { en: "Send the account number in the next message (digits only) and I'll pass it for review.", ru: "Пришли номер счёта следующим сообщением (только цифры), и я отправлю его на проверку." },
+  a_accok: { en: "✅ Got it! The account is under review, usually up to 1 hour. I'll message you as soon as the lessons are open.", ru: "✅ Принял! Счёт на проверке, обычно до 1 часа. Напишу, как только уроки откроются." },
+  a_notime: { en: "OK, I'll remind you tomorrow 👍", ru: "Ок, напомню завтра 👍" },
+  a_paid: { en: "Great! Send a screenshot of the deposit or the account number in the academy, and I'll connect you to VIP 👇", ru: "Отлично! Пришли скрин пополнения или номер счёта в академии, и я подключу тебя к VIP 👇" },
+  a_payfail: { en: "No need to change the broker. Three ways that usually work:\n• a card in your local currency\n• crypto (USDT via an exchange)\n• P2P\nTell me which one suits you, a manager will walk you through it.",
+               ru: "Брокера менять не нужно. Три способа, которые обычно проходят:\n• карта в локальной валюте\n• крипта (USDT через биржу)\n• P2P\nНапиши, какой удобнее, менеджер проведёт по шагам." },
+  a_why: { en: "Tell me in a couple of words what exactly is holding you back, I'll sort it out right now.", ru: "Напиши парой слов, что конкретно держит, разберу прямо сейчас." },
+  a_traded: { en: "🔥 Nice! Send a screenshot of the trade, I'll check that everything is right.", ru: "🔥 Красавчик! Скинь скрин сделки, гляну, всё ли ровно." },
+  a_help: { en: "A manager will message you within 15 minutes. You can also write the question right here.", ru: "Менеджер напишет тебе в течение 15 минут. Можешь сразу написать вопрос сюда." }
+};
+const FL_B = {
+  get: { en: '🎁 Get access', ru: '🎁 Получить доступ' }, dm: { en: '💬 Message Jason', ru: '💬 Написать Джейсону' },
+  acc: { en: '📝 Open an account', ru: '📝 Открыть счёт' }, app: { en: '🎓 Open the Academy', ru: '🎓 Открыть Академию' },
+  yes: { en: 'Yes, tell me', ru: 'Да, расскажи' }, start: { en: "Let's start", ru: 'Давай начнём' }, later: { en: 'Later', ru: 'Позже' },
+  stuck: { en: 'Stuck on registration', ru: 'Застрял на регистрации' }, sendacc: { en: 'Send account number', ru: 'Прислать номер счёта' },
+  dontget: { en: "Don't get how to register", ru: 'Не понял, как зарегистрироваться' }, doubt: { en: 'Not sure about the broker', ru: 'Сомневаюсь в брокере' },
+  notime: { en: 'No time right now', ru: 'Нет времени сейчас' }, lesson: { en: '🎓 Open the lesson', ru: '🎓 Открыть урок' },
+  paid: { en: 'I funded it', ru: 'Пополнил' }, payfail: { en: "Payment doesn't go through", ru: 'Не проходит оплата' },
+  sum: { en: 'Amount', ru: 'Сумма' }, pay: { en: 'Payment', ru: 'Оплата' }, unsure: { en: 'Not sure', ru: 'Сомневаюсь' },
+  vip: { en: '💎 Join VIP', ru: '💎 Вступить в VIP' }, traded: { en: 'Made a trade ✅', ru: 'Зашёл в сделку ✅' }, help: { en: 'Need help', ru: 'Нужна помощь' }
+};
+const fl = (k, lang) => (FL_T[k][lang] || FL_T[k].en);
+const flb = (k, lang) => (FL_B[k][lang] || FL_B[k].en);
+const FL_ACTION_RU = { yes: '🔥 нажал «Да, расскажи»', start: '🔥 нажал «Давай начнём»', later: 'нажал «Позже» (пауза 30 дней)', stuck: '⚠️ застрял на регистрации', dontget: '⚠️ не понял, как зарегистрироваться',
+  doubt: 'сомневается в брокере', notime: 'нет времени (напомним завтра)', sendacc: 'хочет прислать номер счёта', paid: '💰 говорит, что пополнил', payfail: '⚠️ не проходит оплата',
+  sum: 'держит сумма', pay: 'держит способ оплаты', unsure: 'сомневается в формате', traded: '✅ зашёл в первую сделку', help: '⚠️ просит помощь в VIP' };
+
+/* schedule helpers: a step runs `after` ms after the previous one, or on day D of the scenario at local hour H */
+const MIN = 60e3;
+function userTz(u) { if (typeof u.tz === 'number' && !isNaN(u.tz)) return u.tz; return pickLang(u.lang) === 'ru' ? 3 : 1; }
+function atLocal(start, tz, day, hour) {
+  const d = new Date(start + tz * HOUR); d.setUTCHours(0, 0, 0, 0);
+  return d.getTime() - tz * HOUR + (day - 1) * DAY + hour * HOUR;
+}
+function inQuiet(t, tz) { const h = new Date(t + tz * HOUR).getUTCHours(); return h < 10 || h >= 21; }
+function nextDaytime(t, tz) {
+  if (!inQuiet(t, tz)) return t;
+  const loc = new Date(t + tz * HOUR); const h = loc.getUTCHours();
+  loc.setUTCHours(10, 0, 0, 0); let r = loc.getTime() - tz * HOUR; if (h >= 21) r += DAY;
   return r;
+}
+// flow definitions. att: slot that must exist (photo/text), else the step is skipped
+const FLOWS = {
+  W: [{ k: 'w4', after: 30 * MIN, att: 'review', opt: true, kb: ['dm'] }],
+  R1: [{ k: 'r1_1', after: 3 * HOUR, att: 'result', kb: ['dm', 'yes'] }, { k: 'r1_2', day: 2, hour: 10, kb: ['dm'] }, { k: 'r1_3', day: 2, hour: 13, att: 'review', kb: ['dm', 'yes'] },
+       { k: 'r1_4', day: 2, hour: 18, kb: ['dm'] }, { k: 'r1_5', day: 3, hour: 12, att: 'case', kb: ['dm'] }, { k: 'r1_7', day: 9, hour: 12, att: 'week', kb: ['start', 'later'] },
+       { k: 'r1_8', day: 14, hour: 12, att: 'result', kb: ['dm'], final: true }],
+  R2: [{ k: 'r2_1', after: 30 * MIN, kb: ['stuck', 'sendacc', 'dm'] }, { k: 'r2_2', day: 2, hour: 10, kb: ['dontget', 'doubt', 'notime', 'later'] }, { k: 'r2_3', day: 3, hour: 12, att: 'result', kb: ['acc', 'dm'] },
+       { k: 'r2_4', day: 6, hour: 12, kb: ['acc', 'later'] }, { k: 'r2_5', day: 10, hour: 12, kb: ['acc', 'dm'], final: true }],
+  R3: [{ k: 'r3_1', day: 2, hour: 12, kb: ['lesson'], cond: 'noLesson' }, { k: 'r3_2', day: 3, hour: 12, kb: ['paid', 'payfail', 'dm'] }, { k: 'r3_3', day: 4, hour: 12, att: 'result', kb: ['paid', 'dm'] },
+       { k: 'r3_5', day: 7, hour: 12, att: 'review', kb: ['paid', 'dm'] }, { k: 'r3_6', day: 10, hour: 12, kb: ['sum', 'pay', 'unsure', 'later'] }, { k: 'r3_7', day: 15, hour: 12, kb: ['dm'], final: true }],
+  R4: [{ k: 'r4_1', after: 2 * HOUR, kb: ['vip'], cond: 'notInVip' }, { k: 'r4_2', after: 22 * HOUR, kb: ['vip', 'dm'], cond: 'notInVip', final: true }],
+  R5: [{ k: 'r5_1', after: 1 * HOUR, kb: ['app', 'traded', 'help'] }, { k: 'r5_2', day: 3, hour: 12, kb: ['traded', 'help'], cond: 'notTraded' }, { k: 'r5_3', day: 10, hour: 12, kb: ['dm'], final: true, noCold: true }],
+  R6: [{ k: 'r6_1', after: 3 * HOUR, kb: ['dm'] }, { k: 'r6_2', day: 2, hour: 10, att: 'result', kb: ['dm'], resume: true }],
+  R7: [{ k: 'r7_1', after: 30 * DAY, kb: ['dm'], need: 'month' }, { k: 'r7_2', after: 45 * DAY, att: 'result', kb: ['dm'], final: true, noCold: true }]
+};
+async function slots(env) { return JSON.parse((await setting(env, 'slots')) || '{}'); }
+async function dmUrl(env, lang) { return env.MANAGER ? `https://t.me/${env.MANAGER}?text=${encodeURIComponent(DM_TEXT[lang] || DM_TEXT.en)}` : null; }
+async function flowKb(env, u, keys, lang, origin) {
+  const rows = [];
+  for (const k of keys) {
+    if (k === 'dm') { const d = await dmUrl(env, lang); if (d) rows.push([{ text: flb('dm', lang), url: d }]); }
+    else if (k === 'acc') rows.push([{ text: flb('acc', lang), url: `${origin || ''}/r/broker?u=${u.id}` }]);
+    else if (k === 'app' || k === 'lesson') rows.push([{ text: flb(k, lang), web_app: { url: env.APP_URL } }]);
+    else if (k === 'vip') { if (u.vip_link) rows.push([{ text: flb('vip', lang), url: u.vip_link }]); }
+    else rows.push([{ text: flb(k, lang), callback_data: 'fl:' + k }]);
+  }
+  return { inline_keyboard: rows };
+}
+function fillSlots(text, s) {
+  const map = { BALANCE: s.balance && s.balance.text, MONITORING: s.monitoring && s.monitoring.text, WEEK: s.week && s.week.text, MONTH: s.month && s.month.text,
+    CASE: s.cases && s.cases.length ? s.cases[(Date.now() / DAY | 0) % s.cases.length].text : null };
+  // a line whose slot is empty is dropped instead of showing a placeholder
+  return text.split('\n').filter(l => { const m = l.match(/\{(\w+)\}/g); return !m || m.every(x => map[x.slice(1, -1)]); })
+    .map(l => l.replace(/\{(\w+)\}/g, (_, k) => map[k])).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+function slotMedia(s, att) {
+  if (att === 'result') return s.result && s.result.photo ? s.result : null;
+  if (att === 'week') return s.week && (s.week.photo || s.week.text) ? s.week : null;
+  if (att === 'review') return s.reviews && s.reviews.length ? s.reviews[(Date.now() / HOUR | 0) % s.reviews.length] : null;
+  if (att === 'case') return s.cases && s.cases.length ? s.cases[(Date.now() / DAY | 0) % s.cases.length] : null;
+  return null;
+}
+async function sendTouch(env, u, k, keys, att, origin, opt) {
+  const lang = pickLang(u.lang), s = await slots(env);
+  const media = att ? slotMedia(s, att) : null;
+  let text = fillSlots(fl(k, lang), s);
+  if (opt && !media) text = text.split('\n\n').slice(0, -1).join('\n\n'); // optional attachment missing → drop the "see it 👆" line
+  const reply_markup = await flowKb(env, u, keys, lang, origin);
+  let r;
+  if (media && media.photo) {
+    if (text.length <= 1000) r = await tg(env, 'sendPhoto', { chat_id: u.id, photo: media.photo, caption: text, reply_markup });
+    else { await tg(env, 'sendPhoto', { chat_id: u.id, photo: media.photo, caption: (media.caption || '').slice(0, 1000) }); r = await tg(env, 'sendMessage', { chat_id: u.id, text, reply_markup, disable_web_page_preview: true }); }
+  } else r = await tg(env, 'sendMessage', { chat_id: u.id, text, reply_markup, disable_web_page_preview: true });
+  if (r && r.ok === false && r.error_code === 403) await env.DB.prepare('UPDATE users SET chat_ok = 0, flow = NULL WHERE id = ?').bind(u.id).run();
+  return r;
+}
+async function setFlow(env, uid, flow, opts = {}) {
+  const now = Date.now(), u = await getUser(env, uid); if (!u) return;
+  if (!flow) { await env.DB.prepare('UPDATE users SET flow = NULL, flow_step = 0, flow_next = NULL WHERE id = ?').bind(uid).run(); return; }
+  const start = opts.start || now, steps = FLOWS[flow], st = steps[0], tz = userTz(u);
+  const next = st.after != null ? start + st.after : atLocal(start, tz, st.day, st.hour);
+  await env.DB.prepare('UPDATE users SET flow = ?, flow_step = 0, flow_start = ?, flow_next = ?, flow_prev = ? WHERE id = ?')
+    .bind(flow, start, next, opts.prev || null, uid).run();
+}
+function condOk(cond, u) {
+  if (!cond) return true;
+  if (cond === 'noLesson') { try { return !(JSON.parse(u.progress || '{}').lessons > 0); } catch { return true; } }
+  if (cond === 'notInVip') return !u.vip_joined;
+  if (cond === 'notTraded') return !u.traded_at;
+  return true;
+}
+async function lastSupport(env, uid, sender) {
+  const r = await env.DB.prepare('SELECT at FROM support WHERE user_id = ? AND sender = ? ORDER BY id DESC LIMIT 1').bind(uid, sender).first();
+  return r ? r.at : 0;
+}
+// stage a user should be in when a dialog pause / R6 ends
+function stageFlow(u) {
+  if (u.vip_joined) return u.traded_at ? null : 'R5';
+  if (u.dep_ok_at || u.dep_status === 'pending') return u.vip_link && !u.vip_joined ? 'R4' : null;
+  if (u.gate === 'approved') return 'R3';
+  if (u.gate === 'pending') return null;
+  if (u.broker_click || u.onboarded_at) return 'R2';
+  return 'R1';
+}
+async function runFlows(env, origin) {
+  const now = Date.now();
+  const rows = (await env.DB.prepare('SELECT * FROM users WHERE flow IS NOT NULL AND flow_next <= ? AND chat_ok = 1 AND COALESCE(autopush_off, 0) = 0 LIMIT 200').bind(now).all()).results || [];
+  for (const u of rows) {
+    const steps = FLOWS[u.flow]; const i = u.flow_step || 0; const st = steps && steps[i];
+    if (!st) { await setFlow(env, u.id, null); continue; }
+    const tz = userTz(u);
+    // live dialog → wait (R6 itself is started by the manager's reply, so it ignores the manager pause)
+    const lu = await lastSupport(env, u.id, 'user'), lm = await lastSupport(env, u.id, 'manager');
+    let until = lu + DAY; if (u.flow !== 'R6') until = Math.max(until, lm + 12 * HOUR);
+    if (u.flow === 'R6' && lu > (u.flow_start || 0)) { await setFlow(env, u.id, null); continue; }
+    if (until > now && lu + lm > 0) { await env.DB.prepare('UPDATE users SET flow_next = ? WHERE id = ?').bind(nextDaytime(until, tz), u.id).run(); continue; }
+    if (inQuiet(now, tz)) { await env.DB.prepare('UPDATE users SET flow_next = ? WHERE id = ?').bind(nextDaytime(now, tz), u.id).run(); continue; }
+    const s = await slots(env);
+    const skip = !condOk(st.cond, u) || (st.att && !st.opt && !slotMedia(s, st.att)) || (st.need && !(s[st.need] && s[st.need].text));
+    if (!skip) {
+      await sendTouch(env, u, st.k, st.kb, st.att, origin, st.opt);
+      await env.DB.prepare('UPDATE users SET last_touch = ? WHERE id = ?').bind(now, u.id).run();
+    }
+    // advance
+    const nx = steps[i + 1];
+    if (!nx) {
+      if (u.flow === 'W') { await setFlow(env, u.id, (await getUser(env, u.id)).broker_click ? 'R2' : 'R1', { start: now }); continue; }
+      if (st.resume) { const fu = await getUser(env, u.id); const f = stageFlow(fu); if (f) await setFlow(env, u.id, f, { start: now }); else await setFlow(env, u.id, null); continue; }
+      if (st.final && !st.noCold) { await setFlow(env, u.id, 'R7', { start: now }); continue; }
+      await setFlow(env, u.id, null); continue;
+    }
+    const next = nx.after != null ? now + nx.after : Math.max(atLocal(u.flow_start, tz, nx.day, nx.hour), now + 2 * HOUR);
+    await env.DB.prepare('UPDATE users SET flow_step = ?, flow_next = ? WHERE id = ?').bind(i + 1, next, u.id).run();
+  }
+}
+async function opPush(env, u, what) { await toSales(env, `🔔 ${userLine(u)}\n${what}`); }
+// W2 + W3 right after "Get access" / "yes" / /start; W4 and the rest go through the scheduler
+async function startWelcome(env, u, chatId, origin) {
+  const lang = pickLang(u.lang), s = await slots(env);
+  await tg(env, 'sendMessage', { chat_id: chatId, text: fillSlots(fl('w2', lang), s), disable_web_page_preview: true });
+  const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
+  const kb = await flowKb(env, u, ['acc', 'app', 'dm'], lang, origin), text = fl('w3', lang);
+  let r = null;
+  if (v && v.file_id && v.type !== 'video_note') r = await tg(env, v.type === 'animation' ? 'sendAnimation' : 'sendVideo', { chat_id: chatId, [v.type === 'animation' ? 'animation' : 'video']: v.file_id, caption: text, reply_markup: kb });
+  else if (v && v.file_id) await tg(env, 'sendVideoNote', { chat_id: chatId, video_note: v.file_id });
+  if (!r || !r.ok) await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup: kb });
+  await env.DB.prepare('UPDATE users SET promo_at = COALESCE(promo_at, ?), welcomed = 1 WHERE id = ?').bind(Date.now(), u.id).run();
+  await setFlow(env, u.id, 'W');
+  await opPush(env, u, '▶️ получил приветствие (W2–W3)');
+}
+async function submitBrokerFromBot(env, u, acc) {
+  const kb = { inline_keyboard: [[{ text: '✅ Подтвердить', callback_data: `gate:approved:${u.id}` }, { text: '❌ Отклонить', callback_data: `gate:rejected:${u.id}` }], [{ text: '💰 Депозит внесён → выдать VIP', callback_data: `vip:${u.id}` }]] };
+  await toSales(env, ['🔐 <b>Запрос доступа к курсам (из бота)</b>', userLine(u), `Счёт у брокера: <code>${esc(acc)}</code>`, 'Проверь в партнёрском кабинете, что счёт открыт по нашей ссылке.'].join('\n'), { reply_markup: kb });
+  await env.DB.prepare(`UPDATE users SET broker_id = ?, gate = 'pending', gate_at = ? WHERE id = ?`).bind(acc, Date.now(), u.id).run();
+  await crmLog(env, u.id, 'ученик', 'прислал счёт ' + acc + ' в бот');
+  if (u.gate !== 'pending') await capiByUser(env, u.id, 'SubmitApplication');
+  await setFlow(env, u.id, null);
+}
+async function flowCallback(env, cq, origin) {
+  const k = cq.data.slice(3), u = await upsertUser(env, cq.from), lang = pickLang(u.lang || cq.from.language_code), now = Date.now();
+  await tg(env, 'answerCallbackQuery', { callback_query_id: cq.id });
+  await opPush(env, u, FL_ACTION_RU[k] || ('нажал ' + k));
+  const say = async (key, keys) => tg(env, 'sendMessage', { chat_id: u.id, text: fl(key, lang), reply_markup: keys ? await flowKb(env, u, keys, lang, origin) : undefined });
+  if (k === 'yes' || k === 'start') { await say('a_yes', ['dm']); await setFlow(env, u.id, null); }
+  else if (k === 'later' ) { await say('a_later'); await setFlow(env, u.id, 'R7', { start: now }); }
+  else if (k === 'stuck' || k === 'dontget') { await say('a_stuck', ['acc', 'sendacc']); await env.DB.prepare('UPDATE users SET flow_next = ? WHERE id = ?').bind(now + DAY, u.id).run(); }
+  else if (k === 'sendacc') { await say('a_sendacc'); await env.DB.prepare('UPDATE users SET await_acc = ? WHERE id = ?').bind(now, u.id).run(); }
+  else if (k === 'doubt') { await say('r2_4', ['acc', 'dm']); }
+  else if (k === 'notime') { await say('a_notime'); await env.DB.prepare('UPDATE users SET flow_next = ? WHERE id = ?').bind(now + DAY, u.id).run(); }
+  else if (k === 'paid') { await say('a_paid', ['app']); }
+  else if (k === 'payfail' || k === 'pay') { await say('a_payfail', ['dm']); }
+  else if (k === 'sum' || k === 'unsure') { await say('a_why', ['dm']); }
+  else if (k === 'traded') { await env.DB.prepare('UPDATE users SET traded_at = COALESCE(traded_at, ?) WHERE id = ?').bind(now, u.id).run(); await say('a_traded'); if (u.flow === 'R5') await setFlow(env, u.id, null); }
+  else if (k === 'help') { await say('a_help', ['dm']); }
+  return new Response('ok');
+}
+// /slot commands in the managers' group (reply to a photo, or text after the command)
+async function slotCommand(env, m, text) {
+  const cmd = text.split(/\s+/)[0].replace(/@\w+$/, '').toLowerCase(), arg = text.slice(text.split(/\s+/)[0].length).trim();
+  const rm = m.reply_to_message || {}, photo = rm.photo ? rm.photo[rm.photo.length - 1].file_id : null, cap = (arg || rm.caption || rm.text || '').trim();
+  const s = await slots(env); let msg = null;
+  if (cmd === '/slots') {
+    const ok = (x) => x ? '✅' : '—';
+    msg = `Слоты касаний:\n${ok(s.monitoring)} мониторинг — /set_monitoring <ссылка>\n${ok(s.balance)} баланс — /set_balance <текст>\n${ok(s.week)} итог недели — ответить на скрин: /slot_week <итог>\n${ok(s.month)} итог месяца — /set_month <текст>\n${ok(s.result)} результат дня — ответить на скрин: /slot_result\n${(s.reviews || []).length} отзывов — ответить на скрин: /slot_review (/clear_reviews)\n${(s.cases || []).length} кейсов — ответить на скрин: /slot_case <история> (/clear_cases)`;
+  } else if (cmd === '/set_monitoring' && arg) { s.monitoring = { text: arg }; msg = '✅ Мониторинг сохранён'; }
+  else if (cmd === '/set_balance' && arg) { s.balance = { text: arg }; msg = '✅ Баланс сохранён'; }
+  else if (cmd === '/set_month' && arg) { s.month = { text: arg }; msg = '✅ Итог месяца сохранён'; }
+  else if (cmd === '/slot_week' && (photo || cap)) { s.week = { photo, text: cap || (s.week && s.week.text) }; msg = '✅ Итог недели сохранён'; }
+  else if (cmd === '/slot_result' && photo) { s.result = { photo, caption: cap, at: Date.now() }; msg = '✅ Результат дня сохранён'; }
+  else if (cmd === '/slot_review' && photo) { s.reviews = (s.reviews || []).concat([{ photo, caption: cap }]).slice(-8); msg = `✅ Отзыв добавлен (в ротации ${s.reviews.length})`; }
+  else if (cmd === '/slot_case' && (photo || cap)) { s.cases = (s.cases || []).concat([{ photo, text: cap }]).slice(-4); msg = `✅ Кейс добавлен (в ротации ${s.cases.length})`; }
+  else if (cmd === '/clear_reviews') { s.reviews = []; msg = 'Отзывы очищены'; }
+  else if (cmd === '/clear_cases') { s.cases = []; msg = 'Кейсы очищены'; }
+  else msg = 'Не понял команду. Список: /slots';
+  if (cmd !== '/slots') await setting(env, 'slots', JSON.stringify(s));
+  await tg(env, 'sendMessage', { chat_id: m.chat.id, text: msg });
 }
 
 async function handleWebhook(req, env) {
@@ -870,6 +1171,8 @@ async function handleWebhook(req, env) {
     const cm = upd.chat_member;
     if (String(cm.chat.id) === (await setting(env, 'vip_chat')) && cm.new_chat_member.status === 'member' && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
       await env.DB.prepare('UPDATE users SET vip_joined = ? WHERE id = ?').bind(Date.now(), cm.new_chat_member.user.id).run();
+      const vu = await getUser(env, cm.new_chat_member.user.id);
+      if (vu) { await setFlow(env, vu.id, 'R5'); await opPush(env, vu, '💎 вступил в VIP-группу'); }
       return new Response('ok');
     }
     if (String(cm.chat.id) === (await setting(env, 'club_chat')) && ['member', 'administrator', 'creator'].includes(cm.new_chat_member.status) && !['member', 'administrator', 'creator'].includes(cm.old_chat_member.status)) {
@@ -894,7 +1197,7 @@ async function handleWebhook(req, env) {
       // the bot may DM the requester only until the request is processed → welcome first, approve after
       const dm = jr.user_chat_id || jr.from.id;
       await sendCircle(env, dm);
-      await tg(env, 'sendMessage', { chat_id: dm, text: tt('joinWelcome', lang), reply_markup: await greetKb(env, lang) });
+      await tg(env, 'sendMessage', { chat_id: dm, text: fl('w1', lang), reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
       await tg(env, 'approveChatJoinRequest', { chat_id: jr.chat.id, user_id: jr.from.id });
       if (cm) {
         const cid = cleanCid(cm[1]);
@@ -921,6 +1224,7 @@ async function handleWebhook(req, env) {
       await toSales(env, `📢 «${esc(pc.title)}» (<code>${pc.id}</code>) подключён как ${label}.`);
       return new Response('ok');
     }
+    if (/^fl:\w+$/.test(cq.data || '')) return await flowCallback(env, cq, PUBLIC_ORIGIN);
     if (cq.data === 'subchk') {
       const u = await upsertUser(env, cq.from), lang = pickLang(u.lang || cq.from.language_code);
       if (await isSubscribed(env, cq.from.id)) {
@@ -976,6 +1280,22 @@ async function handleWebhook(req, env) {
   }
   if (m && m.chat && m.chat.type === 'private' && m.from && !m.from.is_bot && !(m.text || '').trim().startsWith('/')) {
     const p = msgPayload(m);
+    const t0 = (m.text || '').trim();
+    if (t0) {
+      const pre = await getUser(env, m.from.id);
+      if ((!pre || !pre.welcomed) && /^(да|yes|ja|oui|si|sí|da|ок|ok|го|давай)[.!👍 ]*$/i.test(t0)) {
+        const uu = await upsertUser(env, m.from);
+        await env.DB.prepare('UPDATE users SET chat_ok = 1 WHERE id = ?').bind(uu.id).run();
+        await startWelcome(env, await getUser(env, uu.id), m.chat.id, PUBLIC_ORIGIN);
+        await opPush(env, uu, '✍️ написал «' + esc(t0) + '» → запустил бота');
+        return new Response('ok');
+      }
+      if (pre && pre.gate !== 'approved' && pre.gate !== 'pending' && /^\d{5,12}$/.test(t0.replace(/\s/g, ''))) {
+        await submitBrokerFromBot(env, pre, t0.replace(/\s/g, ''));
+        await tg(env, 'sendMessage', { chat_id: m.chat.id, text: fl('a_accok', pickLang(pre.lang)) });
+        return new Response('ok');
+      }
+    }
     if (p.text) {
       const existed = await getUser(env, m.from.id);
       const u = await upsertUser(env, m.from);
@@ -1002,6 +1322,9 @@ async function handleWebhook(req, env) {
     if (vn) { await setting(env, 'welcome_circle', vn.file_id); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Кружок сохранён: бот будет отправлять его первым сообщением новым людям.' }); }
     else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setcircle на кружок (видеосообщение), который бот должен отправлять новым людям. Убрать: /nocircle' });
     return new Response('ok');
+  }
+  if (/^\/(slots|set_monitoring|set_balance|set_month|slot_week|slot_result|slot_review|slot_case|clear_reviews|clear_cases)(@\w+)?\b/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    await slotCommand(env, m, text); return new Response('ok');
   }
   if (/^\/setpromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
     const rm = m.reply_to_message || {};
@@ -1051,11 +1374,9 @@ async function handleWebhook(req, env) {
       await sendSubGate(env, m.chat.id, u.id, lang);
     } else {
       if (!u.sub) await env.DB.prepare('UPDATE users SET sub = 1, sub_at = ? WHERE id = ?').bind(Date.now(), u.id).run();
-      if (/^\/start\s+promo\b/.test(text)) await sendPromo(env, m.chat.id, u.id, lang);
-      else {
-        await tg(env, 'sendMessage', { chat_id: m.chat.id, text: tt('joinWelcome', lang), reply_markup: { inline_keyboard: teamRow(env, lang) } });
-        await sendPromo(env, m.chat.id, u.id, lang);
-      }
+      const fu = await getUser(env, u.id);
+      if (!fu.welcomed) await startWelcome(env, fu, m.chat.id, PUBLIC_ORIGIN);
+      else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: fl('w3', lang), reply_markup: await flowKb(env, fu, ['acc', 'app', 'dm'], lang, PUBLIC_ORIGIN) });
     }
   }
   return new Response('ok');
@@ -1065,7 +1386,7 @@ async function handleWebhook(req, env) {
 async function cron(env) {
   await ensureSchema(env);
   const now = Date.now();
-  const users = (await env.DB.prepare('SELECT * FROM users WHERE chat_ok = 1').all()).results || [];
+  const users = (await env.DB.prepare('SELECT * FROM users WHERE chat_ok = 1 AND flow IS NULL').all()).results || [];
   for (const u of users) {
     const lang = pickLang(u.lang);
     const localHour = (new Date().getUTCHours() + Math.round(u.tz || 0) + 48) % 24;
@@ -1074,11 +1395,11 @@ async function cron(env) {
     if (env.MANAGER && u.handoff_at && !u.handoff_catch && now - u.handoff_at > HOUR) {
       sent = await tg(env, 'sendMessage', { chat_id: u.id, text: tt('catchHandoff', lang, { m: env.MANAGER }), reply_markup: mgrButton(env, lang) });
       await env.DB.prepare('UPDATE users SET handoff_catch = 1 WHERE id = ?').bind(u.id).run();
-    } else if (daytime && u.onboarded_at && (u.gate === 'none' || !u.gate) && !u.gate_catch && now - u.onboarded_at > 6 * HOUR) {
+    } else if (false && daytime && u.onboarded_at && (u.gate === 'none' || !u.gate) && !u.gate_catch && now - u.onboarded_at > 6 * HOUR) { // replaced by scenario R2
       const kb = { inline_keyboard: [[{ text: tt('openBtn', lang), web_app: { url: env.APP_URL } }], ...(env.MANAGER ? [[{ text: tt('mgrBtn', lang), url: `https://t.me/${env.MANAGER}` }]] : [])] };
       sent = await tg(env, 'sendMessage', { chat_id: u.id, text: tt('catchGate', lang, { m: env.MANAGER || '' }), reply_markup: kb });
       await env.DB.prepare('UPDATE users SET gate_catch = 1 WHERE id = ?').bind(u.id).run();
-    } else if (daytime) {
+    } else if (daytime && u.gate === 'approved') {
       const lastActive = u.last_studied || u.last_seen || u.first_seen || now;
       if (now - lastActive < 2 * DAY) continue;
       if (u.nudged_at && now - u.nudged_at < 3 * DAY) continue;
@@ -1199,7 +1520,7 @@ const PERM = {
   me: null, logout: null,
   funnel: 'funnel', spend: 'funnel', stats: 'funnel',
   crm: 'crm', 'crm-card': 'crm', 'crm-update': 'crm', users: 'crm', user: 'crm', messages: 'crm', gate: 'crm', vip: 'crm',
-  'support-threads': 'crm', 'support-thread': 'crm', 'support-reply': 'crm',
+  'support-threads': 'crm', 'support-thread': 'crm', 'support-reply': 'crm', 'flow-stop': 'crm',
   tasks: 'tasks',
   videos: 'content', topics: 'content', rewards: 'content', reward: 'content',
   staff: 'team',
@@ -1487,6 +1808,7 @@ async function admin(req, env, url) {
     if (msgs.length) await env.DB.prepare('UPDATE users SET support_admin_seen = ? WHERE id = ?').bind(msgs[msgs.length - 1].id, id).run();
     return json({ user: await getUser(env, id), msgs });
   }
+  if (p === 'flow-stop') { const id = Number(body.id), off = body.off ? 1 : 0; await env.DB.prepare('UPDATE users SET autopush_off = ? WHERE id = ?').bind(off, id).run(); await crmLog(env, id, me.name, off ? 'остановил(а) автокасания' : 'включил(а) автокасания'); return json({ ok: true }); }
   if (p === 'support-reply') { const r = await supportReply(env, Number(body.id), body.text, me.name); if (r.ok) await crmLog(env, Number(body.id), me.name, 'ответил(а) в поддержке'); return json(r); }
   if (p === 'vip') { const r = await grantVip(env, Number(body.id), me.name); if (r.ok) await crmLog(env, Number(body.id), me.name, 'выдал(а) VIP-ссылку'); return json(r); }
   if (p === 'gate') { const r = await setGate(env, Number(body.id), String(body.status), me.name); if (r) await crmLog(env, Number(body.id), me.name, 'счёт: ' + ({ approved: 'подтверждён', rejected: 'отклонён', pending: 'на проверке', none: 'сброшен' }[body.status] || body.status)); return json({ ok: !!r }); }
@@ -1531,6 +1853,15 @@ export default {
         if (url.pathname === '/track') return await handleTrack(req, env, ctx);
       }
       if (req.method === 'GET' && url.pathname === '/join') return await handleJoin(req, env, url);
+      if (req.method === 'GET' && url.pathname === '/r/broker') {
+        const uid = Number(url.searchParams.get('u')) || 0, bu = uid ? await getUser(env, uid) : null;
+        if (bu) {
+          await env.DB.prepare('UPDATE users SET broker_click = COALESCE(broker_click, ?) WHERE id = ?').bind(Date.now(), uid).run();
+          if (!bu.broker_click) await opPush(env, bu, '📝 перешёл по ссылке брокера');
+          if ((!bu.gate || bu.gate === 'none') && (!bu.flow || bu.flow === 'W' || bu.flow === 'R1')) await setFlow(env, uid, 'R2');
+        }
+        return Response.redirect(env.REF_LINK || REF_LINK_DEFAULT, 302);
+      }
       if (url.pathname.startsWith('/admin/')) return await admin(req, env, url);
       if (url.pathname === '/status') {
         const wi = await tg(env, 'getWebhookInfo', {});
@@ -1540,7 +1871,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.14', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.15', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
@@ -1550,6 +1881,7 @@ export default {
     ctx.waitUntil((async () => {
       await ensureSchema(env);
       await slaTick(env);
+      await runFlows(env, PUBLIC_ORIGIN);
       if (event.cron === '0 * * * *' || new Date(event.scheduledTime || Date.now()).getUTCMinutes() === 0 && event.cron !== '* * * * *') await cron(env);
     })());
   }
