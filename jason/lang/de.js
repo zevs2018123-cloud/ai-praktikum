@@ -27,6 +27,7 @@ ui: {
   clubEyebrow:'Privater Club', clubTitle:'Trade an Jasons Seite',
   clubText:'Im privaten Club postet Jason jeden Trade live — Einstieg, Stop, Ziel und Begründung — damit du die Lektionen auf einem echten Konto angewendet siehst.',
   clubDmText:'Hallo Jason! Ich möchte dem Club beitreten',
+  statsBtn:'📊 Signal-Statistik: alle Konten live ↗',
   clubBtn:'Dem Club beitreten →', clubRisk:'Vergangene Ergebnisse garantieren keine zukünftigen Renditen. Kopierte Trades tragen dasselbe Risiko wie selbst platzierte.',
   clubMini:'Live angewendet sehen — Jasons privater Club', clubCourseDone:'„{name}“ abgeschlossen',
   brokerTitle:'Übe im Demokonto — {name}', brokerText:'Eröffne ein kostenloses Demokonto und übe jede Lektion mit Spielgeld, bevor du einen Cent riskierst.', brokerBtn:'Demokonto eröffnen →',

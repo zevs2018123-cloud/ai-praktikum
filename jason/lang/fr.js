@@ -27,6 +27,7 @@ ui: {
   clubEyebrow:'Club privé', clubTitle:'Trade aux côtés de Jason',
   clubText:'Dans le club privé, Jason publie chaque trade en direct — entrée, stop, objectif et raisonnement — pour que tu voies les leçons appliquées sur un vrai compte.',
   clubDmText:'Salut Jason ! Je veux rejoindre le club',
+  statsBtn:'📊 Stats des signaux : tous les comptes en direct ↗',
   clubBtn:'Rejoindre le club →', clubRisk:'Les performances passées ne garantissent pas les résultats futurs. Copier des trades comporte le même risque que de les placer soi-même.',
   clubMini:'Vois-le appliqué en direct — le club privé de Jason', clubCourseDone:'« {name} » terminé',
   brokerTitle:'Entraîne-toi en démo — {name}', brokerText:'Ouvre un compte démo gratuit et pratique chaque leçon avec de l’argent virtuel avant de risquer le moindre centime.', brokerBtn:'Ouvrir un compte démo →',

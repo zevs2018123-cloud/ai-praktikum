@@ -40,6 +40,7 @@ var I18N = { en: { ui: {
   clubEyebrow:'Private club', clubTitle:'Trade alongside Jason',
   clubText:'In the private club Jason posts every trade live — entry, stop, target and the reasoning — so you can see the lessons applied on a real account.',
   clubDmText:'Hi Jason! I want to join the club',
+  statsBtn:'📊 Signal stats: every account, live ↗',
   clubBtn:'Join the club →', clubRisk:"Past results don't guarantee future returns. Copying trades carries the same risk as placing them yourself.",
   clubMini:"See it applied live — Jason's private club", clubCourseDone:'“{name}” complete',
   brokerTitle:'Practise on a demo — {name}', brokerText:'Open a free demo account and practise every lesson with virtual money before you risk a cent.', brokerBtn:'Open demo account →',
