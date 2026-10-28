@@ -1065,7 +1065,9 @@ async function opPush(env, u, what) { await toSales(env, `🔔 ${userLine(u)}\n$
 // W2 + W3 right after "Get access" / "yes" / /start; W4 and the rest go through the scheduler
 async function startWelcome(env, u, chatId, origin) {
   const lang = pickLang(u.lang), s = await slots(env);
-  await tg(env, 'sendMessage', { chat_id: chatId, text: fillSlots(fl('w2', lang), s), disable_web_page_preview: true });
+  const statsUrl = (s.monitoring && s.monitoring.text && /^https?:\/\//.test(s.monitoring.text)) ? s.monitoring.text : RESULTS_URL;
+  await tg(env, 'sendMessage', { chat_id: chatId, text: fillSlots(fl('w2', lang), s), disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: [[{ text: lang === 'ru' ? '📊 Статистика сигналов' : lang === 'de' ? '📊 Signal-Statistik' : lang === 'fr' ? '📊 Stats des signaux' : '📊 Signal stats', url: statsUrl }]] } });
   const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
   const kb = await flowKb(env, u, ['acc', 'app', 'dm'], lang, origin), text = fl('w3', lang);
   let r = null;
@@ -1910,7 +1912,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.22', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.23', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
