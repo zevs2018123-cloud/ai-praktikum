@@ -5,7 +5,7 @@
    Same body format as course lessons (see README → lesson body blocks).
    ============================================================ */
 var INTRO = {
-  video: '',   // TODO: 2–3 min welcome video from Jason
+  video: 'media/promo.mp4',   // welcome video from Jason (hosted with the app)
   min: 3,
   i18n: {
     en: {

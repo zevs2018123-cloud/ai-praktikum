@@ -481,6 +481,8 @@
 
   function videoBlockHtml(vid){
     if(!vid) return '';
+    // our own file (media/*.mp4, hosted with the app) plays inline; anything else is a YouTube id
+    if(/\.mp4$/i.test(vid)) return '<div class="video-wrap"><video class="video-native" controls playsinline preload="none" poster="' + esc(vid.replace(/\.mp4$/i, '.jpg')) + '" src="' + esc(vid) + '"></video></div>';
     return '<div class="video-wrap" data-vid="' + esc(vid) + '"><img class="video-thumb" src="https://i.ytimg.com/vi/' + esc(vid) + '/hqdefault.jpg" alt="" loading="lazy">' +
       '<button class="video-play" type="button" aria-label="Watch video"><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span><span class="lbl">' + T('watchVideo') + '</span></button></div>' +
       '<div class="video-link-row"><a href="#" data-ext="https://youtu.be/' + esc(vid) + '">' + T('openYt') + '</a></div>';
@@ -802,7 +804,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610241312';
+  var BUILD = '202610290014';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
