@@ -842,8 +842,8 @@ const FL_T = {
     ru: "Привет! 👋\n\nВижу, ты только что подписался на мой канал. Добро пожаловать!\n\nЭто мой основной канал. Здесь я в открытую веду челлендж: делаю из $10 000 один миллион, и каждая сделка выходит в канал, плюсовая или минусовая.\n\nНо у меня для тебя есть кое-что ценнее: бесплатный доступ в мою академию и систему X100, где цель — шаг за шагом сделать 100 иксов к своему депозиту. Там я показываю, как торгую золотом, и помогаю зайти в сделки вместе со мной, даже с небольшим депозитом.\n\nЧтобы забрать доступ, жми кнопку ниже 👇 или просто напиши «да»."
   },
   w2: {
-    en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nHere are all the accounts our signals run on, live, every trade visible: {MONITORING}",
-    ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЗдесь все счета, по которым идут сигналы, в реальном времени, каждая сделка видна: {MONITORING}"
+    en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nIf you want, take a look at my stats 👇",
+    ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЕсли хочешь, посмотри мою статистику 👇"
   },
   w3: {
     en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker using the button below. No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
@@ -1912,7 +1912,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.23', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.24', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
