@@ -1362,6 +1362,22 @@ async function handleWebhook(req, env) {
     else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setpromo на видео с промо-роликом. Убрать и вернуть текстовую заглушку: /nopromo' });
     return new Response('ok');
   }
+  // /reset @username|id — wipe one person from the base and start the funnel for them from W1 (testing)
+  if (/^\/reset(@\w+)?\s+\S+/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
+    const who = text.split(/\s+/)[1].replace(/^@/, '');
+    const u = /^\d+$/.test(who) ? await getUser(env, Number(who)) : await env.DB.prepare('SELECT * FROM users WHERE lower(username) = lower(?)').bind(who).first();
+    if (!u) { await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `Не нашёл ${who} в базе. Можно указать id: /reset 123456` }); return new Response('ok'); }
+    const lang = pickLang(u.lang);
+    let n = 0;
+    for (const t of ['ledger', 'messages', 'rewards', 'support', 'support_map', 'support_sla', 'support_kpi', 'crm', 'crm_log']) {
+      try { const r = await env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(u.id).run(); n += (r.meta && r.meta.changes) || 0; } catch (e) {}
+    }
+    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id).run();
+    await sendCircle(env, u.id);
+    const r = await tg(env, 'sendMessage', { chat_id: u.id, text: fl('w1', lang), reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
+    await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `🧹 ${u.username ? '@' + u.username : u.id} удалён из базы (анкета, переписка, CRM, касания).\n` + (r && r.ok ? '▶️ Воронка запущена с начала: первое сообщение (W1) отправлено, дальше всё как у нового человека.' : '⚠️ Первое сообщение не ушло: ' + ((r && r.description) || 'бот не может написать') + '. Пусть человек нажмёт /start в боте.') });
+    return new Response('ok');
+  }
   if (/^\/nopromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
     await setting(env, 'promo_video', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Промо-ролик убран, бот шлёт текстовую заглушку.' });
     return new Response('ok');
@@ -1900,7 +1916,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.20', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.21', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
