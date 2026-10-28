@@ -314,20 +314,14 @@ const promoKb = (env, lang) => ({ inline_keyboard: [
 // (sent by URL once, then reused by the file_id Telegram gives back)
 const PROMO_URL = 'https://zevs2018123-cloud.github.io/ai-praktikum/jason/media/promo.mp4';
 async function sendPromoVideo(env, chatId, caption, reply_markup) {
+  // promo_file: the file_id of the current promo (set by /setpromo, or learned from the first send by URL).
+  // promo_src remembers which hosted file that id belongs to, so a new hosted promo replaces it.
   const extra = { chat_id: chatId, supports_streaming: true, ...(caption ? { caption } : {}), ...(reply_markup ? { reply_markup } : {}) };
-  const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
+  const src = await setting(env, 'promo_src'), cached = await setting(env, 'promo_file');
   let r = null;
-  if (v && v.file_id) {
-    const method = v.type === 'video_note' ? 'sendVideoNote' : v.type === 'animation' ? 'sendAnimation' : 'sendVideo';
-    const key = v.type === 'video_note' ? 'video_note' : v.type === 'animation' ? 'animation' : 'video';
-    r = await tg(env, method, method === 'sendVideoNote' ? { chat_id: chatId, video_note: v.file_id } : { ...extra, [key]: v.file_id });
-    if (r && r.ok) return method === 'sendVideoNote' ? null : r;
-    await setting(env, 'promo_video', null);   // a broken /setpromo file is dropped, the hosted promo takes over
-  }
-  const cached = await setting(env, 'promo_file');
-  if (cached) { r = await tg(env, 'sendVideo', { ...extra, video: cached }); if (r && r.ok) return r; }
+  if (cached && (src === 'manual' || src === PROMO_URL)) { r = await tg(env, 'sendVideo', { ...extra, video: cached }); if (r && r.ok) return r; }
   r = await tg(env, 'sendVideo', { ...extra, video: PROMO_URL });
-  if (r && r.ok && r.result && r.result.video) await setting(env, 'promo_file', r.result.video.file_id);
+  if (r && r.ok && r.result && r.result.video) { await setting(env, 'promo_file', r.result.video.file_id); await setting(env, 'promo_src', PROMO_URL); }
   return r && r.ok ? r : null;
 }
 // promo: the video set with /setpromo (caption = promo text when it fits), else the text placeholder
@@ -1358,7 +1352,7 @@ async function handleWebhook(req, env) {
   if (/^\/setpromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
     const rm = m.reply_to_message || {};
     const v = rm.video ? { type: 'video', file_id: rm.video.file_id } : rm.video_note ? { type: 'video_note', file_id: rm.video_note.file_id } : rm.animation ? { type: 'animation', file_id: rm.animation.file_id } : rm.document && /^video\//.test(rm.document.mime_type || '') ? { type: 'video', file_id: rm.document.file_id } : null;
-    if (v) { await setting(env, 'promo_video', JSON.stringify(v)); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Промо-ролик сохранён: бот отправляет его вторым сообщением, текст промо идёт подписью.' }); }
+    if (v) { await setting(env, 'promo_video', JSON.stringify(v)); if (v.type === 'video') { await setting(env, 'promo_file', v.file_id); await setting(env, 'promo_src', 'manual'); } await tg(env, 'sendMessage', { chat_id: m.chat.id, text: '✅ Промо-ролик сохранён: бот отправляет его вторым сообщением, текст промо идёт подписью.' }); }
     else await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Ответьте командой /setpromo на видео с промо-роликом. Убрать и вернуть текстовую заглушку: /nopromo' });
     return new Response('ok');
   }
@@ -1379,7 +1373,7 @@ async function handleWebhook(req, env) {
     return new Response('ok');
   }
   if (/^\/nopromo(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
-    await setting(env, 'promo_video', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Промо-ролик убран, бот шлёт текстовую заглушку.' });
+    await setting(env, 'promo_video', null); await setting(env, 'promo_file', null); await setting(env, 'promo_src', null); await tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Своё промо убрано, бот снова шлёт основной ролик.' });
     return new Response('ok');
   }
   if (/^\/nocircle(@\w+)?$/.test(text) && m.chat.type !== 'private' && String(m.chat.id) === String(await setting(env, 'sales_chat'))) {
@@ -1916,7 +1910,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.21', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.22', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
