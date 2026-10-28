@@ -310,17 +310,32 @@ const promoKb = (env, lang) => ({ inline_keyboard: [
   [{ text: tt('brokerBtn', lang), url: env.REF_LINK || REF_LINK_DEFAULT }],
   [{ text: tt('openBtn', lang), web_app: { url: env.APP_URL } }],
   ...teamRow(env, lang)] });
-// promo: the video set with /setpromo (caption = promo text when it fits), else the text placeholder
-async function sendPromo(env, chatId, userId, lang) {
+// the promo video: a /setpromo override if one is set and works, else the file hosted with the mini app
+// (sent by URL once, then reused by the file_id Telegram gives back)
+const PROMO_URL = 'https://zevs2018123-cloud.github.io/ai-praktikum/jason/media/promo.mp4';
+async function sendPromoVideo(env, chatId, caption, reply_markup) {
+  const extra = { chat_id: chatId, supports_streaming: true, ...(caption ? { caption } : {}), ...(reply_markup ? { reply_markup } : {}) };
   const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
-  const text = tt('promoText', lang), reply_markup = promoKb(env, lang);
   let r = null;
   if (v && v.file_id) {
     const method = v.type === 'video_note' ? 'sendVideoNote' : v.type === 'animation' ? 'sendAnimation' : 'sendVideo';
     const key = v.type === 'video_note' ? 'video_note' : v.type === 'animation' ? 'animation' : 'video';
-    if (method !== 'sendVideoNote' && text.length <= 1000) r = await tg(env, method, { chat_id: chatId, [key]: v.file_id, caption: text, reply_markup });
-    else { await tg(env, method, { chat_id: chatId, [key]: v.file_id }); }
+    r = await tg(env, method, method === 'sendVideoNote' ? { chat_id: chatId, video_note: v.file_id } : { ...extra, [key]: v.file_id });
+    if (r && r.ok) return method === 'sendVideoNote' ? null : r;
+    await setting(env, 'promo_video', null);   // a broken /setpromo file is dropped, the hosted promo takes over
   }
+  const cached = await setting(env, 'promo_file');
+  if (cached) { r = await tg(env, 'sendVideo', { ...extra, video: cached }); if (r && r.ok) return r; }
+  r = await tg(env, 'sendVideo', { ...extra, video: PROMO_URL });
+  if (r && r.ok && r.result && r.result.video) await setting(env, 'promo_file', r.result.video.file_id);
+  return r && r.ok ? r : null;
+}
+// promo: the video set with /setpromo (caption = promo text when it fits), else the text placeholder
+async function sendPromo(env, chatId, userId, lang) {
+  const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
+  const text = tt('promoText', lang), reply_markup = promoKb(env, lang);
+  let r = text.length <= 1000 ? await sendPromoVideo(env, chatId, text, reply_markup) : null;
+  if (!r && text.length > 1000) await sendPromoVideo(env, chatId);
   if (!r || !r.ok) r = await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup });
   if (userId) await env.DB.prepare('UPDATE users SET promo_at = COALESCE(promo_at, ?) WHERE id = ?').bind(Date.now(), userId).run();
   return r;
@@ -1060,8 +1075,7 @@ async function startWelcome(env, u, chatId, origin) {
   const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
   const kb = await flowKb(env, u, ['acc', 'app', 'dm'], lang, origin), text = fl('w3', lang);
   let r = null;
-  if (v && v.file_id && v.type !== 'video_note') r = await tg(env, v.type === 'animation' ? 'sendAnimation' : 'sendVideo', { chat_id: chatId, [v.type === 'animation' ? 'animation' : 'video']: v.file_id, caption: text, reply_markup: kb });
-  else if (v && v.file_id) await tg(env, 'sendVideoNote', { chat_id: chatId, video_note: v.file_id });
+  r = await sendPromoVideo(env, chatId, text, kb);
   if (!r || !r.ok) await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup: kb });
   await env.DB.prepare('UPDATE users SET promo_at = COALESCE(promo_at, ?), welcomed = 1 WHERE id = ?').bind(Date.now(), u.id).run();
   await setFlow(env, u.id, 'W');
@@ -1886,7 +1900,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.19', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.20', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
