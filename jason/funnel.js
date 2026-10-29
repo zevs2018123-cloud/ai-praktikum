@@ -339,7 +339,12 @@ var FUNNEL = (function(){
       var tg = ev.target.closest('[data-tgt]');
       if(tg){ $('onbTarget').value = tg.dataset.tgt; document.querySelectorAll('[data-tgt]').forEach(function(x){ x.classList.toggle('sel', x === tg); }); if(window.TG) TG.haptic('select'); return; }
       if(ev.target.closest('[data-path-stats]')){ APP.openExternal(C.RESULTS_URL + '#accounts'); return; }
-      if(ev.target.closest('[data-path-go]')){ ov.hidden = true; if(APP.openIntro) APP.openIntro(); else if(locked()) showGate(); return; }
+      if(ev.target.closest('[data-path-go]')){
+        ov.hidden = true;
+        // account already confirmed (e.g. sent in the bot): they saw the promo there, so skip the intro video and go straight to the lessons
+        if(!locked() && APP.startLessons && !(APP.introDone && APP.introDone())){ APP.storeSet('introDone', true); APP.startLessons(); return; }
+        if(APP.openIntro) APP.openIntro(); else if(locked()) showGate(); return;
+      }
       var gc = ev.target.closest('[data-goalchip]');
       if(gc){ $('onbGoalText').value = T('gc_' + gc.dataset.goalchip); return; }
       if(ev.target.closest('[data-back]')){ if(s.key === 'goal') saveGoalFields(); step = Math.max(0, step - 1); renderOnb(); return; }

@@ -804,7 +804,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610290024';
+  var BUILD = '202610290947';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -878,7 +878,7 @@
     bindGate();
     seedChat();
     renderAll();
-    if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, openIntro:openIntro, introDone:introDone, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
+    if(window.FUNNEL) FUNNEL.init({ esc:esc, toast:toast, openExternal:openExternal, openLesson:openLesson, openIntro:openIntro, introDone:introDone, startLessons:function(){ renderAll(); continueCourse(unlockOrder()[0]); }, showScreen:showScreen, storeGet:storeGet, storeSet:storeSet, findCourse:findCourse,
       onFunnelRender:function(){ renderBlocks(); } });
     showScreen(storeGet('activeScreen', 'start'));
     pingOpen();
