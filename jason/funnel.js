@@ -338,7 +338,7 @@ var FUNNEL = (function(){
       }
       var tg = ev.target.closest('[data-tgt]');
       if(tg){ $('onbTarget').value = tg.dataset.tgt; document.querySelectorAll('[data-tgt]').forEach(function(x){ x.classList.toggle('sel', x === tg); }); if(window.TG) TG.haptic('select'); return; }
-      if(ev.target.closest('[data-path-stats]')){ APP.openExternal(C.RESULTS_URL + '#accounts'); return; }
+      if(ev.target.closest('[data-path-stats]')){ APP.openExternal(C.RESULTS_URL + '?lang=' + window.LANG + '#accounts'); return; }
       if(ev.target.closest('[data-path-go]')){
         ov.hidden = true;
         // account already confirmed (e.g. sent in the bot): they saw the promo there, so skip the intro video and go straight to the lessons

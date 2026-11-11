@@ -469,7 +469,7 @@
     }).join('');
   }
   function bindLessonExtras(root){
-    root.querySelectorAll('[data-open-results]').forEach(function(btn){ btn.addEventListener('click', function(){ openExternal(C.RESULTS_URL + '#calculator'); }); });
+    root.querySelectorAll('[data-open-results]').forEach(function(btn){ btn.addEventListener('click', function(){ openExternal(C.RESULTS_URL + '?lang=' + LANG + '#calculator'); }); });
     root.querySelectorAll('.copy-prompt').forEach(function(btn){
       btn.addEventListener('click', function(){
         var text = copyStore[Number(btn.dataset.pi)]; if(!text) return;
@@ -804,7 +804,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202611112055';
+  var BUILD = '202611112057';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -874,6 +874,8 @@
     checkForUpdate();
     localizeLists();
     applyStatic();
+    // the stats site opens in the academy's language
+    document.querySelectorAll('[data-ext*="jt-pro-results"]').forEach(function(el){ el.setAttribute('data-ext', el.getAttribute('data-ext').split('?')[0] + '?lang=' + LANG); });
     shuffleQuizzes();
     var totalLessons = 0; COURSES.forEach(function(c){ totalLessons += c.lessons.length; });
     document.getElementById('buildInfo').textContent = T('build',{b:BUILD,c:COURSES.length,l:totalLessons});
