@@ -74,7 +74,7 @@ var FUNNEL = (function(){
     var debt = m.goalText && DEBT_RE.test(m.goalText);
     return '<div class="goal-card">' +
       '<div class="goal-top"><div class="goal-txt"><span class="lbl">🎯 ' + T('goalLbl') + '</span>' +
-        '<b>' + (m.goalText ? APP.esc(m.goalText) : T('goalNoText')) + '</b>' +
+        '<b>' + (m.goalText ? APP.esc(window.goalLabel ? goalLabel(m.goalText) : m.goalText) : T('goalNoText')) + '</b>' +
         '<span class="goal-nums">' + fmt(b.balance) + ' / ' + (target ? fmt(target) : '—') + '</span></div>' +
         '<div class="goal-pct">' + pct + '%</div></div>' +
       '<div class="goal-bar"><i style="width:' + pct + '%"></i></div>' +
@@ -291,7 +291,7 @@ var FUNNEL = (function(){
     if(!serverOk) return;
     onbShown = true; step = 0;
     var prev = me && me.onboard;
-    if(prev){ ans = { exp:prev.exp, markets:prev.markets || [], problem:prev.problem, time:prev.time, tier: me.tier ? String(me.tier) : null, target: me.goalTarget, goalText: me.goalText }; }
+    if(prev){ ans = { exp:prev.exp, markets:prev.markets || [], problem:prev.problem, time:prev.time, tier: me.tier ? String(me.tier) : null, target: me.goalTarget, goalText: (window.goalLabel ? goalLabel(me.goalText) : me.goalText) }; }
     renderOnb(); $('onbOverlay').hidden = false;
   }
   function renderOnb(){
@@ -370,7 +370,7 @@ var FUNNEL = (function(){
     var start = Number(ans.tier) || 250, target = Number(ans.target) || 10000, mult = target / start;
     var x = mult >= 10 ? Math.round(mult) : Math.round(mult * 10) / 10;
     $('onbBox').innerHTML = '<div class="onb-hero">🎯</div><span class="eyebrow">' + T('pathEyebrow') + '</span>' +
-      '<h2>' + T('pathTitle', { t: fmt(target) }) + '</h2>' + (ans.goalText ? '<p class="muted" style="margin-top:-6px">' + APP.esc(ans.goalText) + '</p>' : '') +
+      '<h2>' + T('pathTitle', { t: fmt(target) }) + '</h2>' + (ans.goalText ? '<p class="muted" style="margin-top:-6px">' + APP.esc(window.goalLabel ? goalLabel(ans.goalText) : ans.goalText) + '</p>' : '') +
       '<div class="path-card"><div class="path-row"><span>' + T('pathStart') + '</span><b>' + fmt(start) + '</b></div>' +
         '<div class="path-row"><span>' + T('pathGoal') + '</span><b>' + fmt(target) + '</b></div>' +
         '<div class="path-row big"><span>' + T('pathMult') + '</span><b>×' + x + '</b></div>' +
@@ -417,7 +417,7 @@ var FUNNEL = (function(){
     log.innerHTML = supMsgs.map(function(m){
       var d = new Date(m.at);
       return '<div class="sup-msg ' + (m.sender === 'manager' ? 'mgr' : 'me') + '">' + (m.sender === 'manager' ? '<span class="who">' + T('supportMgr') + '</span>' : '') +
-        '<span class="txt">' + APP.esc(m.text).replace(/\n/g, '<br>') + '</span><span class="tm">' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + '</span></div>';
+        '<span class="txt">' + APP.esc(m.sender === 'manager' && m.by === 'system' ? T('supportHello') : m.text).replace(/\n/g, '<br>') + '</span><span class="tm">' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + '</span></div>';
     }).join('');
     log.scrollTop = log.scrollHeight;
   }

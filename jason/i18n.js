@@ -154,7 +154,7 @@ Object.assign(I18N.en.ui, {
   introStart:'Start here', introSeen:'Intro · watched', introVideoSoon:'Jason’s welcome video is coming soon',
   supportBtn:'I have a problem', supportTitle:'Support', supportSub:'Write what went wrong — a manager will answer right here.',
   supportPh:'Describe the problem…', supportEmpty:'No messages yet. Tell us what’s not working — registration, the account number, the app — and we’ll help.',
-  supportMgr:'Manager', supportRate:'Too many messages — wait a little, the manager will reply.',
+  supportHello:"Hi! I'm your personal manager at Jason's academy 👋 Anything unclear — registration, the broker account, the lessons — write right here, I answer within minutes.", supportMgr:'Manager', supportRate:'Too many messages — wait a little, the manager will reply.',
   lockPrevLesson:'Finish the previous lesson first', lockPrevCourse:'Finish the previous course’s quiz to unlock this one', lockQuiz:'Read all lessons of this course to open the quiz', lockedCta:'Locked',
   gTitle:'Open your account — that’s your entry', gText:'We work only with people who want to actually earn. Entry to the academy = an account with our partner broker. No deposit needed — just open it:',
   gNote:'A manager checks the account — usually within 1 hour. Then the academy opens and you get a message in the bot.',
@@ -178,3 +178,12 @@ Object.assign(I18N.en.ui, {
   pathReal:'Calculated at our signals’ average return, ~30% a month. This path is real when you trade by the rules: 0.03 lot per $250, a stop on every trade, no revenge trading. You don’t have to follow this pace — what matters is not to blow the deposit on day one and to keep trading for the long run.',
   pathGo:'Start my path →', pathRisk:'Past signal statistics, not a promise of results. Trading with leverage carries a high risk of loss.'
 });
+
+/* Goal chips are saved as their text in the language they were picked in; show them in the current one. */
+var GOAL_CHIP_TEXTS = {"apartment": ["🏠 Apartment", "🏠 Квартира", "🏠 Wohnung", "🏠 Appartement"], "car": ["🚗 Car", "🚗 Машина", "🚗 Auto", "🚗 Voiture"], "debts": ["💳 Pay off debts", "💳 Закрыть долги", "💳 Schulden abbezahlen", "💳 Rembourser mes dettes"], "travel": ["✈️ Travel", "✈️ Путешествия", "✈️ Reisen", "✈️ Voyages"], "business": ["💼 My own business", "💼 Свой бизнес", "💼 Eigenes Business", "💼 Mon entreprise"], "freedom": ["🕊 Financial freedom", "🕊 Финансовая свобода", "🕊 Finanzielle Freiheit", "🕊 Liberté financière"]};
+function goalLabel(text){
+  if(!text) return text;
+  var t = String(text).trim();
+  for(var k in GOAL_CHIP_TEXTS){ if(GOAL_CHIP_TEXTS[k].indexOf(t) !== -1) return T('gc_' + k); }
+  return text;
+}

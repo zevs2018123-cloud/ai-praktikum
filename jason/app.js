@@ -804,7 +804,7 @@
   }
 
   /* ---------- self-update: Telegram caches the page hard ---------- */
-  var BUILD = '202610290947';
+  var BUILD = '202611112055';
   function checkForUpdate(){
     try{
       fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
@@ -858,7 +858,14 @@
     var b = ev.target.closest('[data-lang]');
     if(b){
       var code = b.getAttribute('data-lang');
-      if(code !== LANG){ storeSet('lang', code); try{ sessionStorage.setItem('langSwitch','1'); }catch(e){} location.reload(); return; }
+      if(code !== LANG){
+        // the language also lives in Telegram's cloud storage, which is copied back over local storage on every start:
+        // reload only after the cloud has the new value, or the old language comes back
+        try{ localStorage.setItem(lk('lang'), JSON.stringify(code)); sessionStorage.setItem('langSwitch','1'); }catch(e){}
+        langSheet.hidden = true;
+        if(window.TG && TG.cloudSet) TG.cloudSet('lang', JSON.stringify(code), function(){ location.reload(); }); else location.reload();
+        return;
+      }
     }
     if(b || ev.target === langSheet) langSheet.hidden = true;
   });

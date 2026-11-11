@@ -82,9 +82,11 @@ var TG = (function(){
     }catch(e){ clearTimeout(timer); finish(); }
   }
 
-  function cloudSet(key, jsonValue){
-    if(!cloudOn) return;
-    try{ tg.CloudStorage.setItem(key, jsonValue, function(){}); }catch(e){}
+  function cloudSet(key, jsonValue, done){
+    var called = false; function fin(){ if(called) return; called = true; if(done) done(); }
+    if(!cloudOn){ fin(); return; }
+    setTimeout(fin, 1500);
+    try{ tg.CloudStorage.setItem(key, jsonValue, function(){ fin(); }); }catch(e){ fin(); }
   }
   function cloudRemove(key){
     if(!cloudOn) return;
