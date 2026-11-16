@@ -312,7 +312,7 @@ const promoKb = (env, lang) => ({ inline_keyboard: [
   ...teamRow(env, lang)] });
 // the promo video: a /setpromo override if one is set and works, else the file hosted with the mini app
 // (sent by URL once, then reused by the file_id Telegram gives back)
-const PROMO_URL = 'https://zevs2018123-cloud.github.io/ai-praktikum/jason/media/promo.mp4';
+const PROMO_URL = 'https://zevs2018123-cloud.github.io/ai-praktikum/jason/media/promo-bot-2.mp4';
 async function sendPromoVideo(env, chatId, caption, reply_markup) {
   // promo_file: the file_id of the current promo (set by /setpromo, or learned from the first send by URL).
   // promo_src remembers which hosted file that id belongs to, so a new hosted promo replaces it.
@@ -846,8 +846,8 @@ const FL_T = {
     ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЕсли хочешь, посмотри мою статистику 👇"
   },
   w3: {
-    en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker using the button below. No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
-    ru: "Чтобы попасть в академию и торговать вместе со мной, сделай одно из двух:\n\n1️⃣ Открой счёт у моего брокера по кнопке ниже. Пополнять пока не нужно, уроки откроются бесплатно.\n2️⃣ Или напиши мне в личку, если твой депозит больше $10 000: разберём, как зайти именно с твоей суммой, и добавлю тебя в VIP-группу."
+    en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker inside the academy (button below). No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
+    ru: "Чтобы попасть в академию и торговать вместе со мной, сделай одно из двух:\n\n1️⃣ Открой счёт у моего брокера в академии (кнопка ниже). Пополнять пока не нужно, уроки откроются бесплатно.\n2️⃣ Или напиши мне в личку, если твой депозит больше $10 000: разберём, как зайти именно с твоей суммой, и добавлю тебя в VIP-группу."
   },
   w4: {
     en: "Safety comes first in the academy.\n\nYour money stays in your own account with a regulated broker. I don't manage it and have no access to it. You withdraw whenever you want.\n\nAnd everything I post is backed by reviews from people who are already inside.\n\n👉 See for yourself 👆",
@@ -1075,7 +1075,7 @@ async function startWelcome(env, u, chatId, origin) {
   await tg(env, 'sendMessage', { chat_id: chatId, text: fillSlots(fl('w2', lang), s), disable_web_page_preview: true,
     reply_markup: { inline_keyboard: [[{ text: lang === 'ru' ? '📊 Статистика сигналов' : lang === 'de' ? '📊 Signal-Statistik' : lang === 'fr' ? '📊 Stats des signaux' : '📊 Signal stats', url: statsUrl }]] } });
   const v = JSON.parse((await setting(env, 'promo_video')) || 'null');
-  const kb = await flowKb(env, u, ['acc', 'app', 'dm'], lang, origin), text = fl('w3', lang);
+  const kb = await flowKb(env, u, ['app', 'dm'], lang, origin), text = fl('w3', lang);
   let r = null;
   r = await sendPromoVideo(env, chatId, text, kb);
   if (!r || !r.ok) await tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup: kb });
@@ -1918,7 +1918,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.25', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.26', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
