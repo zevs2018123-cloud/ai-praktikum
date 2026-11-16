@@ -838,8 +838,8 @@ async function showClubWelcome(env, chatId, userId, lang, msgId) {
 const DM_TEXT = { en: 'Hi Jason! I want to trade with you', ru: 'Привет, Джейсон! Хочу торговать вместе с тобой' };
 const FL_T = {
   w1: {
-    en: "Hey! 👋\n\nI see you just joined my channel. Welcome!\n\nThis is my main channel. Here I run an open challenge: turning $10,000 into a million, and every trade goes out to the channel, win or loss.\n\nBut I've got something more valuable for you: free access to my academy and my X100 system, where the goal is to grow your deposit 100x step by step. There I show how I trade gold and help you get into trades together with me, even with a small deposit.\n\nTo get access, tap the button below 👇 or just type \"yes\".",
-    ru: "Привет! 👋\n\nВижу, ты только что подписался на мой канал. Добро пожаловать!\n\nЭто мой основной канал. Здесь я в открытую веду челлендж: делаю из $10 000 один миллион, и каждая сделка выходит в канал, плюсовая или минусовая.\n\nНо у меня для тебя есть кое-что ценнее: бесплатный доступ в мою академию и систему X100, где цель — шаг за шагом сделать 100 иксов к своему депозиту. Там я показываю, как торгую золотом, и помогаю зайти в сделки вместе со мной, даже с небольшим депозитом.\n\nЧтобы забрать доступ, жми кнопку ниже 👇 или просто напиши «да»."
+    en: "Hey! 👋\n\nI see you just joined my channel {CHANNEL}. Welcome!\n\nThis is my main channel. Here I run an open challenge: turning $10,000 into a million, and every trade goes out to the channel, win or loss.\n\nBut I've got something more valuable for you: free access to my academy and my X100 system, where the goal is to grow your deposit 100x step by step. There I show how I trade gold and help you get into trades together with me, even with a small deposit.\n\nTo get access, tap the button below 👇 or just type \"yes\".",
+    ru: "Привет! 👋\n\nВижу, ты только что подписался на мой канал {CHANNEL}. Добро пожаловать!\n\nЭто мой основной канал. Здесь я в открытую веду челлендж: делаю из $10 000 один миллион, и каждая сделка выходит в канал, плюсовая или минусовая.\n\nНо у меня для тебя есть кое-что ценнее: бесплатный доступ в мою академию и систему X100, где цель — шаг за шагом сделать 100 иксов к своему депозиту. Там я показываю, как торгую золотом, и помогаю зайти в сделки вместе со мной, даже с небольшим депозитом.\n\nЧтобы забрать доступ, жми кнопку ниже 👇 или просто напиши «да»."
   },
   w2: {
     en: "Great! Glad you didn't put it off 🤝\n\nI'll send you how to get into the academy in the next message, but first a quick intro.\n\nA bit about me:\n— trading for more than 5 years\n— running a public challenge right now: $10,000 → $1,000,000\n— the challenge account since the start: {BALANCE}\n\nIf you want, take a look at my stats 👇",
@@ -987,6 +987,12 @@ function slotMedia(s, att) {
   if (att === 'review') return s.reviews && s.reviews.length ? s.reviews[(Date.now() / HOUR | 0) % s.reviews.length] : null;
   if (att === 'case') return s.cases && s.cases.length ? s.cases[(Date.now() / DAY | 0) % s.cases.length] : null;
   return null;
+}
+// W1 with the channel name linked to the channel
+const CHANNEL_NAME = 'Jayson Trading X100';
+function w1Html(env, lang) {
+  const name = env.CHANNEL_LINK ? `<a href="${esc(env.CHANNEL_LINK)}">${CHANNEL_NAME}</a>` : CHANNEL_NAME;
+  return esc(fl('w1', lang)).split('{CHANNEL}').join(name);
 }
 async function sendTouch(env, u, k, keys, att, origin, opt) {
   const lang = pickLang(u.lang), s = await slots(env);
@@ -1220,7 +1226,7 @@ async function handleWebhook(req, env) {
       // the bot may DM the requester only until the request is processed → welcome first, approve after
       const dm = jr.user_chat_id || jr.from.id;
       await sendCircle(env, dm);
-      await tg(env, 'sendMessage', { chat_id: dm, text: fl('w1', lang), reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
+      await tg(env, 'sendMessage', { chat_id: dm, text: w1Html(env, lang), parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
       await tg(env, 'approveChatJoinRequest', { chat_id: jr.chat.id, user_id: jr.from.id });
       if (cm) {
         const cid = cleanCid(cm[1]);
@@ -1370,7 +1376,7 @@ async function handleWebhook(req, env) {
     }
     await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id).run();
     await sendCircle(env, u.id);
-    const r = await tg(env, 'sendMessage', { chat_id: u.id, text: fl('w1', lang), reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
+    const r = await tg(env, 'sendMessage', { chat_id: u.id, text: w1Html(env, lang), parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: { inline_keyboard: [[{ text: flb('get', lang), url: `https://t.me/${await botUsername(env)}?start=w2` }]] } });
     await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `🧹 ${u.username ? '@' + u.username : u.id} удалён из базы (анкета, переписка, CRM, касания).\n` + (r && r.ok ? '▶️ Воронка запущена с начала: первое сообщение (W1) отправлено, дальше всё как у нового человека.' : '⚠️ Первое сообщение не ушло: ' + ((r && r.description) || 'бот не может написать') + '. Пусть человек нажмёт /start в боте.') });
     return new Response('ok');
   }
@@ -1912,7 +1918,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.24', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.25', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
