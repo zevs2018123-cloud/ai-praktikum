@@ -846,8 +846,8 @@ const FL_T = {
     ru: "Отлично! Рад, что не стал откладывать 🤝\n\nСейчас пришлю, как зайти в академию. Это придёт следующим сообщением, а пока хочу коротко познакомиться.\n\nКоротко обо мне:\n— торгую уже более 5 лет\n— сейчас веду публичный челлендж $10 000 → $1 000 000\n— с начала челленджа счёт: {BALANCE}\n\nЕсли хочешь, посмотри мою статистику 👇"
   },
   w3: {
-    en: "To get into the academy and trade together with me, do one of two things:\n\n1️⃣ Open an account with my broker inside the academy (button below). No need to fund it yet, the lessons open for free.\n2️⃣ Or message me directly if your deposit is over $10,000: we'll go through how to start with your amount and I'll add you to the VIP group.",
-    ru: "Чтобы попасть в академию и торговать вместе со мной, сделай одно из двух:\n\n1️⃣ Открой счёт у моего брокера в академии (кнопка ниже). Пополнять пока не нужно, уроки откроются бесплатно.\n2️⃣ Или напиши мне в личку, если твой депозит больше $10 000: разберём, как зайти именно с твоей суммой, и добавлю тебя в VIP-группу."
+    en: "Now you know who I am and how I trade 👆\n\nFrom here there are two ways in, pick either:\n\n🎓 Open the academy. There's a free base course inside: how I enter gold trades, how to size your risk and how to work toward X100 step by step, even with a small deposit. To unlock the lessons you only need an account with my broker, no need to fund it right away.\n\n💬 Or message me. Tell me how much you want to start with and what your goal is, and we'll go through your situation personally. If your deposit is $10,000 or more, I'll add you to the VIP group straight away.\n\nTap a button below 👇",
+    ru: "Теперь ты знаешь, кто я и как торгую 👆\n\nДальше два пути, выбирай любой:\n\n🎓 Открой академию. Там бесплатный базовый курс: как я захожу в сделки по золоту, как считать риск и как идти к X100 шаг за шагом даже с небольшим депозитом. Чтобы открыть уроки, нужен только счёт у моего брокера, пополнять его сразу не нужно.\n\n💬 Или напиши мне. Расскажи, с какой суммой хочешь начать и какая у тебя цель, разберём твою ситуацию лично. Если депозит от $10 000, сразу добавлю тебя в VIP-группу.\n\nЖми кнопку ниже 👇"
   },
   w4: {
     en: "Safety comes first in the academy.\n\nYour money stays in your own account with a regulated broker. I don't manage it and have no access to it. You withdraw whenever you want.\n\nAnd everything I post is backed by reviews from people who are already inside.\n\n👉 See for yourself 👆",
@@ -1918,7 +1918,7 @@ export default {
           await tg(env, 'setWebhook', { url: w.url, allowed_updates: WEBHOOK_UPDATES });
           w = (await tg(env, 'getWebhookInfo', {})).result || w;
         }
-        return json({ version: 'v2.26', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
+        return json({ version: 'v2.27', clubConnected: !!(await setting(env, 'club_chat')), clubTitle: await setting(env, 'club_title'), vipConnected: !!(await setting(env, 'vip_chat')), vipTitle: await setting(env, 'vip_title'), jasonAccount: ((b) => b ? (b.username ? '@' + b.username : b.name) + (b.can_reply ? '' : ' (no reply right)') : null)(await bizConn(env)), salesChat: !!(await setting(env, 'sales_chat')),
           webhook: { ok: !!w.url, pending: w.pending_update_count, lastError: w.last_error_message || null, lastErrorAgoMin: w.last_error_date ? Math.round((Date.now() / 1000 - w.last_error_date) / 60) : null, allowed: w.allowed_updates || null } });
       }
     } catch (e) { return json({ error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500); }
